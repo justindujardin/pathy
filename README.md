@@ -9,13 +9,7 @@ GCSPath provides a convenient Pythonic File-System/Path like interface to Google
 
 It is based on the [S3Path](https://github.com/liormizr/s3path) project, which provides a similar interface for S3 buckets.
 
----
-
-GCS is among the popular cloud storage solutions. It's object storage built to store and retrieve various amounts of data from anywhere.
-
-Rather than directly use `google-cloud-storage` to connect / put / get / list / delete files from GCS, gcspath extends pathlib classes to provide a familiar API for developers that normally work with local file paths.
-
-# Install:
+# Install
 
 From PyPI:
 
@@ -23,7 +17,7 @@ From PyPI:
 $ pip install gcspath
 ```
 
-# Requirements:
+# Requirements
 
 - Python >= 3.6
 - google-cloud-storage
