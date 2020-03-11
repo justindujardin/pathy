@@ -1,0 +1,4 @@
+include gcspath.py
+include setup.py
+include README.md
+include LICENSE
