@@ -70,16 +70,15 @@ class _GCSAccessor(_Accessor):
     def stat(self, path):
         bucket = self.gcs.get_bucket(self._bucket_name(path.bucket))
         blob: storage.Blob = bucket.get_blob(str(path.key))
+        if blob is None:
+            raise FileNotFoundError(path)
         return StatResult(size=blob.size, last_modified=blob.updated)
 
     def is_dir(self, path):
         if str(path) == path.root:
             return True
         bucket = self.gcs.get_bucket(self._bucket_name(path.bucket))
-        blob: storage.Blob = bucket.get_blob(str(path.key))
-
-        bucket = self.gcs.Bucket(self._bucket_name(path.bucket))
-        return any(bucket.objects.filter(Prefix=self._generate_prefix(path)))
+        return any(bucket.list_blobs(prefix=self._generate_prefix(path)))
 
     def exists(self, path) -> bool:
         bucket_name = self._bucket_name(path.bucket)
@@ -110,42 +109,37 @@ class _GCSAccessor(_Accessor):
     def scandir(self, path):
         bucket_name = self._bucket_name(path.bucket)
         if not bucket_name:
-            for bucket in self.gcs.buckets.all():
+            for bucket in self.gcs.list_buckets():
                 yield GCSDirEntry(bucket.name, is_dir=True)
             return
-        bucket = self.gcs.Bucket(bucket_name)
+        bucket = self.gcs.get_bucket(bucket_name)
         sep = path._flavour.sep
-
-        kwargs = {
-            "Bucket": bucket.name,
-            "Prefix": self._generate_prefix(path),
-            "Delimiter": sep,
-        }
 
         continuation_token = None
         while True:
             if continuation_token:
-                kwargs["ContinuationToken"] = continuation_token
-            response = bucket.meta.client.list_objects_v2(**kwargs)
-            for folder in response.get("CommonPrefixes", ()):
-                full_name = (
-                    folder["Prefix"][:-1]
-                    if folder["Prefix"].endswith(sep)
-                    else folder["Prefix"]
+                response = bucket.list_blobs(
+                    prefix=self._generate_prefix(path), delimiter=sep,
                 )
-                name = full_name.split(sep)[-1]
-                yield GCSDirEntry(name, is_dir=True)
-            for file in response.get("Contents", ()):
-                name = file["Key"].split(sep)[-1]
-                yield GCSDirEntry(
-                    name=name,
-                    is_dir=False,
-                    size=file["Size"],
-                    last_modified=file["LastModified"],
+            else:
+                response = bucket.list_blobs(
+                    prefix=self._generate_prefix(path), delimiter=sep
                 )
-            if not response.get("IsTruncated"):
+            for page in response.pages:
+                for folder in list(page.prefixes):
+                    full_name = folder[:-1] if folder.endswith(sep) else folder
+                    name = full_name.split(sep)[-1]
+                    yield GCSDirEntry(name, is_dir=True)
+                for item in page:
+                    yield GCSDirEntry(
+                        name=item.name.split(sep)[-1],
+                        is_dir=False,
+                        size=item.size,
+                        last_modified=item.updated,
+                    )
+            if response.next_page_token is None:
                 break
-            continuation_token = response.get("NextContinuationToken")
+            continuation_token = response.next_page_token
 
     def listdir(self, path):
         return [entry.name for entry in self.scandir(path)]
@@ -530,7 +524,7 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
             return False
         try:
             return bool(self.stat())
-        except ClientError:
+        except (gcs_errors.ClientError, FileNotFoundError):
             return False
 
     def iterdir(self):
@@ -835,7 +829,7 @@ class GCSKeyReadableFileObject(RawIOBase):
     def readable(self):
         if "r" not in self.mode:
             return False
-        with suppress(ClientError):
+        with suppress(gcs_errors.ClientError):
             if self._streaming_body is None:
                 self._streaming_body = _gcs_accessor.boto3_method_with_parameters(
                     self.object_summery.get, path=self.path

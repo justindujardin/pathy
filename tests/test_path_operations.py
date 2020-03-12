@@ -13,6 +13,10 @@ from gcspath import GCSPath, PureGCSPath, StatResult, _gcs_accessor
 # todo: test adding parameners to boto3 by path
 
 
+# todo(jd): replace global test-bucket with mock or generate buckets and call these e2e tests
+bucket = "gcsbucket-test-dev"
+
+
 @pytest.fixture()
 def gcs_mock():
     client = mock.create_autospec(storage.Client)
@@ -31,13 +35,12 @@ def test_stat(gcs_mock):
     test_file = "gs://gcsbucket-test-dev/foo.txt"
     client = storage.Client()
     blob = storage.Blob.from_string(test_file)
-    blob.upload_from_string("New contents!", client=client)
+    blob.upload_from_string("a-a-a-a-a-a-a", client=client)
     path = GCSPath.from_uri(test_file)
     stat = path.stat()
     assert isinstance(stat, StatResult)
     assert stat == StatResult(size=blob.size, last_modified=blob.updated)
-    path = GCSPath("/test-bucket")
-    assert path.stat() is None
+    assert GCSPath("/test-bucket").stat() is None
 
 
 def test_exists(gcs_mock):
@@ -45,127 +48,75 @@ def test_exists(gcs_mock):
     with pytest.raises(ValueError):
         path.exists()
 
-    # GCS buckets are globally unique and I don't have access to "test-bucket"
-    # I guess if you own that bucket and execute these tests, they might fail. |x_X|
+    # GCS buckets are globally unique, "test-bucket" exists and you don't own it
     assert GCSPath("/test-bucket/fake-key").exists() is False
-    assert GCSPath("/test-bucket-3415155/fake-key").exists() is False
+    assert GCSPath("/unknown-bucket-name-123987519875419").exists() is False
     assert GCSPath("/gcsbucket-test-dev/not_found.txt").exists() is False
 
     test_path = "/gcsbucket-test-dev/directory/foo.txt"
     test_gs_file = f"gs:/{test_path}"
     client = storage.Client()
     blob = storage.Blob.from_string(test_gs_file)
-    blob.upload_from_string("New contents!", client=client)
+    blob.upload_from_string("---", client=client)
     path = GCSPath(test_path)
     assert path.exists()
     for parent in path.parents:
         assert parent.exists()
 
 
-# def test_glob(gcs_mock):
-#     s3 = boto3.resource("s3")
-#     s3.create_bucket(Bucket="test-bucket")
-#     object_summary = s3.ObjectSummary("test-bucket", "directory/Test.test")
-#     object_summary.put(Body=b"test data")
+def test_glob(gcs_mock):
+    client = storage.Client()
+    for i in range(3):
+        blob = storage.Blob.from_string(f"gs://{bucket}/glob/{i}.file")
+        blob.upload_from_string("---", client=client)
+    for i in range(2):
+        blob = storage.Blob.from_string(f"gs://{bucket}/glob/{i}/dir/file.txt")
+        blob.upload_from_string("---", client=client)
 
-#     assert list(GCSPath("/test-bucket/").glob("*.test")) == []
-#     assert list(GCSPath("/test-bucket/directory/").glob("*.test")) == [
-#         GCSPath("/test-bucket/directory/Test.test")
-#     ]
-#     assert list(GCSPath("/test-bucket/").glob("**/*.test")) == [
-#         GCSPath("/test-bucket/directory/Test.test")
-#     ]
-
-#     object_summary = s3.ObjectSummary("test-bucket", "pathlib.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "setup.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "test_pathlib.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/conf.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "build/lib/pathlib.py")
-#     object_summary.put(Body=b"test data")
-
-#     assert sorted(GCSPath.from_uri("s3://test-bucket/").glob("*.py")) == [
-#         GCSPath("/test-bucket/pathlib.py"),
-#         GCSPath("/test-bucket/setup.py"),
-#         GCSPath("/test-bucket/test_pathlib.py"),
-#     ]
-#     assert sorted(GCSPath.from_uri("s3://test-bucket/").glob("*/*.py")) == [
-#         GCSPath("/test-bucket/docs/conf.py")
-#     ]
-#     assert sorted(GCSPath.from_uri("s3://test-bucket/").glob("**/*.py")) == [
-#         GCSPath("/test-bucket/build/lib/pathlib.py"),
-#         GCSPath("/test-bucket/docs/conf.py"),
-#         GCSPath("/test-bucket/pathlib.py"),
-#         GCSPath("/test-bucket/setup.py"),
-#         GCSPath("/test-bucket/test_pathlib.py"),
-#     ]
-#     assert sorted(GCSPath.from_uri("s3://test-bucket/").glob("*cs")) == [
-#         GCSPath("/test-bucket/docs/"),
-#     ]
+    assert list(GCSPath(f"/{bucket}/glob/").glob("*.test")) == []
+    assert list(GCSPath(f"/{bucket}/glob/").glob("*.file")) == [
+        GCSPath("/gcsbucket-test-dev/glob/0.file"),
+        GCSPath("/gcsbucket-test-dev/glob/1.file"),
+        GCSPath("/gcsbucket-test-dev/glob/2.file"),
+    ]
+    assert list(GCSPath(f"/{bucket}/glob/0/").glob("*/*.txt")) == [
+        GCSPath("/gcsbucket-test-dev/glob/0/dir/file.txt"),
+    ]
+    assert sorted(GCSPath.from_uri(f"gs://{bucket}").glob("*lob/")) == [
+        GCSPath(f"/{bucket}/glob"),
+    ]
+    # Recursive matches
+    assert list(GCSPath(f"/{bucket}/glob/").glob("**/*.txt")) == [
+        GCSPath("/gcsbucket-test-dev/glob/0/dir/file.txt"),
+        GCSPath("/gcsbucket-test-dev/glob/1/dir/file.txt"),
+    ]
+    # rglob adds the **/ for you
+    assert list(GCSPath(f"/{bucket}/glob/").rglob("*.txt")) == [
+        GCSPath("/gcsbucket-test-dev/glob/0/dir/file.txt"),
+        GCSPath("/gcsbucket-test-dev/glob/1/dir/file.txt"),
+    ]
 
 
-# def test_rglob(gcs_mock):
-#     s3 = boto3.resource("s3")
-#     s3.create_bucket(Bucket="test-bucket")
-#     object_summary = s3.ObjectSummary("test-bucket", "directory/Test.test")
-#     object_summary.put(Body=b"test data")
-
-#     assert list(GCSPath("/test-bucket/").rglob("*.test")) == [
-#         GCSPath("/test-bucket/directory/Test.test")
-#     ]
-#     assert list(GCSPath("/test-bucket/").rglob("**/*.test")) == [
-#         GCSPath("/test-bucket/directory/Test.test")
-#     ]
-
-#     object_summary = s3.ObjectSummary("test-bucket", "pathlib.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "setup.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "test_pathlib.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/conf.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "build/lib/pathlib.py")
-#     object_summary.put(Body=b"test data")
-
-#     assert sorted(GCSPath.from_uri("s3://test-bucket/").rglob("*.py")) == [
-#         GCSPath("/test-bucket/build/lib/pathlib.py"),
-#         GCSPath("/test-bucket/docs/conf.py"),
-#         GCSPath("/test-bucket/pathlib.py"),
-#         GCSPath("/test-bucket/setup.py"),
-#         GCSPath("/test-bucket/test_pathlib.py"),
-#     ]
+def test_is_dir(gcs_mock):
+    client = storage.Client()
+    target_file = f"/{bucket}/is_dir/subfolder/another/my.file"
+    blob = storage.Blob.from_string(f"gs:/{target_file}")
+    blob.upload_from_string("---", client=client)
+    path = GCSPath(target_file)
+    assert path.is_dir() is False
+    for parent in path.parents:
+        assert parent.is_dir() is True
 
 
-# def test_is_dir(gcs_mock):
-#     s3 = boto3.resource("s3")
-#     s3.create_bucket(Bucket="test-bucket")
-#     object_summary = s3.ObjectSummary("test-bucket", "directory/Test.test")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "pathlib.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "setup.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "test_pathlib.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/conf.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "build/lib/pathlib.py")
-#     object_summary.put(Body=b"test data")
-
-#     assert not GCSPath("/test-bucket/fake.test").is_dir()
-#     assert not GCSPath("/test-bucket/fake/").is_dir()
-#     assert GCSPath("/test-bucket/directory").is_dir()
-#     assert not GCSPath("/test-bucket/directory/Test.test").is_dir()
-#     assert not GCSPath("/test-bucket/pathlib.py").is_dir()
-#     assert not GCSPath("/test-bucket/docs/conf.py").is_dir()
-#     assert GCSPath("/test-bucket/docs/").is_dir()
-#     assert GCSPath("/test-bucket/build/").is_dir()
-#     assert GCSPath("/test-bucket/build/lib").is_dir()
-#     assert not GCSPath("/test-bucket/build/lib/pathlib.py").is_dir()
+def test_is_file(gcs_mock):
+    client = storage.Client()
+    target_file = f"/{bucket}/is_file/subfolder/another/my.file"
+    blob = storage.Blob.from_string(f"gs:/{target_file}")
+    blob.upload_from_string("---", client=client)
+    path = GCSPath(target_file)
+    assert path.is_file() is True
+    for parent in path.parents:
+        assert parent.is_file() is False
 
 
 # def test_is_file(gcs_mock):
