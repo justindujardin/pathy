@@ -871,7 +871,7 @@ class GCSKeyReadableFileObject(RawIOBase):
     @readable_check
     def readline(self):
         with suppress(StopIteration, ValueError):
-            line = next(self._streaming_body.iter_lines(chunk_size=self.buffering))
+            line = self._streaming_body.readline()
             return self._string_parser(line)
         return self._string_parser(b"")
 

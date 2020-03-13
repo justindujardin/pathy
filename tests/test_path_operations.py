@@ -142,59 +142,48 @@ def test_iterdir():
     ]
 
 
-def test_open_for_reading(gcs_mock):
+def test_open_for_read():
     client = storage.Client()
     blob = storage.Blob.from_string(f"gs://{bucket}/read/file.txt")
     blob.upload_from_string("---", client=client)
     path = GCSPath(f"/{bucket}/read/file.txt")
-    file_obj = path.open()
-    assert file_obj.read() == "---"
+    with path.open() as file_obj:
+        assert file_obj.read() == "---"
+    assert path.read_text() == "---"
 
 
-def test_open_for_write(gcs_mock):
+def test_open_for_write():
     path = GCSPath(f"/{bucket}/write/file.txt")
     with path.open(mode="w") as file_obj:
         file_obj.write("---")
         file_obj.writelines([b"---"])
     path = GCSPath(f"/{bucket}/write/file.txt")
-    file_obj = path.open()
-    assert file_obj.read() == "------"
+    with path.open() as file_obj:
+        assert file_obj.read() == "------"
 
 
-# def test_open_for_write(gcs_mock):
-#     s3 = boto3.resource("s3")
-#     s3.create_bucket(Bucket="test-bucket")
-#     bucket = s3.Bucket("test-bucket")
-#     assert sum(1 for _ in bucket.objects.all()) == 0
-
-#     path = GCSPath("/test-bucket/directory/Test.test")
-#     file_obj = path.open(mode="bw")
-#     assert file_obj.writable()
-#     file_obj.write(b"test data\n")
-#     file_obj.writelines([b"test data"])
-
-#     assert sum(1 for _ in bucket.objects.all()) == 1
-
-#     object_summary = s3.ObjectSummary("test-bucket", "directory/Test.test")
-#     streaming_body = object_summary.get()["Body"]
-
-#     assert list(streaming_body.iter_lines()) == [b"test data", b"test data"]
-
-
-# def test_open_binary_read(gcs_mock):
-#     s3 = boto3.resource("s3")
-#     s3.create_bucket(Bucket="test-bucket")
-#     object_summary = s3.ObjectSummary("test-bucket", "directory/Test.test")
-#     object_summary.put(Body=b"test data")
-
-#     path = GCSPath("/test-bucket/directory/Test.test")
+# def test_open_binary_read():
+#     path = GCSPath(f"/{bucket}/read_binary/file.txt")
+#     path.write_bytes(b"---")
 #     with path.open(mode="br") as file_obj:
-#         assert file_obj.readlines() == [b"test data"]
-
+#         assert file_obj.readlines() == [b"---"]
 #     with path.open(mode="rb") as file_obj:
-#         assert file_obj.readline() == b"test data"
+#         assert file_obj.readline() == b"---"
 #         assert file_obj.readline() == b""
-#         assert file_obj.readline() == b""
+
+
+def test_readwrite_text():
+    path = GCSPath(f"/{bucket}/write_text/file.txt")
+    path.write_text("---")
+    with path.open() as file_obj:
+        assert file_obj.read() == "---"
+    assert path.read_text() == "---"
+
+
+def test_readwrite_bytes():
+    path = GCSPath(f"/{bucket}/write_bytes/file.txt")
+    path.write_bytes(b"---")
+    assert path.read_bytes() == b"---"
 
 
 # @pytest.mark.skipif(sys.version_info < (3, 5), reason="requires python3.5 or higher")
@@ -363,33 +352,3 @@ def test_open_for_write(gcs_mock):
 #     GCSPath("/test-second-bucket/test-directory/file.name").mkdir(parents=True)
 
 #     assert s3.Bucket("test-second-bucket") in s3.buckets.all()
-
-
-# def test_write_text(gcs_mock):
-#     s3 = boto3.resource("s3")
-
-#     s3.create_bucket(Bucket="test-bucket")
-#     object_summary = s3.ObjectSummary("test-bucket", "temp_key")
-#     object_summary.put(Body=b"test data")
-
-#     path = GCSPath("/test-bucket/temp_key")
-#     data = path.read_text()
-#     assert isinstance(data, str)
-
-#     path.write_text(data)
-#     assert path.read_text() == data
-
-
-# def test_write_bytes(gcs_mock):
-#     s3 = boto3.resource("s3")
-
-#     s3.create_bucket(Bucket="test-bucket")
-#     object_summary = s3.ObjectSummary("test-bucket", "temp_key")
-#     object_summary.put(Body=b"test data")
-
-#     path = GCSPath("/test-bucket/temp_key")
-#     data = path.read_bytes()
-#     assert isinstance(data, bytes)
-
-#     path.write_bytes(data)
-#     assert path.read_bytes() == data
