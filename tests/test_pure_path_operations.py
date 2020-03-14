@@ -171,25 +171,25 @@ def test_match():
 
 
 def test_relative_to():
-    s3_path = PureGCSPath("/etc/passwd")
-    assert s3_path.relative_to("/") == PureGCSPath("etc/passwd")
-    assert s3_path.relative_to("/etc") == PureGCSPath("passwd")
+    gcs_path = PureGCSPath("/etc/passwd")
+    assert gcs_path.relative_to("/") == PureGCSPath("etc/passwd")
+    assert gcs_path.relative_to("/etc") == PureGCSPath("passwd")
     with pytest.raises(ValueError):
-        s3_path.relative_to("/usr")
+        gcs_path.relative_to("/usr")
 
 
 def test_with_name():
-    s3_path = PureGCSPath("/Downloads/pathlib.tar.gz")
-    assert s3_path.with_name("setup.py") == PureGCSPath("/Downloads/setup.py")
-    s3_path = PureGCSPath("/")
+    gcs_path = PureGCSPath("/Downloads/pathlib.tar.gz")
+    assert gcs_path.with_name("setup.py") == PureGCSPath("/Downloads/setup.py")
+    gcs_path = PureGCSPath("/")
     with pytest.raises(ValueError):
-        s3_path.with_name("setup.py")
+        gcs_path.with_name("setup.py")
 
 
 def test_with_suffix():
-    s3_path = PureGCSPath("/Downloads/pathlib.tar.gz")
-    assert s3_path.with_suffix(".bz2") == PureGCSPath("/Downloads/pathlib.tar.bz2")
-    s3_path = PureGCSPath("README")
-    assert s3_path.with_suffix(".txt") == PureGCSPath("README.txt")
-    s3_path = PureGCSPath("README.txt")
-    assert s3_path.with_suffix("") == PureGCSPath("README")
+    gcs_path = PureGCSPath("/Downloads/pathlib.tar.gz")
+    assert gcs_path.with_suffix(".bz2") == PureGCSPath("/Downloads/pathlib.tar.bz2")
+    gcs_path = PureGCSPath("README")
+    assert gcs_path.with_suffix(".txt") == PureGCSPath("README.txt")
+    gcs_path = PureGCSPath("README.txt")
+    assert gcs_path.with_suffix("") == PureGCSPath("README")

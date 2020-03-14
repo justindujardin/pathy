@@ -22,8 +22,8 @@ __all__ = (
     "PureGCSPath",
     "StatResult",
     "GCSDirEntry",
-    "GCSKeyWritableFileObject",
-    "GCSKeyReadableFileObject",
+    "GCSWritable",
+    "GCSReadable",
 )
 
 _SUPPORTED_OPEN_MODES = {"r", "br", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
@@ -69,7 +69,7 @@ class _GCSAccessor(_Accessor):
             self.gcs = storage.Client()
         self.configuration_map = _GCSConfigurationMap()
 
-    def _get_blob(self, path: "GCSPath") -> Optional[storage.Blob]:
+    def get_blob(self, path: "GCSPath") -> Optional[storage.Blob]:
         """Get the blob associated with a path or return None"""
         bucket_name = self._bucket_name(path.bucket)
         if not bucket_name:
@@ -135,7 +135,9 @@ class _GCSAccessor(_Accessor):
         while True:
             if continuation_token:
                 response = bucket.list_blobs(
-                    prefix=self._generate_prefix(path), delimiter=sep,
+                    prefix=self._generate_prefix(path),
+                    delimiter=sep,
+                    page_token=continuation_token,
                 )
             else:
                 response = bucket.list_blobs(
@@ -163,11 +165,11 @@ class _GCSAccessor(_Accessor):
     def open(
         self, path, *, mode="r", buffering=-1, encoding=None, errors=None, newline=None
     ):
-        object_blob = self._get_blob(path)
+        object_blob = self.get_blob(path)
         if object_blob is None and "w" not in mode:
             raise FileNotFoundError(str(path))
         if "r" in mode:
-            return GCSKeyReadableFileObject(
+            return GCSReadable(
                 object_blob,
                 path=path,
                 mode=mode,
@@ -176,7 +178,7 @@ class _GCSAccessor(_Accessor):
                 errors=errors,
                 newline=newline,
             )
-        return GCSKeyWritableFileObject(
+        return GCSWritable(
             self.gcs.lookup_bucket(self._bucket_name(path.bucket)),
             path=path,
             mode=mode,
@@ -186,51 +188,72 @@ class _GCSAccessor(_Accessor):
             newline=newline,
         )
 
-    def owner(self, path):
-        bucket_name = self._bucket_name(path.bucket)
-        key_name = str(path.key)
-        object_data = self.gcs.ObjectSummary(bucket_name, key_name)
-        # return object_data.owner['DisplayName']
-        # This is a hack till boto3 resolve this issue:
-        # https://github.com/boto/boto3/issues/1950
-        # todo: need to clean up
-        responce = object_data.meta.client.list_objects_v2(
-            Bucket=object_data.bucket_name, Prefix=object_data.key, FetchOwner=True,
-        )
-        return responce["Contents"][0]["Owner"]["DisplayName"]
+    def owner(self, path) -> Optional[str]:
+        blob: Optional[storage.Blob] = self.get_blob(path)
+        return blob.owner if blob is not None else None
 
-    def rename(self, path, target):
+    def rename(self, path: "GCSPath", target: "GCSPath"):
         source_bucket_name = self._bucket_name(path.bucket)
-        source_key_name = str(path.key)
-        target_bucket_name = self._bucket_name(target.bucket)
-        target_key_name = str(target.key)
+        source_bucket_key = str(path.key)
+        bucket = self.gcs.lookup_bucket(source_bucket_name)
 
+        # Single file
         if not self.is_dir(path):
-            target_bucket = self.gcs.Bucket(target_bucket_name)
-            object_data = self.gcs.ObjectSummary(source_bucket_name, source_key_name)
-            old_source = {
-                "Bucket": object_data.bucket_name,
-                "Key": object_data.key,
-            }
-            self.boto3_method_with_parameters(
-                target_bucket.copy, path=target, args=(old_source, target_key_name)
-            )
-            self.boto3_method_with_parameters(object_data.delete)
+            from_blob: storage.Blob = bucket.get_blob(str(path.key))
+            target_bucket_name = self._bucket_name(target.bucket)
+            target_bucket: storage.Bucket = self.gcs.get_bucket(target_bucket_name)
+            target_bucket.copy_blob(from_blob, target_bucket, str(target.key))
+            from_blob.bucket.delete_blob(from_blob.name)
             return
-        bucket = self.gcs.Bucket(source_bucket_name)
-        target_bucket = self.gcs.Bucket(target_bucket_name)
-        for object_data in bucket.objects.filter(Prefix=source_key_name):
-            old_source = {
-                "Bucket": object_data.bucket_name,
-                "Key": object_data.key,
-            }
-            new_key = object_data.key.replace(source_key_name, target_key_name)
-            self.boto3_method_with_parameters(
-                target_bucket.copy,
-                path=GCSPath(target_bucket_name, new_key),
-                args=(old_source, new_key),
-            )
-            self.boto3_method_with_parameters(object_data.delete)
+
+        # Folder with objects
+        sep = path._flavour.sep
+        continuation_token = None
+        while True:
+            prefix = self._generate_prefix(path)
+            if continuation_token:
+                response = from_blob.bucket.list_blobs(
+                    prefix=prefix, delimiter=sep, page_token=continuation_token,
+                )
+            else:
+                response = bucket.list_blobs(prefix=prefix, delimiter=sep)
+            for page in response.pages:
+                # for folder in list(page.prefixes):
+                #     full_name = folder[:-1] if folder.endswith(sep) else folder
+                #     name = full_name.split(sep)[-1]
+                #     yield GCSDirEntry(name, is_dir=True)
+                for item in page:
+                    target_bucket_name = self._bucket_name(target.bucket)
+                    target_key_name = item.name.replace(
+                        source_bucket_key, str(target.key)
+                    )
+                    target_bucket = self.gcs.get_bucket(target_bucket_name)
+                    target_bucket.copy_blob(item, target_bucket, target_key_name)
+                    item.bucket.delete_blob(item.name)
+                    # yield GCSDirEntry(
+                    #     name=item.name.split(sep)[-1],
+                    #     is_dir=False,
+                    #     size=item.size,
+                    #     last_modified=item.updated,
+                    # )
+            if response.next_page_token is None:
+                break
+            continuation_token = response.next_page_token
+
+        # bucket = self.gcs.Bucket(source_bucket_name)
+        # target_bucket = self.gcs.get_bucket(target_bucket_name)
+        # for object_data in bucket.objects.filter(Prefix=source_key_name):
+        #     old_source = {
+        #         "Bucket": object_data.bucket_name,
+        #         "Key": object_data.key,
+        #     }
+        #     new_key = object_data.key.replace(source_key_name, target_key_name)
+        #     self.boto3_method_with_parameters(
+        #         target_bucket.copy,
+        #         path=GCSPath(target_bucket_name, new_key),
+        #         args=(old_source, new_key),
+        #     )
+        #     self.boto3_method_with_parameters(object_data.delete)
 
     def replace(self, path, target):
         return self.rename(path, target)
@@ -254,19 +277,6 @@ class _GCSAccessor(_Accessor):
             return
         return str(path.bucket)[1:]
 
-    def boto3_method_with_parameters(
-        self, boto3_method, path=Path("/"), args=(), kwargs=None
-    ):
-        kwargs = kwargs or {}
-        kwargs.update(
-            {
-                key: value
-                for key, value in self.configuration_map[path]
-                if key in self._get_action_arguments(boto3_method)
-            }
-        )
-        return boto3_method(*args, **kwargs)
-
     def _generate_prefix(self, path):
         sep = path._flavour.sep
         if not path.key:
@@ -275,18 +285,6 @@ class _GCSAccessor(_Accessor):
         if not key_name.endswith(sep):
             return key_name + sep
         return key_name
-
-    @lru_cache()
-    def _get_action_arguments(self, action):
-        if isinstance(action.__doc__, LazyLoadedDocstring):
-            docs = action.__doc__._generate()
-        else:
-            docs = action.__doc__
-        return set(
-            line.replace(":param ", "").strip().strip(":")
-            for line in docs.splitlines()
-            if line.startswith(":param ")
-        )
 
 
 def _string_parser(text, *, mode, encoding):
@@ -493,20 +491,16 @@ class PureGCSPath(PurePath):
 
 
 class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
-    """
-    Path subclass for GCS service.
+    """Path subclass for GCS service.
 
-    GCSPath provide a Python convenient File-System/Path like interface for GCS Service
-     using boto3 GCS resource as a driver.
-
-    If boto3 isn't installed in your environment NotImplementedError will be raised.
-    """
+    Write files to and read files from the GCS service using pathlib.Path
+    methods."""
 
     __slots__ = ()
 
     def stat(self):
         """
-        Returns information about this path (similarly to boto3's ObjectSummary).
+        Returns information about this path.
         The result is looked up at each call to this method
         """
         self._absolute_path_validation()
@@ -609,7 +603,7 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
         """
         self._absolute_path_validation()
         if not self.is_file():
-            return KeyError("file not found")
+            raise FileNotFoundError(str(self))
         return self._accessor.owner(self)
 
     def rename(self, target):
@@ -724,7 +718,7 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
             self._accessor = _gcs_accessor
 
 
-class GCSKeyWritableFileObject(RawIOBase):
+class GCSWritable(RawIOBase):
     def __init__(
         self,
         bucket: storage.Bucket,
@@ -799,7 +793,7 @@ class GCSKeyWritableFileObject(RawIOBase):
         self.close()
 
 
-class GCSKeyReadableFileObject(RawIOBase):
+class GCSReadable(RawIOBase):
     def __init__(
         self,
         blob: storage.Blob,
