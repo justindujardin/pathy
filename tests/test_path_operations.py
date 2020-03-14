@@ -5,6 +5,8 @@ import mock
 import pytest
 from google.cloud import storage
 
+from uuid import uuid4
+
 from gcspath import GCSPath, PureGCSPath, StatResult, _gcs_accessor
 
 # todo: test samefile/touch/write_text/write_bytes method
@@ -291,49 +293,34 @@ def test_replace_folders_across_buckets():
     assert GCSPath(f"/{other_bucket}/replace/other/two.txt").is_file()
 
 
-# def test_rmdir(gcs_mock):
-#     s3 = boto3.resource("s3")
-#     s3.create_bucket(Bucket="test-bucket")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/conf.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/make.bat")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/index.rst")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/Makefile")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/_templates/11conf.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/_build/22conf.py")
-#     object_summary.put(Body=b"test data")
-#     object_summary = s3.ObjectSummary("test-bucket", "docs/_static/conf.py")
-#     object_summary.put(Body=b"test data")
-
-#     conf_path = GCSPath("/test-bucket/docs/_templates")
-#     assert conf_path.is_dir()
-#     conf_path.rmdir()
-#     assert not conf_path.exists()
-
-#     path = GCSPath("/test-bucket/docs/")
-#     path.rmdir()
-#     assert not path.exists()
+def test_rmdir():
+    GCSPath(f"/{bucket}/rmdir/one.txt").write_text("---")
+    GCSPath(f"/{bucket}/rmdir/folder/two.txt").write_text("---")
+    path = GCSPath(f"/{bucket}/rmdir/")
+    path.rmdir()
+    assert not GCSPath(f"/{bucket}/rmdir/one.txt").is_file()
+    assert not GCSPath(f"/{bucket}/rmdir/other/two.txt").is_file()
+    assert not path.exists()
 
 
-# def test_mkdir(gcs_mock):
-#     s3 = boto3.resource("s3")
+def test_mkdir(gcs_mock):
+    bucket_name = f"gcspath-e2e-test-{uuid4().hex}"
+    # Create a bucket
+    GCSPath(f"/{bucket_name}/").mkdir()
+    # Does not assert if it already exists
+    GCSPath(f"/{bucket_name}/").mkdir(exist_ok=True)
 
-#     GCSPath("/test-bucket/").mkdir()
+    with pytest.raises(FileExistsError):
+        GCSPath(f"/{bucket_name}/").mkdir(exist_ok=False)
 
-#     assert s3.Bucket("test-bucket") in s3.buckets.all()
+    # with pytest.raises(FileNotFoundError):
+    #     GCSPath("/test-second-bucket/test-directory/file.name").mkdir()
 
-#     GCSPath("/test-bucket/").mkdir(exist_ok=True)
+    # GCSPath("/test-second-bucket/test-directory/file.name").mkdir(parents=True)
 
-#     with pytest.raises(FileExistsError):
-#         GCSPath("/test-bucket/").mkdir(exist_ok=False)
+    assert GCSPath(f"/{bucket_name}/").exists()
 
-#     with pytest.raises(FileNotFoundError):
-#         GCSPath("/test-second-bucket/test-directory/file.name").mkdir()
-
-#     GCSPath("/test-second-bucket/test-directory/file.name").mkdir(parents=True)
-
-#     assert s3.Bucket("test-second-bucket") in s3.buckets.all()
+    # remove the bucket
+    client = storage.Client()
+    bucket = client.lookup_bucket(bucket_name)
+    bucket.delete()

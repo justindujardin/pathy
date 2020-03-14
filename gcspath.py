@@ -83,20 +83,20 @@ class _GCSAccessor(_Accessor):
         key_name = str(path.key)
         return bucket.get_blob(key_name)
 
-    def stat(self, path):
+    def stat(self, path: "GCSPath"):
         bucket = self.gcs.get_bucket(self._bucket_name(path.bucket))
         blob: storage.Blob = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
         return StatResult(size=blob.size, last_modified=blob.updated)
 
-    def is_dir(self, path):
+    def is_dir(self, path: "GCSPath"):
         if str(path) == path.root:
             return True
         bucket = self.gcs.get_bucket(self._bucket_name(path.bucket))
         return any(bucket.list_blobs(prefix=self._generate_prefix(path)))
 
-    def exists(self, path) -> bool:
+    def exists(self, path: "GCSPath") -> bool:
         bucket_name = self._bucket_name(path.bucket)
         if not bucket_name:
             return any(self.gcs.list_buckets())
@@ -122,7 +122,7 @@ class _GCSAccessor(_Accessor):
                 return True
         return False
 
-    def scandir(self, path):
+    def scandir(self, path: "GCSPath"):
         bucket_name = self._bucket_name(path.bucket)
         if not bucket_name:
             for bucket in self.gcs.list_buckets():
@@ -159,11 +159,18 @@ class _GCSAccessor(_Accessor):
                 break
             continuation_token = response.next_page_token
 
-    def listdir(self, path):
+    def listdir(self, path: "GCSPath"):
         return [entry.name for entry in self.scandir(path)]
 
     def open(
-        self, path, *, mode="r", buffering=-1, encoding=None, errors=None, newline=None
+        self,
+        path: "GCSPath",
+        *,
+        mode="r",
+        buffering=-1,
+        encoding=None,
+        errors=None,
+        newline=None
     ):
         object_blob = self.get_blob(path)
         if object_blob is None and "w" not in mode:
@@ -188,7 +195,7 @@ class _GCSAccessor(_Accessor):
             newline=newline,
         )
 
-    def owner(self, path) -> Optional[str]:
+    def owner(self, path: "GCSPath") -> Optional[str]:
         blob: Optional[storage.Blob] = self.get_blob(path)
         return blob.owner if blob is not None else None
 
@@ -218,10 +225,6 @@ class _GCSAccessor(_Accessor):
             else:
                 response = bucket.list_blobs(prefix=prefix, delimiter=sep)
             for page in response.pages:
-                # for folder in list(page.prefixes):
-                #     full_name = folder[:-1] if folder.endswith(sep) else folder
-                #     name = full_name.split(sep)[-1]
-                #     yield GCSDirEntry(name, is_dir=True)
                 for item in page:
                     target_bucket_name = self._bucket_name(target.bucket)
                     target_key_name = item.name.replace(
@@ -230,54 +233,29 @@ class _GCSAccessor(_Accessor):
                     target_bucket = self.gcs.get_bucket(target_bucket_name)
                     target_bucket.copy_blob(item, target_bucket, target_key_name)
                     item.bucket.delete_blob(item.name)
-                    # yield GCSDirEntry(
-                    #     name=item.name.split(sep)[-1],
-                    #     is_dir=False,
-                    #     size=item.size,
-                    #     last_modified=item.updated,
-                    # )
             if response.next_page_token is None:
                 break
             continuation_token = response.next_page_token
 
-        # bucket = self.gcs.Bucket(source_bucket_name)
-        # target_bucket = self.gcs.get_bucket(target_bucket_name)
-        # for object_data in bucket.objects.filter(Prefix=source_key_name):
-        #     old_source = {
-        #         "Bucket": object_data.bucket_name,
-        #         "Key": object_data.key,
-        #     }
-        #     new_key = object_data.key.replace(source_key_name, target_key_name)
-        #     self.boto3_method_with_parameters(
-        #         target_bucket.copy,
-        #         path=GCSPath(target_bucket_name, new_key),
-        #         args=(old_source, new_key),
-        #     )
-        #     self.boto3_method_with_parameters(object_data.delete)
-
-    def replace(self, path, target):
+    def replace(self, path: "GCSPath", target: "GCSPath"):
         return self.rename(path, target)
 
-    def rmdir(self, path):
+    def rmdir(self, path: "GCSPath") -> None:
         bucket_name = self._bucket_name(path.bucket)
         key_name = str(path.key)
-        bucket = self.gcs.Bucket(bucket_name)
-        for object_data in bucket.objects.filter(Prefix=key_name):
-            self.boto3_method_with_parameters(object_data.delete, path=path)
+        bucket = self.gcs.get_bucket(bucket_name)
+        bucket.delete_blobs(bucket.list_blobs(prefix=key_name))
 
-    def mkdir(self, path, mode):
-        self.boto3_method_with_parameters(
-            self.gcs.create_bucket,
-            path=path,
-            kwargs={"Bucket": self._bucket_name(path.bucket)},
-        )
+    def mkdir(self, path: "GCSPath", mode) -> None:
+        bucket_name = self._bucket_name(path.bucket)
+        self.gcs.create_bucket(bucket_name)
 
-    def _bucket_name(self, path):
+    def _bucket_name(self, path: "GCSPath") -> str:
         if path is None:
             return
         return str(path.bucket)[1:]
 
-    def _generate_prefix(self, path):
+    def _generate_prefix(self, path: "GCSPath") -> str:
         sep = path._flavour.sep
         if not path.key:
             return ""
@@ -519,8 +497,8 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
 
     def is_dir(self):
         """
-        Returns True if the path points to a Bucket or a key prefix, False if it points to a full key path.
-        False is also returned if the path doesn’t exist.
+        Returns True if the path points to a Bucket or a key prefix, False if it 
+        points to a full key path. False is returned if the path doesn’t exist.
         Other errors (such as permission errors) are propagated.
         """
         self._absolute_path_validation()
@@ -530,8 +508,8 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
 
     def is_file(self):
         """
-        Returns True if the path points to a Bucket key, False if it points to Bucket or a key prefix.
-        False is also returned if the path doesn’t exist.
+        Returns True if the path points to a Bucket key, False if it points to
+        Bucket or a key prefix. False is returned if the path doesn’t exist.
         Other errors (such as permission errors) are propagated.
         """
         self._absolute_path_validation()
@@ -544,7 +522,8 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
 
     def iterdir(self):
         """
-        When the path points to a Bucket or a key prefix, yield path objects of the directory contents
+        When the path points to a Bucket or a key prefix, yield path objects of
+        the directory contents
         """
         self._absolute_path_validation()
         yield from super().iterdir()
@@ -609,9 +588,10 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
     def rename(self, target):
         """
         Renames this file or Bucket / key prefix / key to the given target.
-        If target exists and is a file, it will be replaced silently if the user has permission.
-        If path is a key prefix, it will replace all the keys with the same prefix to the new target prefix.
-        Target can be either a string or another GCSPath object.
+        If target exists and is a file, it will be replaced silently if the user
+        has permission. If path is a key prefix, it will replace all the keys with
+        the same prefix to the new target prefix. Target can be either a string or
+        another GCSPath object.
         """
         self._absolute_path_validation()
         if not isinstance(target, type(self)):
@@ -622,7 +602,8 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
     def replace(self, target):
         """
         Renames this Bucket / key prefix / key to the given target.
-        If target points to an existing Bucket / key prefix / key, it will be unconditionally replaced.
+        If target points to an existing Bucket / key prefix / key, it will be
+        unconditionally replaced.
         """
         return self.rename(target)
 
@@ -652,9 +633,10 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
     def touch(self, mode=0o666, exist_ok=True):
         """
         Creates a key at this given path.
-        If the key already exists,
-        the function succeeds if exist_ok is true (and its modification time is updated to the current time),
-        otherwise FileExistsError is raised
+
+        If the key already exists, the function succeeds if exist_ok is true
+        (and its modification time is updated to the current time), otherwise
+        FileExistsError is raised.
         """
         if self.exists() and not exist_ok:
             raise FileExistsError()
@@ -663,14 +645,20 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
     def mkdir(self, mode=0o777, parents=False, exist_ok=False):
         """
         Create a path bucket.
-        GCS Service doesn't support folders, therefore the mkdir method will only create the current bucket.
-        If the bucket path already exists, FileExistsError is raised.
+        GCS Service doesn't support folders, therefore the mkdir method will
+        only create the current bucket. If the bucket path already exists,
+        FileExistsError is raised.
 
-        If exist_ok is false (the default), FileExistsError is raised if the target Bucket already exists.
+        If exist_ok is false (the default), FileExistsError is raised if the
+        target Bucket already exists.
+
         If exist_ok is true, OSError exceptions will be ignored.
 
-        if parents is false (the default), mkdir will create the bucket only if this is a Bucket path.
-        if parents is true, mkdir will create the bucket even if the path have a Key path.
+        if parents is false (the default), mkdir will create the bucket only
+        if this is a Bucket path.
+
+        if parents is true, mkdir will create the bucket even if the path
+        have a Key path.
 
         mode argument is ignored.
         """
@@ -689,27 +677,15 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
                 raise
 
     def is_mount(self):
-        """
-        GCS Service doesn't have mounting feature, There for this method will always return False
-        """
         return False
 
     def is_symlink(self):
-        """
-        GCS Service doesn't have symlink feature, There for this method will always return False
-        """
         return False
 
     def is_socket(self):
-        """
-        GCS Service doesn't have sockets feature, There for this method will always return False
-        """
         return False
 
     def is_fifo(self):
-        """
-        GCS Service doesn't have fifo feature, There for this method will always return False
-        """
         return False
 
     def _init(self, template=None):
