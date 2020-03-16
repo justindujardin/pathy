@@ -1,11 +1,10 @@
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 import mock
 import pytest
 from google.cloud import storage
-
-from uuid import uuid4
 
 from gcspath import GCSPath, PureGCSPath, StatResult, _gcs_accessor
 
@@ -15,14 +14,17 @@ from gcspath import GCSPath, PureGCSPath, StatResult, _gcs_accessor
 
 
 # todo(jd): replace global test-bucket with mock or generate buckets and call these e2e tests
-bucket = "gcsbucket-test-dev"
-other_bucket = "gcsbucket-test-dev-other"
+bucket = "gcspath-tests-1"
+other_bucket = "gcspath-tests-2"
 
 
 @pytest.fixture()
-def gcs_mock():
-    client = mock.create_autospec(storage.Client)
-    yield client
+def bucket_():
+    bucket = f"gcspath-test-{uuid4().hex}"
+    yield bucket
+    client = storage.Client()
+    bucket = client.lookup_bucket(bucket)
+    bucket.delete()
 
 
 def test_path_support():
@@ -34,7 +36,7 @@ def test_stat():
     path = GCSPath("fake-bucket-1234-0987/fake-key")
     with pytest.raises(ValueError):
         path.stat()
-    test_file = "gs://gcsbucket-test-dev/foo.txt"
+    test_file = f"gs://{bucket}/foo.txt"
     client = storage.Client()
     blob = storage.Blob.from_string(test_file)
     blob.upload_from_string("a-a-a-a-a-a-a", client=client)
@@ -56,9 +58,9 @@ def test_exists():
     # invalid bucket name
     assert GCSPath("/unknown-bucket-name-123987519875419").exists() is False
     # valid bucket with invalid object
-    assert GCSPath("/gcsbucket-test-dev/not_found_lol_nice.txt").exists() is False
+    assert GCSPath(f"/{bucket}/not_found_lol_nice.txt").exists() is False
 
-    test_path = "/gcsbucket-test-dev/directory/foo.txt"
+    test_path = f"/{bucket}/directory/foo.txt"
     test_gs_file = f"gs:/{test_path}"
     client = storage.Client()
     blob = storage.Blob.from_string(test_gs_file)
@@ -80,25 +82,25 @@ def test_glob():
 
     assert list(GCSPath(f"/{bucket}/glob/").glob("*.test")) == []
     assert list(GCSPath(f"/{bucket}/glob/").glob("*.file")) == [
-        GCSPath("/gcsbucket-test-dev/glob/0.file"),
-        GCSPath("/gcsbucket-test-dev/glob/1.file"),
-        GCSPath("/gcsbucket-test-dev/glob/2.file"),
+        GCSPath(f"/{bucket}/glob/0.file"),
+        GCSPath(f"/{bucket}/glob/1.file"),
+        GCSPath(f"/{bucket}/glob/2.file"),
     ]
     assert list(GCSPath(f"/{bucket}/glob/0/").glob("*/*.txt")) == [
-        GCSPath("/gcsbucket-test-dev/glob/0/dir/file.txt"),
+        GCSPath(f"/{bucket}/glob/0/dir/file.txt"),
     ]
     assert sorted(GCSPath.from_uri(f"gs://{bucket}").glob("*lob/")) == [
         GCSPath(f"/{bucket}/glob"),
     ]
     # Recursive matches
     assert list(GCSPath(f"/{bucket}/glob/").glob("**/*.txt")) == [
-        GCSPath("/gcsbucket-test-dev/glob/0/dir/file.txt"),
-        GCSPath("/gcsbucket-test-dev/glob/1/dir/file.txt"),
+        GCSPath(f"/{bucket}/glob/0/dir/file.txt"),
+        GCSPath(f"/{bucket}/glob/1/dir/file.txt"),
     ]
     # rglob adds the **/ for you
     assert list(GCSPath(f"/{bucket}/glob/").rglob("*.txt")) == [
-        GCSPath("/gcsbucket-test-dev/glob/0/dir/file.txt"),
-        GCSPath("/gcsbucket-test-dev/glob/1/dir/file.txt"),
+        GCSPath(f"/{bucket}/glob/0/dir/file.txt"),
+        GCSPath(f"/{bucket}/glob/1/dir/file.txt"),
     ]
 
 
@@ -303,7 +305,7 @@ def test_rmdir():
     assert not path.exists()
 
 
-def test_mkdir(gcs_mock):
+def test_mkdir():
     bucket_name = f"gcspath-e2e-test-{uuid4().hex}"
     # Create a bucket
     GCSPath(f"/{bucket_name}/").mkdir()
