@@ -5,8 +5,8 @@ matrix:
       before_script:
         - npm install && npx ts-node tools/ci-set-build-version.ts
         - sh tools/setup.sh
-      script:
-        - sh tools/test.sh
+      # script:
+      #   - sh tools/test.sh
       after_success:
         - echo "todo: python coverage reporting to coveralls"
         - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then sh tools/deploy.sh; fi
