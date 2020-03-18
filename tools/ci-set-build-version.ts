@@ -31,7 +31,7 @@ function getBuildVersion() {
 getBuildVersion()
   .then((version: any) => {
     console.log("--- UPDATING build version in python modules to : " + version);
-    const filePath = path.join(__dirname, "gcspath.py");
+    const filePath = path.join(__dirname, "../gcspath.py");
     if (!fs.existsSync(filePath)) {
       console.error("gcspath.py is missing!");
       process.exit(1);
