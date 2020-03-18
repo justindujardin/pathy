@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+#!/bin/bash
+echo "Installing semantic-release requirements"
+npm install 
+echo "Updating build version"
+npx ts-node tools/set-build-version.ts
+echo "Running semantic-release"
+npx semantic-release
+
 . .env/bin/activate
 git config --global user.email "justin@dujardinconsulting.com"
 git config --global user.name "justindujardin"
