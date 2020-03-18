@@ -1,10 +1,20 @@
-language: python
-sudo: required
-dist: xenial
-python:
-  - "3.8"
-  - "3.7"
-  - "3.6"
-install: make init
-script:
-  - make tests
+matrix:
+  include:
+    - language: python
+      python: 3.7
+      before_script:
+        - npm install && npx ts-node tools/ci-set-build-version.ts
+        - sh tools/setup.sh
+      script:
+        - sh tools/test.sh
+      after_success:
+        - echo "todo: python coverage reporting to coveralls"
+        - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then sh tools/deploy.sh; fi
+cache:
+  directories:
+    - ~/.npm
+notifications:
+  email: false
+branches:
+  except:
+    - /^v\d+\.\d+\.\d+$/
