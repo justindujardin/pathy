@@ -1,7 +1,7 @@
 matrix:
   include:
     - language: python
-      python: 3.6
+      python: 3.7
       before_script:
         - npm install && npx ts-node tools/ci-set-build-version.ts
         - sh tools/setup.sh
