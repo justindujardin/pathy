@@ -12,7 +12,7 @@ setup(
     author="Justin DuJardin",
     author_email="justin@explosion.ai",
     py_modules=["gcspath"],
-    install_requires=["google-cloud-storage"],
+    install_requires=["google-cloud-storage", "gs-chunked-io"],
     license="Apache 2.0",
     long_description=long_description,
     long_description_content_type="text/markdown",

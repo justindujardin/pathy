@@ -1,2 +1,2 @@
 google-cloud-storage
--e git://github.com/justindujardin/gs-chunked-io.git#egg=gs-chunked-io
+gs-chunked-io
