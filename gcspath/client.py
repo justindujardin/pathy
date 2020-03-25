@@ -1,23 +1,34 @@
-from collections import namedtuple
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, List, Optional
 
-try:
-    from google.cloud import storage
-except ImportError:
-    storage = None
 
 __all__ = (
     "BucketStatResult",
     "BucketDirEntry",
+    "BucketClient",
+    "ClientBucket",
+    "ClientBlob",
 )
 
-BucketStatResult = namedtuple("BucketStatResult", "size, last_modified")
+
+@dataclass
+class BucketStatResult:
+    """Stat for a bucket item"""
+
+    size: Optional[int]
+    last_modified: Optional[int]
 
 
 class BucketDirEntry:
-    def __init__(self, name, is_dir, size=None, last_modified=None):
+    """A single item returned from scanning a path"""
+
+    name: str
+    _is_dir: bool
+    _stat: BucketStatResult
+
+    def __init__(
+        self, name: str, is_dir: bool, size: int = None, last_modified: int = None
+    ):
         self.name = name
         self._is_dir = is_dir
         self._stat = BucketStatResult(size=size, last_modified=last_modified)
@@ -41,3 +52,53 @@ class BucketDirEntry:
 
     def stat(self):
         return self._stat
+
+
+@dataclass
+class ClientBlob:
+    bucket: "ClientBucket"
+    name: str
+
+    def delete(self):
+        pass
+
+
+@dataclass
+class ClientBucket:
+    name: str
+
+    def get_blob(self, blob_name: str) -> Optional[ClientBlob]:
+        pass
+
+
+class BucketClient:
+
+    buckets: Dict[str, str]
+
+    def __init__(self):
+        self.buckets = {}
+
+    def register_bucket(self, alias: str, bucket_uri: str):
+        if alias in self.buckets:
+            raise ValueError("alias already exists")
+        self.buckets[str(alias)] = str(bucket_uri)
+
+    def lookup_bucket(self, bucket_name: Optional[str]) -> Optional[ClientBucket]:
+        raise NotImplementedError("must be implemented in subclass")
+
+    def get_bucket(self, bucket_name: Optional[str]):
+        raise NotImplementedError("must be implemented in subclass")
+
+    def list_buckets(self) -> List[ClientBucket]:
+        raise NotImplementedError("must be implemented in subclass")
+
+    def list_blobs(
+        self,
+        bucket_name: Optional[str],
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+    ) -> List[ClientBlob]:
+        raise NotImplementedError("must be implemented in subclass")
+
+    def create_bucket(self, bucket_name: Optional[str]) -> ClientBucket:
+        raise NotImplementedError("must be implemented in subclass")
