@@ -1,2 +1,2 @@
-google-cloud-storage
-gs-chunked-io
+google-cloud-storage>=1.26.0,<2.0.0
+smart-open==1.10.0

@@ -6,7 +6,7 @@ import mock
 import pytest
 from google.cloud import storage
 
-from gcspath import GCSPath, PureGCSPath, StatResult, _gcs_accessor
+from gcspath import GCSPath, PureGCSPath, StatResult
 
 # todo: test samefile/touch/write_text/write_bytes method
 # todo: test security and boto config changes
@@ -171,7 +171,7 @@ def test_open_for_write():
     path = GCSPath(f"/{bucket}/write/file.txt")
     with path.open(mode="w") as file_obj:
         file_obj.write("---")
-        file_obj.writelines([b"---"])
+        file_obj.writelines(["---"])
     path = GCSPath(f"/{bucket}/write/file.txt")
     with path.open() as file_obj:
         assert file_obj.read() == "------"
@@ -181,7 +181,7 @@ def test_open_for_write():
 def test_open_binary_read():
     path = GCSPath(f"/{bucket}/read_binary/file.txt")
     path.write_bytes(b"---")
-    with path.open(mode="br") as file_obj:
+    with path.open(mode="rb") as file_obj:
         assert file_obj.readlines() == [b"---"]
     with path.open(mode="rb") as file_obj:
         assert file_obj.readline() == b"---"
@@ -208,7 +208,7 @@ def test_readwrite_bytes():
 def test_readwrite_lines():
     path = GCSPath(f"/{bucket}/write_text/file.txt")
     with path.open("w") as file_obj:
-        file_obj.writelines([b"---"])
+        file_obj.writelines(["---"])
     with path.open("r") as file_obj:
         assert file_obj.readlines() == ["---"]
     with path.open("rt") as file_obj:
