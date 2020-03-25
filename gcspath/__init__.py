@@ -1,1 +1,2 @@
-from .gcs import GCSPath, PureGCSPath, StatResult  # noqa
+from .gcs import GCSPath, PureGCSPath  # noqa
+from .client import BucketDirEntry, BucketStatResult  # noqa

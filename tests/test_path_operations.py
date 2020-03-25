@@ -6,7 +6,7 @@ import mock
 import pytest
 from google.cloud import storage
 
-from gcspath import GCSPath, PureGCSPath, StatResult
+from gcspath import GCSPath, PureGCSPath, BucketStatResult
 
 # todo: test samefile/touch/write_text/write_bytes method
 # todo: test security and boto config changes
@@ -46,8 +46,8 @@ def test_stat():
     blob.upload_from_string("a-a-a-a-a-a-a", client=client)
     path = GCSPath.from_uri(test_file)
     stat = path.stat()
-    assert isinstance(stat, StatResult)
-    assert stat == StatResult(size=blob.size, last_modified=blob.updated)
+    assert isinstance(stat, BucketStatResult)
+    assert stat == BucketStatResult(size=blob.size, last_modified=blob.updated)
     assert GCSPath("/test-bucket").stat() is None
 
 

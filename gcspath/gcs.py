@@ -3,12 +3,11 @@ a pathlib interface."""
 from typing import Optional, Iterable, Union
 from contextlib import suppress
 from collections import namedtuple
-from tempfile import NamedTemporaryFile
-from functools import wraps, partial, lru_cache
 from pathlib import _PosixFlavour, _Accessor, PurePath, Path
-from io import RawIOBase, DEFAULT_BUFFER_SIZE, UnsupportedOperation
-import gs_chunked_io
+from io import DEFAULT_BUFFER_SIZE
 import smart_open
+
+from .client import BucketStatResult, BucketDirEntry
 
 try:
     from google.cloud import storage
@@ -19,8 +18,6 @@ except ImportError:
 __all__ = (
     "GCSPath",
     "PureGCSPath",
-    "StatResult",
-    "GCSDirEntry",
 )
 
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
@@ -71,7 +68,7 @@ class _GCSAccessor(_Accessor):
         blob: storage.Blob = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
-        return StatResult(size=blob.size, last_modified=blob.updated)
+        return BucketStatResult(size=blob.size, last_modified=blob.updated)
 
     def is_dir(self, path: "GCSPath"):
         if str(path) == path.root:
@@ -109,7 +106,7 @@ class _GCSAccessor(_Accessor):
         bucket_name = self._bucket_name(path.bucket)
         if not bucket_name:
             for bucket in self.gcs.list_buckets():
-                yield GCSDirEntry(bucket.name, is_dir=True)
+                yield BucketDirEntry(bucket.name, is_dir=True)
             return
         bucket = self.gcs.get_bucket(bucket_name)
         sep = path._flavour.sep
@@ -130,9 +127,9 @@ class _GCSAccessor(_Accessor):
                 for folder in list(page.prefixes):
                     full_name = folder[:-1] if folder.endswith(sep) else folder
                     name = full_name.split(sep)[-1]
-                    yield GCSDirEntry(name, is_dir=True)
+                    yield BucketDirEntry(name, is_dir=True)
                 for item in page:
-                    yield GCSDirEntry(
+                    yield BucketDirEntry(
                         name=item.name.split(sep)[-1],
                         is_dir=False,
                         size=item.size,
@@ -245,7 +242,7 @@ class _FSAccessor(_Accessor):
         blob: storage.Blob = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
-        return StatResult(size=blob.size, last_modified=blob.updated)
+        return BucketStatResult(size=blob.size, last_modified=blob.updated)
 
     def is_dir(self, path: "GCSPath"):
         if str(path) == path.root:
@@ -283,7 +280,7 @@ class _FSAccessor(_Accessor):
         bucket_name = self._bucket_name(path.bucket)
         if not bucket_name:
             for bucket in self.gcs.list_buckets():
-                yield GCSDirEntry(bucket.name, is_dir=True)
+                yield BucketDirEntry(bucket.name, is_dir=True)
             return
         bucket = self.gcs.get_bucket(bucket_name)
         sep = path._flavour.sep
@@ -304,9 +301,9 @@ class _FSAccessor(_Accessor):
                 for folder in list(page.prefixes):
                     full_name = folder[:-1] if folder.endswith(sep) else folder
                     name = full_name.split(sep)[-1]
-                    yield GCSDirEntry(name, is_dir=True)
+                    yield BucketDirEntry(name, is_dir=True)
                 for item in page:
-                    yield GCSDirEntry(
+                    yield BucketDirEntry(
                         name=item.name.split(sep)[-1],
                         is_dir=False,
                         size=item.size,
@@ -825,33 +822,3 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
 
     def is_fifo(self):
         return False
-
-
-StatResult = namedtuple("StatResult", "size, last_modified")
-
-
-class GCSDirEntry:
-    def __init__(self, name, is_dir, size=None, last_modified=None):
-        self.name = name
-        self._is_dir = is_dir
-        self._stat = StatResult(size=size, last_modified=last_modified)
-
-    def __repr__(self):
-        return "{}(name={}, is_dir={}, stat={})".format(
-            type(self).__name__, self.name, self._is_dir, self._stat
-        )
-
-    def inode(self, *args, **kwargs):
-        return None
-
-    def is_dir(self):
-        return self._is_dir
-
-    def is_file(self):
-        return not self._is_dir
-
-    def is_symlink(self, *args, **kwargs):
-        return False
-
-    def stat(self):
-        return self._stat
