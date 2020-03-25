@@ -15,6 +15,10 @@ def setup_package():
     with requirements_path.open("r", encoding="utf8") as f:
         requirements = [line.strip() for line in f]
 
+    readme_path = root / "README.md"
+    with readme_path.open("r", encoding="utf8") as f:
+        long_description = f.read()
+
     setup(
         name=about["__title__"],
         description=about["__summary__"],
@@ -23,6 +27,8 @@ def setup_package():
         url=about["__uri__"],
         version=about["__version__"],
         license=about["__license__"],
+        long_description=long_description,
+        long_description_content_type="text/markdown",
         packages=find_packages(),
         python_requires=">= 3.6",
         install_requires=requirements,
