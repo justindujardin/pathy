@@ -11,7 +11,9 @@ __all__ = (
     "ClientBlob",
 )
 
-BucketBlobType = TypeVar("BucketBlobType", bound="ClientBlob")
+BucketBlobType = TypeVar("BucketBlobType")
+
+_SUBCLASS_MUST_IMPLEMENT = "must be implemented in a subclass"
 
 
 @dataclass
@@ -28,17 +30,40 @@ class BucketStat:
     last_modified: Optional[int]
 
 
-class BucketEntry:
+@dataclass
+class ClientBlob(Generic[BucketBlobType]):
+    bucket: "ClientBucket"
+    name: str
+    size: int
+    updated: int
+    owner: Optional[str]
+    raw: BucketBlobType
+
+    def delete(self):
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+
+    def exists(self) -> bool:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+
+
+class BucketEntry(Generic[BucketBlobType]):
     """A single item returned from scanning a path"""
 
     name: str
     _is_dir: bool
     _stat: BucketStat
+    raw: Optional[ClientBlob[BucketBlobType]]
 
     def __init__(
-        self, name: str, is_dir: bool, size: int = None, last_modified: int = None,
+        self,
+        name: str,
+        is_dir: bool,
+        size: int = None,
+        last_modified: int = None,
+        raw: Optional[ClientBlob[BucketBlobType]] = None,
     ):
         self.name = name
+        self.raw = raw
         self._is_dir = is_dir
         self._stat = BucketStat(size=size, last_modified=last_modified)
 
@@ -64,37 +89,33 @@ class BucketEntry:
 
 
 @dataclass
-class ClientBlob(Generic[BucketBlobType]):
-    bucket: "ClientBucket"
-    name: str
-    raw: BucketBlobType
-
-    def delete(self):
-        ...
-
-    def exists(self) -> bool:
-        ...
-
-
-@dataclass
 class ClientBucket:
-    name: str
-
     def get_blob(self, blob_name: str) -> Optional[ClientBlob]:
-        pass
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+
+    def copy_blob(
+        self, blob: ClientBlob, target: "ClientBucket", name: str
+    ) -> Optional[ClientBlob]:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+
+    def delete_blob(self, blob: ClientBlob) -> None:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+
+    def delete_blobs(self, blobs: List[ClientBlob]) -> None:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
 
 class Client:
     """Base class for a client that interacts with a bucket-based storage system."""
 
     def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucket]:
-        raise NotImplementedError("must be implemented in subclass")
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def get_bucket(self, path: PureGCSPath):
-        raise NotImplementedError("must be implemented in subclass")
+    def get_bucket(self, path: PureGCSPath) -> ClientBucket:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def list_buckets(self) -> Generator[ClientBucket, None, None]:
-        raise NotImplementedError("must be implemented in subclass")
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def list_blobs(
         self,
@@ -103,15 +124,15 @@ class Client:
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
     ) -> Generator[ClientBlob, None, None]:
-        raise NotImplementedError("must be implemented in subclass")
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def scandir(
         self,
         path: PureGCSPath = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-    ) -> Generator[BucketEntry, None, None]:
-        raise NotImplementedError("must be implemented in subclass")
+    ) -> Generator[BucketEntry[BucketBlobType], None, None]:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def create_bucket(self, path: PureGCSPath) -> ClientBucket:
-        raise NotImplementedError("must be implemented in subclass")
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)

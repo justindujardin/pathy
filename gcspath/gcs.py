@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Optional, List, Generator
 from .client import Client, ClientBucket, ClientBlob, ClientError, BucketEntry
 from .base import PureGCSPath
@@ -12,23 +13,79 @@ except ImportError:
     has_gcs = False
 
 
-class BucketClientGCS(Client):
-    client: storage.Client
+class BucketEntryGCS(BucketEntry[storage.Blob]):
+    ...
 
-    def __init__(self, client: storage.Client = None):
-        if client is None:
-            client = storage.Client()
-        self.client = client
 
-    def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucket]:
-        try:
-            return self.client.lookup_bucket(path.bucket_name)
-        except gcs_errors.ClientError:
+@dataclass
+class ClientBlobGCS(ClientBlob[storage.Blob]):
+    def delete(self) -> None:
+        self.raw.delete()
+
+    def exists(self) -> bool:
+        return self.raw.exists()
+
+
+@dataclass
+class ClientBucketGCS(ClientBucket):
+    name: str
+    bucket: storage.Bucket
+
+    def get_blob(self, blob_name: str) -> Optional[ClientBlobGCS]:
+        native_blob = self.bucket.get_blob(blob_name)
+        if native_blob is None:
             return None
+        return ClientBlobGCS(
+            bucket=self.bucket,
+            owner=native_blob.owner,
+            name=native_blob.name,
+            raw=native_blob,
+            size=native_blob.size,
+            updated=native_blob.updated,
+        )
 
-    def get_bucket(self, path: PureGCSPath):
+    def copy_blob(
+        self, blob: ClientBlobGCS, target: "ClientBucketGCS", name: str
+    ) -> Optional[ClientBlobGCS]:
+        assert blob.raw is not None, "raw storage.Blob instance required"
+        native_blob = self.bucket.copy_blob(blob.raw, target.bucket, name)
+        if native_blob is None:
+            return None
+        return ClientBlobGCS(
+            bucket=self.bucket,
+            owner=native_blob.owner,
+            name=native_blob.name,
+            raw=native_blob,
+            size=native_blob.size,
+            updated=native_blob.updated,
+        )
+
+    def delete_blob(self, blob: ClientBlobGCS) -> None:
+        return self.bucket.delete_blob(blob.name)
+
+    def delete_blobs(self, blobs: List[ClientBlobGCS]) -> None:
+        return self.bucket.delete_blobs(blobs)
+
+
+@dataclass
+class BucketClientGCS(Client):
+    client: storage.Client = field(default_factory=lambda: storage.Client())
+
+    def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucketGCS]:
         try:
-            return self.client.get_bucket(path.bucket_name)
+            native_bucket = self.client.lookup_bucket(path.bucket_name)
+            if native_bucket is not None:
+                return ClientBucketGCS(str(path.bucket_name), bucket=native_bucket)
+        except gcs_errors.ClientError:
+            pass
+        return None
+
+    def get_bucket(self, path: PureGCSPath) -> ClientBucketGCS:
+        try:
+            native_bucket = self.client.lookup_bucket(path.bucket_name)
+            if native_bucket is not None:
+                return ClientBucketGCS(str(path.bucket_name), bucket=native_bucket)
+            raise FileNotFoundError(f"Bucket {path.bucket_name} does not exist!")
         except gcs_errors.ClientError as e:
             raise ClientError(message=e.message, code=e.code)
 
@@ -41,11 +98,11 @@ class BucketClientGCS(Client):
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_raw: bool = False,
-    ) -> Generator[BucketEntry, None, None]:
+    ) -> Generator[BucketEntryGCS, None, None]:
         continuation_token = None
         if path is None or not path.bucket_name:
             for bucket in self.client.list_buckets():
-                yield BucketEntry(bucket.name, is_dir=True)
+                yield BucketEntryGCS(bucket.name, is_dir=True, raw=None)
             return
         sep = path._flavour.sep
         bucket = self.lookup_bucket(path)
@@ -54,21 +111,27 @@ class BucketClientGCS(Client):
         while True:
             if continuation_token:
                 response = self.client.list_blobs(
-                    bucket, prefix=prefix, delimiter=sep, page_token=continuation_token,
+                    bucket.name,
+                    prefix=prefix,
+                    delimiter=sep,
+                    page_token=continuation_token,
                 )
             else:
-                response = self.client.list_blobs(bucket, prefix=prefix, delimiter=sep)
+                response = self.client.list_blobs(
+                    bucket.name, prefix=prefix, delimiter=sep
+                )
             for page in response.pages:
                 for folder in list(page.prefixes):
                     full_name = folder[:-1] if folder.endswith(sep) else folder
                     name = full_name.split(sep)[-1]
-                    yield BucketEntry(name, is_dir=True)
+                    yield BucketEntryGCS(name, is_dir=True, raw=None)
                 for item in page:
-                    yield BucketEntry(
+                    yield BucketEntryGCS(
                         name=item.name.split(sep)[-1],
                         is_dir=False,
                         size=item.size,
                         last_modified=item.updated,
+                        raw=item,
                     )
             if response.next_page_token is None:
                 break
@@ -80,7 +143,7 @@ class BucketClientGCS(Client):
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
-    ) -> Generator[ClientBlob, None, None]:
+    ) -> Generator[ClientBlobGCS, None, None]:
         continuation_token = None
         bucket = self.lookup_bucket(path)
         if bucket is None:
@@ -99,7 +162,14 @@ class BucketClientGCS(Client):
                 )
             for page in response.pages:
                 for item in page:
-                    yield item
+                    yield ClientBlobGCS(
+                        bucket=bucket,
+                        owner=item.owner,
+                        name=item.name,
+                        raw=item,
+                        size=item.size,
+                        updated=item.updated,
+                    )
             if response.next_page_token is None:
                 break
             continuation_token = response.next_page_token

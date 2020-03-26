@@ -2,15 +2,22 @@ from collections import namedtuple
 from contextlib import suppress
 from io import DEFAULT_BUFFER_SIZE
 from pathlib import Path, PurePath, _Accessor, _PosixFlavour
-from typing import Iterable, Optional, Union, List, Generator
+from typing import Generator, Iterable, List, Optional, Union
 
 import smart_open
 from google.api_core import exceptions as gcs_errors
 from google.cloud import storage
 
-from .client import BucketEntry, BucketStat, Client, ClientError
-from .gcs import BucketClientGCS, has_gcs
 from .base import PureGCSPath
+from .client import (
+    BucketEntry,
+    BucketStat,
+    Client,
+    ClientBlob,
+    ClientBucket,
+    ClientError,
+)
+from .gcs import BucketClientGCS, has_gcs
 
 __all__ = ("GCSPath",)
 
@@ -25,7 +32,7 @@ class _GCSAccessor(_Accessor):
     def __init__(self, **kwargs):
         self.client = BucketClientGCS()
 
-    def get_blob(self, path: "GCSPath") -> Optional[storage.Blob]:
+    def get_blob(self, path: "GCSPath") -> Optional[ClientBlob]:
         """Get the blob associated with a path or return None"""
         if not path.bucket_name:
             return None
@@ -37,7 +44,7 @@ class _GCSAccessor(_Accessor):
 
     def stat(self, path: "GCSPath"):
         bucket = self.client.get_bucket(path)
-        blob: storage.Blob = bucket.get_blob(str(path.key))
+        blob: ClientBlob = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
         return BucketStat(size=blob.size, last_modified=blob.updated)
@@ -45,8 +52,7 @@ class _GCSAccessor(_Accessor):
     def is_dir(self, path: "GCSPath"):
         if str(path) == path.root:
             return True
-        bucket = self.client.get_bucket(path)
-        return any(bucket.list_blobs(prefix=path.prefix))
+        return any(self.client.list_blobs(path, prefix=path.prefix))
 
     def exists(self, path: "GCSPath") -> bool:
         if not path.bucket_name:
@@ -99,42 +105,29 @@ class _GCSAccessor(_Accessor):
         )
 
     def owner(self, path: "GCSPath") -> Optional[str]:
-        blob: Optional[storage.Blob] = self.get_blob(path)
+        blob: Optional[ClientBlob] = self.get_blob(path)
         return blob.owner if blob is not None else None
 
     def rename(self, path: "GCSPath", target: "GCSPath"):
         source_bucket_key = str(path.key)
         bucket = self.client.get_bucket(path)
+        target_bucket: ClientBucket = self.client.get_bucket(target)
 
         # Single file
         if not self.is_dir(path):
-            from_blob: storage.Blob = bucket.get_blob(str(path.key))
-            target_bucket: storage.Bucket = self.client.get_bucket(target)
+            from_blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
+            if from_blob is None:
+                raise FileNotFoundError(f'source file "{path}" does not exist')
             target_bucket.copy_blob(from_blob, target_bucket, str(target.key))
             from_blob.bucket.delete_blob(from_blob.name)
             return
 
         # Folder with objects
         sep = path._flavour.sep
-        continuation_token = None
-        while True:
-            if continuation_token:
-                response = from_blob.bucket.list_blobs(
-                    prefix=path.prefix, delimiter=sep, page_token=continuation_token,
-                )
-            else:
-                response = bucket.list_blobs(prefix=path.prefix, delimiter=sep)
-            for page in response.pages:
-                for item in page:
-                    target_key_name = item.name.replace(
-                        source_bucket_key, str(target.key)
-                    )
-                    target_bucket = self.client.get_bucket(target)
-                    target_bucket.copy_blob(item, target_bucket, target_key_name)
-                    item.bucket.delete_blob(item.name)
-            if response.next_page_token is None:
-                break
-            continuation_token = response.next_page_token
+        for blob in self.client.list_blobs(path, prefix=path.prefix, delimiter=sep):
+            target_key_name = blob.name.replace(source_bucket_key, str(target.key))
+            target_bucket.copy_blob(blob, target_bucket, target_key_name)
+            bucket.delete_blob(blob)
 
     def replace(self, path: "GCSPath", target: "GCSPath"):
         return self.rename(path, target)
@@ -142,146 +135,10 @@ class _GCSAccessor(_Accessor):
     def rmdir(self, path: "GCSPath") -> None:
         key_name = str(path.key)
         bucket = self.client.get_bucket(path)
-        bucket.delete_blobs(bucket.list_blobs(prefix=key_name))
+        bucket.delete_blobs(list(self.client.list_blobs(path, prefix=key_name)))
 
     def mkdir(self, path: "GCSPath", mode) -> None:
         self.client.create_bucket(path)
-
-
-class _FSAccessor(_Accessor):
-    """Access data from fake GCS buckets that exist on the file system."""
-
-    def get_base_path(self, path: "GCSPath") -> Path:
-        pass
-
-    def stat(self, path: "GCSPath"):
-        bucket = self.client.get_bucket(path)
-        blob: storage.Blob = bucket.get_blob(str(path.key))
-        if blob is None:
-            raise FileNotFoundError(path)
-        return BucketStat(size=blob.size, last_modified=blob.updated)
-
-    def is_dir(self, path: "GCSPath"):
-        if str(path) == path.root:
-            return True
-        bucket = self.client.get_bucket(path)
-        return any(bucket.list_blobs(prefix=path.prefix))
-
-    def exists(self, path: "GCSPath") -> bool:
-        if not path.bucket_name:
-            return any(self.client.list_buckets())
-        bucket = self.client.lookup_bucket(path)
-        if not path.key:
-            return bucket is not None
-        if bucket is None:
-            return False
-        key_name = str(path.key)
-        blob = bucket.get_blob(key_name)
-        if blob is not None:
-            return blob.exists()
-        # Because we want all the parents of a valid blob (e.g. "directory" in
-        # "directory/foo.file") to return True, we enumerate the blobs with a prefix
-        # and compare the object names to see if they match a substring of the path
-        for obj in self.client.scandir(path, prefix=key_name):
-            if obj.name == key_name:
-                return True
-            if obj.name.startswith(key_name + path._flavour.sep):
-                return True
-        return False
-
-    def scandir(self, path: "GCSPath"):
-        return self.client.scandir(path)
-
-    def listdir(self, path: "GCSPath"):
-        return [entry.name for entry in self.scandir(path)]
-
-    def open(
-        self,
-        path: "GCSPath",
-        *,
-        mode="r",
-        buffering=-1,
-        encoding=None,
-        errors=None,
-        newline=None,
-    ):
-        return smart_open.open(
-            f"gs:/{path}",
-            mode=mode,
-            buffering=buffering,
-            encoding=encoding,
-            errors=errors,
-            newline=newline,
-        )
-
-    def owner(self, path: "GCSPath") -> Optional[str]:
-        blob: Optional[storage.Blob] = self.get_blob(path)
-        return blob.owner if blob is not None else None
-
-    def rename(self, path: "GCSPath", target: "GCSPath"):
-        source_bucket_name = self._bucket_name(path.bucket)
-        source_bucket_key = str(path.key)
-        bucket = self.client.lookup_bucket(source_bucket_name)
-
-        # Single file
-        if not self.is_dir(path):
-            from_blob: storage.Blob = bucket.get_blob(str(path.key))
-            target_bucket_name = self._bucket_name(target.bucket)
-            target_bucket: storage.Bucket = self.client.get_bucket(target_bucket_name)
-            target_bucket.copy_blob(from_blob, target_bucket, str(target.key))
-            from_blob.bucket.delete_blob(from_blob.name)
-            return
-
-        # Folder with objects
-        sep = path._flavour.sep
-        continuation_token = None
-        while True:
-            prefix = path.prefix
-            if continuation_token:
-                response = from_blob.bucket.list_blobs(
-                    prefix=prefix, delimiter=sep, page_token=continuation_token,
-                )
-            else:
-                response = bucket.list_blobs(prefix=prefix, delimiter=sep)
-            for page in response.pages:
-                for item in page:
-                    target_bucket_name = self._bucket_name(target.bucket)
-                    target_key_name = item.name.replace(
-                        source_bucket_key, str(target.key)
-                    )
-                    target_bucket = self.client.get_bucket(target_bucket_name)
-                    target_bucket.copy_blob(item, target_bucket, target_key_name)
-                    item.bucket.delete_blob(item.name)
-            if response.next_page_token is None:
-                break
-            continuation_token = response.next_page_token
-
-    def replace(self, path: "GCSPath", target: "GCSPath"):
-        return self.rename(path, target)
-
-    def rmdir(self, path: "GCSPath") -> None:
-        bucket_name = self._bucket_name(path.bucket)
-        key_name = str(path.key)
-        bucket = self.client.get_bucket(bucket_name)
-        bucket.delete_blobs(bucket.list_blobs(prefix=key_name))
-
-    def mkdir(self, path: "GCSPath", mode) -> None:
-        bucket_name = self._bucket_name(path.bucket)
-        self.client.create_bucket(bucket_name)
-
-    def _bucket_name(self, path: "GCSPath") -> str:
-        if path is None:
-            return
-        return str(path.bucket)[1:]
-
-    def _generate_prefix(self, path: "GCSPath") -> str:
-        sep = path._flavour.sep
-        if not path.key:
-            return ""
-        key_name = str(path.key)
-        if not key_name.endswith(sep):
-            return key_name + sep
-        return key_name
 
 
 def _string_parser(text, *, mode, encoding):
