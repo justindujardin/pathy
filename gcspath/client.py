@@ -1,37 +1,46 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional
-
+from typing import Generator, Generic, List, Optional, TypeVar
+from .base import PureGCSPath
 
 __all__ = (
-    "BucketStatResult",
-    "BucketDirEntry",
-    "BucketClient",
+    "BucketStat",
+    "BucketEntry",
+    "Client",
+    "ClientError",
     "ClientBucket",
     "ClientBlob",
 )
 
+BucketBlobType = TypeVar("BucketBlobType", bound="ClientBlob")
+
 
 @dataclass
-class BucketStatResult:
+class ClientError(BaseException):
+    message: str
+    code: int
+
+
+@dataclass
+class BucketStat:
     """Stat for a bucket item"""
 
     size: Optional[int]
     last_modified: Optional[int]
 
 
-class BucketDirEntry:
+class BucketEntry:
     """A single item returned from scanning a path"""
 
     name: str
     _is_dir: bool
-    _stat: BucketStatResult
+    _stat: BucketStat
 
     def __init__(
-        self, name: str, is_dir: bool, size: int = None, last_modified: int = None
+        self, name: str, is_dir: bool, size: int = None, last_modified: int = None,
     ):
         self.name = name
         self._is_dir = is_dir
-        self._stat = BucketStatResult(size=size, last_modified=last_modified)
+        self._stat = BucketStat(size=size, last_modified=last_modified)
 
     def __repr__(self):
         return "{}(name={}, is_dir={}, stat={})".format(
@@ -55,12 +64,16 @@ class BucketDirEntry:
 
 
 @dataclass
-class ClientBlob:
+class ClientBlob(Generic[BucketBlobType]):
     bucket: "ClientBucket"
     name: str
+    raw: BucketBlobType
 
     def delete(self):
-        pass
+        ...
+
+    def exists(self) -> bool:
+        ...
 
 
 @dataclass
@@ -71,34 +84,34 @@ class ClientBucket:
         pass
 
 
-class BucketClient:
+class Client:
+    """Base class for a client that interacts with a bucket-based storage system."""
 
-    buckets: Dict[str, str]
-
-    def __init__(self):
-        self.buckets = {}
-
-    def register_bucket(self, alias: str, bucket_uri: str):
-        if alias in self.buckets:
-            raise ValueError("alias already exists")
-        self.buckets[str(alias)] = str(bucket_uri)
-
-    def lookup_bucket(self, bucket_name: Optional[str]) -> Optional[ClientBucket]:
+    def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucket]:
         raise NotImplementedError("must be implemented in subclass")
 
-    def get_bucket(self, bucket_name: Optional[str]):
+    def get_bucket(self, path: PureGCSPath):
         raise NotImplementedError("must be implemented in subclass")
 
-    def list_buckets(self) -> List[ClientBucket]:
+    def list_buckets(self) -> Generator[ClientBucket, None, None]:
         raise NotImplementedError("must be implemented in subclass")
 
     def list_blobs(
         self,
-        bucket_name: Optional[str],
+        path: PureGCSPath,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-    ) -> List[ClientBlob]:
+        include_dirs: bool = False,
+    ) -> Generator[ClientBlob, None, None]:
         raise NotImplementedError("must be implemented in subclass")
 
-    def create_bucket(self, bucket_name: Optional[str]) -> ClientBucket:
+    def scandir(
+        self,
+        path: PureGCSPath = None,
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+    ) -> Generator[BucketEntry, None, None]:
+        raise NotImplementedError("must be implemented in subclass")
+
+    def create_bucket(self, path: PureGCSPath) -> ClientBucket:
         raise NotImplementedError("must be implemented in subclass")
