@@ -96,7 +96,7 @@ class _GCSAccessor(_Accessor):
         newline=None,
     ):
         return smart_open.open(
-            f"gs:/{path}",
+            path.as_uri(),
             mode=mode,
             buffering=buffering,
             encoding=encoding,
@@ -109,8 +109,7 @@ class _GCSAccessor(_Accessor):
         return blob.owner if blob is not None else None
 
     def rename(self, path: "GCSPath", target: "GCSPath"):
-        source_bucket_key = str(path.key)
-        bucket = self.client.get_bucket(path)
+        bucket: ClientBucket = self.client.get_bucket(path)
         target_bucket: ClientBucket = self.client.get_bucket(target)
 
         # Single file
@@ -119,13 +118,13 @@ class _GCSAccessor(_Accessor):
             if from_blob is None:
                 raise FileNotFoundError(f'source file "{path}" does not exist')
             target_bucket.copy_blob(from_blob, target_bucket, str(target.key))
-            from_blob.bucket.delete_blob(from_blob.name)
+            bucket.delete_blob(from_blob)
             return
 
         # Folder with objects
         sep = path._flavour.sep
         for blob in self.client.list_blobs(path, prefix=path.prefix, delimiter=sep):
-            target_key_name = blob.name.replace(source_bucket_key, str(target.key))
+            target_key_name = blob.name.replace(str(path.key), str(target.key))
             target_bucket.copy_blob(blob, target_bucket, target_key_name)
             bucket.delete_blob(blob)
 
