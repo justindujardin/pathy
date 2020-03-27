@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 from typing import Generator, Generic, List, Optional, TypeVar
+
+import smart_open
+
 from .base import PureGCSPath
 
 __all__ = (
@@ -107,6 +110,28 @@ class ClientBucket:
 
 class Client:
     """Base class for a client that interacts with a bucket-based storage system."""
+
+    def make_uri(self, path: PureGCSPath) -> str:
+        return path.as_uri()
+
+    def open(
+        self,
+        path: PureGCSPath,
+        *,
+        mode="r",
+        buffering=-1,
+        encoding=None,
+        errors=None,
+        newline=None,
+    ):
+        return smart_open.open(
+            self.make_uri(path),
+            mode=mode,
+            buffering=buffering,
+            encoding=encoding,
+            errors=errors,
+            newline=newline,
+        )
 
     def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucket]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)

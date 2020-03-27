@@ -29,7 +29,7 @@ class ClientBucketFS(ClientBucket):
 
     def get_blob(self, blob_name: str) -> Optional[ClientBlobFS]:
         native_blob = self.bucket / blob_name
-        if not native_blob.exists():
+        if not native_blob.exists() or native_blob.is_dir():
             return None
         stat = native_blob.stat()
         return ClientBlobFS(
@@ -59,6 +59,41 @@ class ClientBucketFS(ClientBucket):
 class BucketClientFS(Client):
     # Root to store file-system buckets as children of
     root: pathlib.Path
+
+    def open(
+        self,
+        path: PureGCSPath,
+        *,
+        mode="r",
+        buffering=-1,
+        encoding=None,
+        errors=None,
+        newline=None,
+    ):
+        if self.lookup_bucket(path) is not None:
+            full_path = self.root.absolute() / path.bucket_name / path.key
+            if not full_path.exists():
+                if full_path.suffix != "":
+                    str_full = str(full_path)
+                    full_path = pathlib.Path(str_full[: str_full.rindex("/") + 1])
+                print(f"Make path: {full_path}")
+                full_path.mkdir(parents=True, exist_ok=True)
+        return super().open(
+            path,
+            mode=mode,
+            buffering=buffering,
+            encoding=encoding,
+            errors=errors,
+            newline=newline,
+        )
+
+    def make_uri(self, path: PureGCSPath) -> str:
+        if not path.bucket_name:
+            raise ValueError(
+                f"cannot make a URI to an invalid bucket: {path.bucket_name}"
+            )
+        result = f"file://{self.root.absolute() / path.bucket_name / path.key}"
+        return result
 
     def create_bucket(self, path: PureGCSPath) -> ClientBucket:
         if not path.bucket_name:
@@ -100,14 +135,15 @@ class BucketClientFS(Client):
                 yield BucketEntryFS(bucket.name, is_dir=True, raw=None)
             return
         assert path is not None
-        scan_path = path
+        assert path.bucket_name is not None
+        scan_path = self.root / path.bucket_name
         if prefix is not None:
             scan_path = scan_path / prefix
-        for dir_entry in os.scandir(str(scan_path)):
+        for dir_entry in scan_path.glob("*"):
             if dir_entry.is_dir():
                 yield BucketEntryFS(dir_entry.name, is_dir=True, raw=None)
             else:
-                file_path = pathlib.Path(path) / dir_entry
+                file_path = pathlib.Path(dir_entry)
                 stat = file_path.stat()
                 file_size = stat.st_size
                 updated = int(round(stat.st_mtime_ns * 1000))
@@ -134,14 +170,26 @@ class BucketClientFS(Client):
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
     ) -> Generator[ClientBlobFS, None, None]:
-        scan_path = path
-        if prefix is not None:
-            scan_path = scan_path / prefix
+        assert path.bucket_name is not None
+        bucket = self.get_bucket(path)
+        scan_path = self.root / path.bucket_name / path.key
+        # Path to a file
+        if scan_path.exists() and not scan_path.is_dir():
+            stat = scan_path.stat()
+            file_size = stat.st_size
+            updated = int(round(stat.st_mtime_ns * 1000))
+            yield ClientBlobFS(
+                bucket,
+                name=scan_path.name,
+                size=file_size,
+                updated=updated,
+                owner=None,
+                raw=scan_path,
+            )
         for dir_entry in os.scandir(str(scan_path)):
             if dir_entry.is_dir():
                 continue
-            bucket = self.get_bucket(path)
-            file_path = pathlib.Path(path) / dir_entry
+            file_path = pathlib.Path(dir_entry.path)
             stat = file_path.stat()
             file_size = stat.st_size
             updated = int(round(stat.st_mtime_ns * 1000))

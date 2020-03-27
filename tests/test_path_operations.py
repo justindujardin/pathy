@@ -35,19 +35,28 @@ def test_path_support():
     assert Path in GCSPath.mro()
 
 
+@pytest.fixture(autouse=True)
+def test_buckets():
+    bucket_one = GCSPath(f"/{bucket}/")
+    if not bucket_one.exists():
+        bucket_one.mkdir()
+    bucket_two = GCSPath(f"/{other_bucket}/")
+    if not bucket_two.exists():
+        bucket_two.mkdir()
+
+
 @pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
 def test_stat():
+
     path = GCSPath("fake-bucket-1234-0987/fake-key")
     with pytest.raises(ValueError):
         path.stat()
-    test_file = f"gs://{bucket}/foo.txt"
-    client = storage.Client()
-    blob = storage.Blob.from_string(test_file)
-    blob.upload_from_string("a-a-a-a-a-a-a", client=client)
-    path = GCSPath.from_uri(test_file)
+    path = GCSPath(f"/{bucket}/foo.txt")
+    path.write_text("a-a-a-a-a-a-a")
     stat = path.stat()
     assert isinstance(stat, BucketStat)
-    assert stat == BucketStat(size=blob.size, last_modified=blob.updated)
+    assert stat.size > 0
+    assert stat.last_modified > 0
     assert GCSPath("/test-bucket").stat() is None
 
 
@@ -65,12 +74,8 @@ def test_exists():
     # valid bucket with invalid object
     assert GCSPath(f"/{bucket}/not_found_lol_nice.txt").exists() is False
 
-    test_path = f"/{bucket}/directory/foo.txt"
-    test_gs_file = f"gs:/{test_path}"
-    client = storage.Client()
-    blob = storage.Blob.from_string(test_gs_file)
-    blob.upload_from_string("---", client=client)
-    path = GCSPath(test_path)
+    path = GCSPath(f"/{bucket}/directory/foo.txt")
+    path.write_text("---")
     assert path.exists()
     for parent in path.parents:
         assert parent.exists()
@@ -78,16 +83,16 @@ def test_exists():
 
 @pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
 def test_glob():
-    client = storage.Client()
+
     for i in range(3):
-        blob = storage.Blob.from_string(f"gs://{bucket}/glob/{i}.file")
-        blob.upload_from_string("---", client=client)
+        path = GCSPath(f"/{bucket}/glob/{i}.file")
+        path.write_text("---")
     for i in range(2):
-        blob = storage.Blob.from_string(f"gs://{bucket}/glob/{i}/dir/file.txt")
-        blob.upload_from_string("---", client=client)
+        path = GCSPath(f"/{bucket}/glob/{i}/dir/file.txt")
+        path.write_text("---")
 
     assert list(GCSPath(f"/{bucket}/glob/").glob("*.test")) == []
-    assert list(GCSPath(f"/{bucket}/glob/").glob("*.file")) == [
+    assert sorted(list(GCSPath(f"/{bucket}/glob/").glob("*.file"))) == [
         GCSPath(f"/{bucket}/glob/0.file"),
         GCSPath(f"/{bucket}/glob/1.file"),
         GCSPath(f"/{bucket}/glob/2.file"),
@@ -99,12 +104,12 @@ def test_glob():
         GCSPath(f"/{bucket}/glob"),
     ]
     # Recursive matches
-    assert list(GCSPath(f"/{bucket}/glob/").glob("**/*.txt")) == [
+    assert sorted(list(GCSPath(f"/{bucket}/glob/").glob("**/*.txt"))) == [
         GCSPath(f"/{bucket}/glob/0/dir/file.txt"),
         GCSPath(f"/{bucket}/glob/1/dir/file.txt"),
     ]
     # rglob adds the **/ for you
-    assert list(GCSPath(f"/{bucket}/glob/").rglob("*.txt")) == [
+    assert sorted(list(GCSPath(f"/{bucket}/glob/").rglob("*.txt"))) == [
         GCSPath(f"/{bucket}/glob/0/dir/file.txt"),
         GCSPath(f"/{bucket}/glob/1/dir/file.txt"),
     ]
@@ -112,11 +117,8 @@ def test_glob():
 
 @pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
 def test_is_dir():
-    client = storage.Client()
-    target_file = f"/{bucket}/is_dir/subfolder/another/my.file"
-    blob = storage.Blob.from_string(f"gs:/{target_file}")
-    blob.upload_from_string("---", client=client)
-    path = GCSPath(target_file)
+    path = GCSPath(f"/{bucket}/is_dir/subfolder/another/my.file")
+    path.write_text("---")
     assert path.is_dir() is False
     for parent in path.parents:
         assert parent.is_dir() is True

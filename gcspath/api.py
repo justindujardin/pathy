@@ -52,6 +52,8 @@ class _GCSAccessor(_Accessor):
     def is_dir(self, path: "GCSPath"):
         if str(path) == path.root:
             return True
+        if self.get_blob(path) is not None:
+            return False
         return any(self.client.list_blobs(path, prefix=path.prefix))
 
     def exists(self, path: "GCSPath") -> bool:
@@ -95,8 +97,8 @@ class _GCSAccessor(_Accessor):
         errors=None,
         newline=None,
     ):
-        return smart_open.open(
-            path.as_uri(),
+        return self.client.open(
+            path,
             mode=mode,
             buffering=buffering,
             encoding=encoding,
@@ -138,22 +140,6 @@ class _GCSAccessor(_Accessor):
 
     def mkdir(self, path: "GCSPath", mode) -> None:
         self.client.create_bucket(path)
-
-
-def _string_parser(text, *, mode, encoding):
-    if isinstance(text, memoryview):
-        if "b" in mode:
-            return text
-        return text.obj.decode(encoding or "utf-8")
-    if isinstance(text, (bytes, bytearray)):
-        if "b" in mode:
-            return text
-        return text.decode(encoding or "utf-8")
-    if isinstance(text, str):
-        if "t" in mode or "r" == mode:
-            return text
-        return text.encode(encoding or "utf-8")
-    raise RuntimeError()
 
 
 class _PathNotSupportedMixin:
@@ -266,7 +252,7 @@ class _PathNotSupportedMixin:
         raise NotImplementedError(message)
 
 
-_gcs_accessor = _GCSAccessor()
+_gcs_accessor = BucketsAccessor()
 
 
 class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
