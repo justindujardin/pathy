@@ -44,7 +44,7 @@ class _GCSAccessor(_Accessor):
 
     def stat(self, path: "GCSPath"):
         bucket = self.client.get_bucket(path)
-        blob: ClientBlob = bucket.get_blob(str(path.key))
+        blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
         return BucketStat(size=blob.size, last_modified=blob.updated)
