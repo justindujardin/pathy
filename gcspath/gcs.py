@@ -71,6 +71,9 @@ class ClientBucketGCS(ClientBucket):
 class BucketClientGCS(Client):
     client: storage.Client = field(default_factory=lambda: storage.Client())
 
+    def create_bucket(self, path: PureGCSPath) -> ClientBucket:
+        return self.client.create_bucket(path.bucket_name)
+
     def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucketGCS]:
         try:
             native_bucket = self.client.lookup_bucket(path.bucket_name)
@@ -101,7 +104,7 @@ class BucketClientGCS(Client):
     ) -> Generator[BucketEntryGCS, None, None]:
         continuation_token = None
         if path is None or not path.bucket_name:
-            for bucket in self.client.list_buckets():
+            for bucket in self.list_buckets():
                 yield BucketEntryGCS(bucket.name, is_dir=True, raw=None)
             return
         sep = path._flavour.sep
@@ -173,6 +176,3 @@ class BucketClientGCS(Client):
             if response.next_page_token is None:
                 break
             continuation_token = response.next_page_token
-
-    def create_bucket(self, path: PureGCSPath) -> ClientBucket:
-        return self.client.create_bucket(path.bucket_name)
