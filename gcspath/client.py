@@ -120,6 +120,12 @@ class BucketClient:
     def make_uri(self, path: PureGCSPath) -> str:
         return path.as_uri()
 
+    def is_dir(self, path: PureGCSPath) -> bool:
+        return any(self.list_blobs(path, prefix=path.prefix))
+
+    def rmdir(self, path: PureGCSPath) -> None:
+        return None
+
     def exists(self, path: PureGCSPath) -> bool:
         # Because we want all the parents of a valid blob (e.g. "directory" in
         # "directory/foo.file") to return True, we enumerate the blobs with a prefix
@@ -178,4 +184,7 @@ class BucketClient:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def create_bucket(self, path: PureGCSPath) -> ClientBucket:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+
+    def delete_bucket(self, path: PureGCSPath) -> None:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)

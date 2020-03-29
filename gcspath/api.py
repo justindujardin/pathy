@@ -98,7 +98,7 @@ class BucketsAccessor(_Accessor):
             return True
         if self.get_blob(path) is not None:
             return False
-        return any(self.client.list_blobs(path, prefix=path.prefix))
+        return self.client.is_dir(path)
 
     def exists(self, path: "GCSPath") -> bool:
         if not path.bucket_name:
@@ -171,9 +171,12 @@ class BucketsAccessor(_Accessor):
         return self.rename(path, target)
 
     def rmdir(self, path: "GCSPath") -> None:
-        key_name = str(path.key)
+        key_name = str(path.key) if path.key is not None else None
         bucket = self.client.get_bucket(path)
-        bucket.delete_blobs(list(self.client.list_blobs(path, prefix=key_name)))
+        blobs = list(self.client.list_blobs(path, prefix=key_name))
+        bucket.delete_blobs(blobs)
+        if self.client.is_dir(path):
+            self.client.rmdir(path)
 
     def mkdir(self, path: "GCSPath", mode) -> None:
         self.client.create_bucket(path)

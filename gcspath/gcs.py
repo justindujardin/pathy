@@ -74,6 +74,10 @@ class BucketClientGCS(BucketClient):
     def create_bucket(self, path: PureGCSPath) -> ClientBucket:
         return self.client.create_bucket(path.bucket_name)
 
+    def delete_bucket(self, path: PureGCSPath) -> None:
+        bucket = self.client.get_bucket(path.bucket_name)
+        bucket.delete()
+
     def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucketGCS]:
         try:
             native_bucket = self.client.lookup_bucket(path.bucket_name)
