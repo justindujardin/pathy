@@ -115,15 +115,8 @@ class BucketsAccessor(_Accessor):
         blob = bucket.get_blob(key_name)
         if blob is not None:
             return blob.exists()
-        # Because we want all the parents of a valid blob (e.g. "directory" in
-        # "directory/foo.file") to return True, we enumerate the blobs with a prefix
-        # and compare the object names to see if they match a substring of the path
-        for obj in self.client.list_blobs(path, prefix=key_name):
-            if obj.name == key_name:
-                return True
-            if obj.name.startswith(key_name + path._flavour.sep):
-                return True
-        return False
+        # Determine if the path exists according to the current adapter
+        return self.client.exists(path)
 
     def scandir(self, path: "GCSPath") -> Generator[BucketEntry, None, None]:
         return self.client.scandir(path, prefix=path.prefix)

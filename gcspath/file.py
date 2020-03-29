@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, List, Generator
+from typing import Optional, List, Generator, cast
 from .client import BucketClient, ClientBucket, ClientBlob, ClientError, BucketEntry
 from .base import PureGCSPath
 import pathlib
@@ -60,6 +60,15 @@ class BucketClientFS(BucketClient):
     # Root to store file-system buckets as children of
     root: pathlib.Path
 
+    def full_path(self, path: PureGCSPath) -> pathlib.Path:
+        if path.bucket_name is None:
+            raise ValueError(f"Invalid bucket name for path: {path}")
+        return self.root.absolute() / str(path.bucket_name) / path.key
+
+    def exists(self, path: PureGCSPath) -> bool:
+        """Return True if the path exists as a file or folder on disk"""
+        return self.full_path(path).exists()
+
     def open(
         self,
         path: PureGCSPath,
@@ -70,14 +79,18 @@ class BucketClientFS(BucketClient):
         errors=None,
         newline=None,
     ):
-        if self.lookup_bucket(path) is not None:
-            full_path = self.root.absolute() / path.bucket_name / path.key
-            if not full_path.exists():
-                if full_path.suffix != "":
-                    str_full = str(full_path)
-                    full_path = pathlib.Path(str_full[: str_full.rindex("/") + 1])
-                print(f"Make path: {full_path}")
-                full_path.mkdir(parents=True, exist_ok=True)
+        if self.lookup_bucket(path) is None:
+            raise ClientError(
+                message=f'bucket "{path.bucket_name}" does not exist', code=404
+            )
+
+        full_path = self.full_path(path)
+        if not full_path.exists():
+            if full_path.suffix != "":
+                str_full = str(full_path)
+                full_path = pathlib.Path(str_full[: str_full.rindex("/") + 1])
+            print(f"Make path: {full_path}")
+            full_path.mkdir(parents=True, exist_ok=True)
         return super().open(
             path,
             mode=mode,
@@ -186,7 +199,15 @@ class BucketClientFS(BucketClient):
                 owner=None,
                 raw=scan_path,
             )
-        for dir_entry in os.scandir(str(scan_path)):
+
+        # If the path can't be scanned, yield nothing and return
+        try:
+            dir_entries_generator = os.scandir(str(scan_path))
+        except FileNotFoundError:
+            return
+
+        # Yield blobs for each file (non-folder)
+        for dir_entry in dir_entries_generator:
             if dir_entry.is_dir():
                 continue
             file_path = pathlib.Path(dir_entry.path)

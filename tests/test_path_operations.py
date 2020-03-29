@@ -7,6 +7,12 @@ import pytest
 from google.cloud import storage
 
 from gcspath import GCSPath, PureGCSPath, BucketStat
+import pytest
+from pathlib import Path
+import tempfile
+import shutil
+from gcspath import use_fs
+import os
 
 # todo: test samefile/touch/write_text/write_bytes method
 # todo: test security and boto config changes
@@ -17,8 +23,14 @@ from gcspath import GCSPath, PureGCSPath, BucketStat
 bucket = "gcspath-tests-1"
 other_bucket = "gcspath-tests-2"
 
-# TODO: enable these tests
+
+# Which adapters to use
+TEST_ADAPTERS = ["gcs", "fs"]
+
+# TODO: set this up with a service account for the CI
 has_credentials = False
+if not has_credentials:
+    TEST_ADAPTERS = ["gcs"]
 
 
 @pytest.fixture()
@@ -35,11 +47,32 @@ def test_path_support():
     assert Path in GCSPath.mro()
 
 
+@pytest.fixture()
+def with_adapter(adapter: str):
+    if adapter == "gcs":
+        # Use GCS (with system credentials)
+        use_fs(False)
+    elif adapter == "fs":
+        # Use local file-system in a temp folder
+        tmp_dir = tempfile.mkdtemp()
+        use_fs(tmp_dir)
+        bucket_one = GCSPath(f"/{bucket}/")
+        if not bucket_one.exists():
+            bucket_one.mkdir()
+        bucket_two = GCSPath(f"/{other_bucket}/")
+        if not bucket_two.exists():
+            bucket_two.mkdir()
+    # execute the test
+    yield
+
+    if adapter == "fs":
+        # Cleanup fs temp folder
+        shutil.rmtree(tmp_dir)
+    use_fs(False)
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_stat():
-
+@pytest.mark.parametrize("adapter", ["gcs", "fs"])
+def test_stat(with_adapter):
     path = GCSPath("fake-bucket-1234-0987/fake-key")
     with pytest.raises(ValueError):
         path.stat()
@@ -52,8 +85,8 @@ def test_stat():
     assert GCSPath("/test-bucket").stat() is None
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_exists():
+@pytest.mark.parametrize("adapter", ["gcs", "fs"])
+def test_exists(with_adapter):
     path = GCSPath("./fake-key")
     with pytest.raises(ValueError):
         path.exists()

@@ -24,6 +24,12 @@ class ClientError(BaseException):
     message: str
     code: int
 
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        return f"({self.code}) {self.message}"
+
 
 @dataclass
 class BucketStat:
@@ -113,6 +119,18 @@ class BucketClient:
 
     def make_uri(self, path: PureGCSPath) -> str:
         return path.as_uri()
+
+    def exists(self, path: PureGCSPath) -> bool:
+        # Because we want all the parents of a valid blob (e.g. "directory" in
+        # "directory/foo.file") to return True, we enumerate the blobs with a prefix
+        # and compare the object names to see if they match a substring of the path
+        key_name = str(path.key)
+        for obj in self.list_blobs(path):
+            if obj.name == key_name:
+                return True
+            if obj.name.startswith(key_name + path._flavour.sep):
+                return True
+        return False
 
     def open(
         self,
