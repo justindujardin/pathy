@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, List, Generator
-from .client import Client, ClientBucket, ClientBlob, ClientError, BucketEntry
+from .client import BucketClient, ClientBucket, ClientBlob, ClientError, BucketEntry
 from .base import PureGCSPath
 import pathlib
 import shutil
@@ -56,7 +56,7 @@ class ClientBucketFS(ClientBucket):
 
 
 @dataclass
-class BucketClientFS(Client):
+class BucketClientFS(BucketClient):
     # Root to store file-system buckets as children of
     root: pathlib.Path
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, List, Generator
-from .client import Client, ClientBucket, ClientBlob, ClientError, BucketEntry
+from .client import BucketClient, ClientBucket, ClientBlob, ClientError, BucketEntry
 from .base import PureGCSPath
 
 try:
@@ -41,7 +41,7 @@ class ClientBucketGCS(ClientBucket):
             name=native_blob.name,
             raw=native_blob,
             size=native_blob.size,
-            updated=native_blob.updated,
+            updated=native_blob.updated.timestamp(),
         )
 
     def copy_blob(
@@ -57,7 +57,7 @@ class ClientBucketGCS(ClientBucket):
             name=native_blob.name,
             raw=native_blob,
             size=native_blob.size,
-            updated=native_blob.updated,
+            updated=native_blob.updated.timestamp(),
         )
 
     def delete_blob(self, blob: ClientBlobGCS) -> None:
@@ -68,7 +68,7 @@ class ClientBucketGCS(ClientBucket):
 
 
 @dataclass
-class BucketClientGCS(Client):
+class BucketClientGCS(BucketClient):
     client: storage.Client = field(default_factory=lambda: storage.Client())
 
     def create_bucket(self, path: PureGCSPath) -> ClientBucket:
@@ -133,7 +133,7 @@ class BucketClientGCS(Client):
                         name=item.name.split(sep)[-1],
                         is_dir=False,
                         size=item.size,
-                        last_modified=item.updated,
+                        last_modified=item.updated.timestamp(),
                         raw=item,
                     )
             if response.next_page_token is None:
@@ -171,7 +171,7 @@ class BucketClientGCS(Client):
                         name=item.name,
                         raw=item,
                         size=item.size,
-                        updated=item.updated,
+                        updated=item.updated.timestamp(),
                     )
             if response.next_page_token is None:
                 break

@@ -8,7 +8,7 @@ from .base import PureGCSPath
 __all__ = (
     "BucketStat",
     "BucketEntry",
-    "Client",
+    "BucketClient",
     "ClientError",
     "ClientBucket",
     "ClientBlob",
@@ -108,7 +108,7 @@ class ClientBucket:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
 
-class Client:
+class BucketClient:
     """Base class for a client that interacts with a bucket-based storage system."""
 
     def make_uri(self, path: PureGCSPath) -> str:

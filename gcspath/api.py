@@ -12,25 +12,69 @@ from .base import PureGCSPath
 from .client import (
     BucketEntry,
     BucketStat,
-    Client,
+    BucketClient,
     ClientBlob,
     ClientBucket,
     ClientError,
 )
 from .gcs import BucketClientGCS, has_gcs
+from .file import BucketClientFS
 
 __all__ = ("GCSPath",)
 
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
 
-class _GCSAccessor(_Accessor):
-    """Access data from GCS buckets"""
+_fs_client: Optional[BucketClientFS] = None
 
-    client: Client
+
+def use_fs(root: Optional[Union[str, bool]] = None) -> Optional[BucketClientFS]:
+    """Use a path in the local file-system to store blobs and buckets.
+
+    This is useful for development and testing situations, and for embedded
+    applications."""
+    global _fs_client
+    # False - disable adapter
+    if root is False:
+        _fs_client = None
+        return None
+
+    # None or True - enable FS adapter with default root
+    if root is None or root is True:
+        # Look up "data" folder of gcspath package similar to spaCy
+        client_root = Path(__file__).parent / "data"
+    else:
+        assert isinstance(root, str), f"root is not a known type: {type(root)}"
+        client_root = Path(root)
+    if not client_root.exists():
+        client_root.mkdir(parents=True)
+    _fs_client = BucketClientFS(root=client_root)
+    return _fs_client
+
+
+def get_fs_client() -> Optional[BucketClientFS]:
+    """Get the file-system client (or None)"""
+    global _fs_client
+    assert _fs_client is None or isinstance(
+        _fs_client, BucketClientFS
+    ), "invalid root type"
+    return _fs_client
+
+
+class BucketsAccessor(_Accessor):
+    """Access data from blob buckets"""
+
+    _client: BucketClient
+
+    @property
+    def client(self) -> BucketClient:
+        global _fs_client
+        if _fs_client is not None:
+            return _fs_client
+        return self._client
 
     def __init__(self, **kwargs):
-        self.client = BucketClientGCS()
+        self._client = BucketClientGCS()
 
     def get_blob(self, path: "GCSPath") -> Optional[ClientBlob]:
         """Get the blob associated with a path or return None"""
@@ -324,14 +368,15 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
 
     def glob(self, pattern):
         """
-        Glob the given relative pattern in the Bucket / key prefix represented by this path,
-        yielding all matching files (of any kind)
+        Glob the given relative pattern in the Bucket / key prefix represented
+        by this path, yielding all matching files (of any kind)
         """
         yield from super().glob(pattern)
 
     def rglob(self, pattern):
         """
-        This is like calling GCSPath.glob with "**/" added in front of the given relative pattern
+        This is like calling GCSPath.glob with "**/" added in front of the given
+        relative pattern.
         """
         yield from super().rglob(pattern)
 
@@ -344,7 +389,8 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
         newline=None,
     ):
         """
-        Opens the Bucket key pointed to by the path, returns a Key file object that you can read/write with
+        Opens the Bucket key pointed to by the path, returns a Key file object
+        that you can read/write with.
         """
         self._absolute_path_validation()
         if mode not in _SUPPORTED_OPEN_MODES:
