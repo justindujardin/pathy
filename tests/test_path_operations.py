@@ -35,14 +35,6 @@ def test_path_support():
     assert Path in GCSPath.mro()
 
 
-@pytest.fixture(autouse=True)
-def test_buckets():
-    bucket_one = GCSPath(f"/{bucket}/")
-    if not bucket_one.exists():
-        bucket_one.mkdir()
-    bucket_two = GCSPath(f"/{other_bucket}/")
-    if not bucket_two.exists():
-        bucket_two.mkdir()
 
 
 @pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
