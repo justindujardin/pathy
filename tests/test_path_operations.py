@@ -23,14 +23,11 @@ import os
 bucket = "gcspath-tests-1"
 other_bucket = "gcspath-tests-2"
 
-
-# Which adapters to use
-TEST_ADAPTERS = ["gcs", "fs"]
-
 # TODO: set this up with a service account for the CI
 has_credentials = False
-if not has_credentials:
-    TEST_ADAPTERS = ["gcs"]
+
+# Which adapters to use
+TEST_ADAPTERS = ["gcs", "fs"] if has_credentials else ["fs"]
 
 
 @pytest.fixture()
@@ -71,7 +68,7 @@ def with_adapter(adapter: str):
     use_fs(False)
 
 
-@pytest.mark.parametrize("adapter", ["gcs", "fs"])
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_stat(with_adapter):
     path = GCSPath("fake-bucket-1234-0987/fake-key")
     with pytest.raises(ValueError):
@@ -85,7 +82,7 @@ def test_stat(with_adapter):
     assert GCSPath("/test-bucket").stat() is None
 
 
-@pytest.mark.parametrize("adapter", ["gcs", "fs"])
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_exists(with_adapter):
     path = GCSPath("./fake-key")
     with pytest.raises(ValueError):
@@ -106,9 +103,8 @@ def test_exists(with_adapter):
         assert parent.exists()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_glob():
-
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_glob(with_adapter):
     for i in range(3):
         path = GCSPath(f"/{bucket}/glob/{i}.file")
         path.write_text("---")
@@ -140,8 +136,8 @@ def test_glob():
     ]
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_is_dir():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_is_dir(with_adapter):
     path = GCSPath(f"/{bucket}/is_dir/subfolder/another/my.file")
     path.write_text("---")
     assert path.is_dir() is False
@@ -149,13 +145,10 @@ def test_is_dir():
         assert parent.is_dir() is True
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_is_file():
-    client = storage.Client()
-    target_file = f"/{bucket}/is_file/subfolder/another/my.file"
-    blob = storage.Blob.from_string(f"gs:/{target_file}")
-    blob.upload_from_string("---", client=client)
-    path = GCSPath(target_file)
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_is_file(with_adapter):
+    path = GCSPath(f"/{bucket}/is_file/subfolder/another/my.file")
+    path.write_text("---")
     # The full file is a file
     assert path.is_file() is True
     # Each parent node in the path is only a directory
@@ -163,16 +156,16 @@ def test_is_file():
         assert parent.is_file() is False
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_iterdir():
-    client = storage.Client()
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_iterdir(with_adapter):
     # (n) files in a folder
     for i in range(2):
-        blob = storage.Blob.from_string(f"gs://{bucket}/iterdir/{i}.file")
-        blob.upload_from_string("---", client=client)
+        path = GCSPath(f"/{bucket}/iterdir/{i}.file")
+        path.write_text("---")
+
     # 1 file in a subfolder
-    blob = storage.Blob.from_string(f"gs://{bucket}/iterdir/sub/file.txt")
-    blob.upload_from_string("---", client=client)
+    path = GCSPath(f"/{bucket}/iterdir/sub/file.txt")
+    path.write_text("---")
 
     path = GCSPath(f"/{bucket}/iterdir/")
     assert sorted(path.iterdir()) == [
@@ -182,19 +175,17 @@ def test_iterdir():
     ]
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_open_for_read():
-    client = storage.Client()
-    blob = storage.Blob.from_string(f"gs://{bucket}/read/file.txt")
-    blob.upload_from_string("---", client=client)
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_open_for_read(with_adapter):
     path = GCSPath(f"/{bucket}/read/file.txt")
+    path.write_text("---")
     with path.open() as file_obj:
         assert file_obj.read() == "---"
     assert path.read_text() == "---"
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_open_for_write():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_open_for_write(with_adapter):
     path = GCSPath(f"/{bucket}/write/file.txt")
     with path.open(mode="w") as file_obj:
         file_obj.write("---")
@@ -204,8 +195,8 @@ def test_open_for_write():
         assert file_obj.read() == "------"
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_open_binary_read():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_open_binary_read(with_adapter):
     path = GCSPath(f"/{bucket}/read_binary/file.txt")
     path.write_bytes(b"---")
     with path.open(mode="rb") as file_obj:
@@ -215,8 +206,8 @@ def test_open_binary_read():
         assert file_obj.readline() == b""
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_readwrite_text():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_readwrite_text(with_adapter):
     path = GCSPath(f"/{bucket}/write_text/file.txt")
     path.write_text("---")
     with path.open() as file_obj:
@@ -224,15 +215,15 @@ def test_readwrite_text():
     assert path.read_text() == "---"
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_readwrite_bytes():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_readwrite_bytes(with_adapter):
     path = GCSPath(f"/{bucket}/write_bytes/file.txt")
     path.write_bytes(b"---")
     assert path.read_bytes() == b"---"
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_readwrite_lines():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_readwrite_lines(with_adapter):
     path = GCSPath(f"/{bucket}/write_text/file.txt")
     with path.open("w") as file_obj:
         file_obj.writelines(["---"])
@@ -242,8 +233,8 @@ def test_readwrite_lines():
         assert file_obj.readline() == "---"
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_owner():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_owner(with_adapter):
     # Raises for invalid file
     with pytest.raises(FileNotFoundError):
         GCSPath(f"/{bucket}/write_text/not_a_valid_blob").owner()
@@ -254,8 +245,8 @@ def test_owner():
     assert path.owner() is None
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_rename_files_in_bucket():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_rename_files_in_bucket(with_adapter):
     # Rename a single file
     GCSPath(f"/{bucket}/rename/file.txt").write_text("---")
     GCSPath(f"/{bucket}/rename/file.txt").rename(f"/{bucket}/rename/other.txt")
@@ -263,8 +254,8 @@ def test_rename_files_in_bucket():
     assert GCSPath(f"/{bucket}/rename/other.txt").is_file()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_rename_files_across_buckets():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_rename_files_across_buckets(with_adapter):
     # Rename a single file across buckets
     GCSPath(f"/{bucket}/rename/file.txt").write_text("---")
     GCSPath(f"/{bucket}/rename/file.txt").rename(f"/{other_bucket}/rename/other.txt")
@@ -272,8 +263,8 @@ def test_rename_files_across_buckets():
     assert GCSPath(f"/{other_bucket}/rename/other.txt").is_file()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_rename_folders_in_bucket():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_rename_folders_in_bucket(with_adapter):
     # Rename a folder in the same bucket
     GCSPath(f"/{bucket}/rename/folder/one.txt").write_text("---")
     GCSPath(f"/{bucket}/rename/folder/two.txt").write_text("---")
@@ -286,8 +277,8 @@ def test_rename_folders_in_bucket():
     assert GCSPath(f"/{bucket}/rename/other/two.txt").is_file()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_rename_folders_across_buckets():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_rename_folders_across_buckets(with_adapter):
     # Rename a folder across buckets
     GCSPath(f"/{bucket}/rename/folder/one.txt").write_text("---")
     GCSPath(f"/{bucket}/rename/folder/two.txt").write_text("---")
@@ -300,8 +291,8 @@ def test_rename_folders_across_buckets():
     assert GCSPath(f"/{other_bucket}/rename/other/two.txt").is_file()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_replace_files_in_bucket():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_replace_files_in_bucket(with_adapter):
     # replace a single file
     GCSPath(f"/{bucket}/replace/file.txt").write_text("---")
     GCSPath(f"/{bucket}/replace/file.txt").replace(f"/{bucket}/replace/other.txt")
@@ -309,8 +300,8 @@ def test_replace_files_in_bucket():
     assert GCSPath(f"/{bucket}/replace/other.txt").is_file()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_replace_files_across_buckets():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_replace_files_across_buckets(with_adapter):
     # Rename a single file across buckets
     GCSPath(f"/{bucket}/replace/file.txt").write_text("---")
     GCSPath(f"/{bucket}/replace/file.txt").replace(f"/{other_bucket}/replace/other.txt")
@@ -318,8 +309,8 @@ def test_replace_files_across_buckets():
     assert GCSPath(f"/{other_bucket}/replace/other.txt").is_file()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_replace_folders_in_bucket():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_replace_folders_in_bucket(with_adapter):
     # Rename a folder in the same bucket
     GCSPath(f"/{bucket}/replace/folder/one.txt").write_text("---")
     GCSPath(f"/{bucket}/replace/folder/two.txt").write_text("---")
@@ -332,8 +323,8 @@ def test_replace_folders_in_bucket():
     assert GCSPath(f"/{bucket}/replace/other/two.txt").is_file()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_replace_folders_across_buckets():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_replace_folders_across_buckets(with_adapter):
     # Rename a folder across buckets
     GCSPath(f"/{bucket}/replace/folder/one.txt").write_text("---")
     GCSPath(f"/{bucket}/replace/folder/two.txt").write_text("---")
@@ -346,8 +337,8 @@ def test_replace_folders_across_buckets():
     assert GCSPath(f"/{other_bucket}/replace/other/two.txt").is_file()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_rmdir():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_rmdir(with_adapter):
     GCSPath(f"/{bucket}/rmdir/one.txt").write_text("---")
     GCSPath(f"/{bucket}/rmdir/folder/two.txt").write_text("---")
     path = GCSPath(f"/{bucket}/rmdir/")
@@ -357,25 +348,21 @@ def test_rmdir():
     assert not path.exists()
 
 
-@pytest.mark.skipif(not has_credentials, reason="needs GCS credentials")
-def test_mkdir():
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_mkdir(with_adapter):
     bucket_name = f"gcspath-e2e-test-{uuid4().hex}"
     # Create a bucket
     GCSPath(f"/{bucket_name}/").mkdir()
     # Does not assert if it already exists
     GCSPath(f"/{bucket_name}/").mkdir(exist_ok=True)
-
     with pytest.raises(FileExistsError):
         GCSPath(f"/{bucket_name}/").mkdir(exist_ok=False)
-
     # with pytest.raises(FileNotFoundError):
     #     GCSPath("/test-second-bucket/test-directory/file.name").mkdir()
-
     # GCSPath("/test-second-bucket/test-directory/file.name").mkdir(parents=True)
-
     assert GCSPath(f"/{bucket_name}/").exists()
-
     # remove the bucket
-    client = storage.Client()
-    bucket = client.lookup_bucket(bucket_name)
-    bucket.delete()
+    # client = storage.Client()
+    # bucket = client.lookup_bucket(bucket_name)
+    # bucket.delete()
+    GCSPath(f"/{bucket_name}/").rmdir()
