@@ -76,12 +76,6 @@ def test_resolve():
         path.resolve()
 
 
-def test_unlink():
-    path = GCSPath("/fake-bucket/fake-key")
-    with pytest.raises(NotImplementedError):
-        path.unlink()
-
-
 def test_symlink_to():
     path = GCSPath("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
