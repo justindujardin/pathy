@@ -7,6 +7,7 @@ from typing import Generator, Iterable, List, Optional, Union
 import smart_open
 from google.api_core import exceptions as gcs_errors
 from google.cloud import storage
+from google.auth.exceptions import DefaultCredentialsError
 
 from .base import PureGCSPath
 from .client import (
@@ -17,7 +18,7 @@ from .client import (
     ClientBucket,
     ClientError,
 )
-from .gcs import BucketClientGCS, has_gcs
+from . import gcs
 from .file import BucketClientFS
 
 __all__ = ("GCSPath",)
@@ -71,10 +72,14 @@ class BucketsAccessor(_Accessor):
         global _fs_client
         if _fs_client is not None:
             return _fs_client
+        assert self._client is not None, "neither GCS or FS clients are enabled"
         return self._client
 
     def __init__(self, **kwargs):
-        self._client = BucketClientGCS()
+        try:
+            self._client = gcs.BucketClientGCS()
+        except DefaultCredentialsError:
+            self._client = None
 
     def get_blob(self, path: "GCSPath") -> Optional[ClientBlob]:
         """Get the blob associated with a path or return None"""
