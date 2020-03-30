@@ -1,3 +1,10 @@
+## [0.0.7](https://github.com/justindujardin/gcspath/compare/v0.0.6...v0.0.7) (2020-03-30)
+
+
+### Bug Fixes
+
+* **gcs:** gracefully handle invalid gcs client case ([529f630](https://github.com/justindujardin/gcspath/commit/529f63026abe1b11c3336febb152a030e28a85ef))
+
 ## [0.0.6](https://github.com/justindujardin/gcspath/compare/v0.0.5...v0.0.6) (2020-03-30)
 
 
