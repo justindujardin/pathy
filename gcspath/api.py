@@ -86,6 +86,14 @@ class BucketsAccessor(_Accessor):
         key_name = str(path.key)
         return bucket.get_blob(key_name)
 
+    def unlink(self, path: "GCSPath"):
+        """Delete a link to a blob in a bucket."""
+        bucket = self.client.get_bucket(path)
+        blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
+        if blob is None:
+            raise FileNotFoundError(path)
+        return blob.delete()
+
     def stat(self, path: "GCSPath"):
         bucket = self.client.get_bucket(path)
         blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
@@ -285,14 +293,6 @@ class _PathNotSupportedMixin:
         message = self._NOT_SUPPORTED_MESSAGE.format(
             method=self.symlink_to.__qualname__
         )
-        raise NotImplementedError(message)
-
-    def unlink(self):
-        """
-        unlink method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
-        message = self._NOT_SUPPORTED_MESSAGE.format(method=self.unlink.__qualname__)
         raise NotImplementedError(message)
 
 

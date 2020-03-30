@@ -24,7 +24,7 @@ bucket = "gcspath-tests-1"
 other_bucket = "gcspath-tests-2"
 
 # TODO: set this up with a service account for the CI
-has_credentials = False
+has_credentials = True
 
 # Which adapters to use
 TEST_ADAPTERS = ["gcs", "fs"] if has_credentials else ["fs"]
@@ -134,6 +134,18 @@ def test_glob(with_adapter):
         GCSPath(f"/{bucket}/glob/0/dir/file.txt"),
         GCSPath(f"/{bucket}/glob/1/dir/file.txt"),
     ]
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_unlink_path(with_adapter):
+    path = GCSPath(f"/{bucket}/unlink/404.txt")
+    with pytest.raises(FileNotFoundError):
+        path.unlink()        
+    path = GCSPath(f"/{bucket}/unlink/foo.txt")
+    path.write_text("---")
+    assert path.exists()
+    path.unlink()
+    assert not path.exists()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
