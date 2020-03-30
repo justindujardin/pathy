@@ -76,8 +76,9 @@
         "@semantic-release/git",
         {
           "assets": [
-            "gcspath.py",
-            "package.json"
+            "gcspath/about.py",
+            "package.json",
+            "CHANGELOG.md"
           ],
           "message": "chore(release): ${nextRelease.version} \n\n${nextRelease.notes}"
         }
