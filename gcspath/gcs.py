@@ -13,12 +13,12 @@ except ImportError:
     has_gcs = False
 
 
-class BucketEntryGCS(BucketEntry[storage.Blob]):
+class BucketEntryGCS(BucketEntry["ClientBucketGCS", storage.Blob]):
     ...
 
 
 @dataclass
-class ClientBlobGCS(ClientBlob[storage.Blob]):
+class ClientBlobGCS(ClientBlob["ClientBucketGCS", storage.Blob]):
     def delete(self) -> None:
         self.raw.delete()
 

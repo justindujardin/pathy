@@ -14,6 +14,7 @@ __all__ = (
     "ClientBlob",
 )
 
+BucketType = TypeVar("BucketType")
 BucketBlobType = TypeVar("BucketBlobType")
 
 _SUBCLASS_MUST_IMPLEMENT = "must be implemented in a subclass"
@@ -40,7 +41,7 @@ class BucketStat:
 
 
 @dataclass
-class ClientBlob(Generic[BucketBlobType]):
+class ClientBlob(Generic[BucketType, BucketBlobType]):
     bucket: "ClientBucket"
     name: str
     size: int
@@ -55,13 +56,13 @@ class ClientBlob(Generic[BucketBlobType]):
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
 
-class BucketEntry(Generic[BucketBlobType]):
+class BucketEntry(Generic[BucketType, BucketBlobType]):
     """A single item returned from scanning a path"""
 
     name: str
     _is_dir: bool
     _stat: BucketStat
-    raw: Optional[ClientBlob[BucketBlobType]]
+    raw: Optional[ClientBlob[BucketType, BucketBlobType]]
 
     def __init__(
         self,
@@ -69,7 +70,7 @@ class BucketEntry(Generic[BucketBlobType]):
         is_dir: bool,
         size: int = None,
         last_modified: int = None,
-        raw: Optional[ClientBlob[BucketBlobType]] = None,
+        raw: Optional[ClientBlob[BucketType, BucketBlobType]] = None,
     ):
         self.name = name
         self.raw = raw
@@ -180,7 +181,7 @@ class BucketClient:
         path: PureGCSPath = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-    ) -> Generator[BucketEntry[BucketBlobType], None, None]:
+    ) -> Generator[BucketEntry[BucketType, BucketBlobType], None, None]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def create_bucket(self, path: PureGCSPath) -> ClientBucket:

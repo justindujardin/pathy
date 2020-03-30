@@ -7,16 +7,23 @@ import shutil
 import os
 
 
-class BucketEntryFS(BucketEntry[pathlib.Path]):
+class BucketEntryFS(BucketEntry["ClientBucketFS", pathlib.Path]):
     ...
 
 
 @dataclass
-class ClientBlobFS(ClientBlob[pathlib.Path]):
+class ClientBlobFS(ClientBlob["ClientBucketFS", pathlib.Path]):
     raw: pathlib.Path
+    bucket: "ClientBucketFS"
 
     def delete(self) -> None:
+        """Delete a file-based blob."""
+        file_folder: str = os.path.dirname(self.raw)
         self.raw.unlink()
+        # NOTE: in buckets folders only exist if a file is contained in them. Mimic
+        # that behavior here by removing empty folders when the last file is removed.
+        if len(os.listdir(file_folder)) == 0:
+            shutil.rmtree(file_folder)
 
     def exists(self) -> bool:
         return self.raw.exists()
@@ -35,7 +42,7 @@ class ClientBucketFS(ClientBucket):
         return ClientBlobFS(
             bucket=self,
             owner=native_blob.owner(),
-            name=native_blob.name,
+            name=blob_name,
             raw=native_blob,
             size=stat.st_size,
             updated=int(round(stat.st_mtime_ns * 1000)),
@@ -44,7 +51,12 @@ class ClientBucketFS(ClientBucket):
     def copy_blob(
         self, blob: ClientBlobFS, target: "ClientBucketFS", name: str
     ) -> Optional[ClientBlobFS]:
-        shutil.copy(str(self.bucket / blob.name), str(target.bucket / target.name))
+        in_file = str(blob.bucket.bucket / blob.name)
+        out_file = str(target.bucket / name)
+        out_path = pathlib.Path(os.path.dirname(out_file))
+        if not out_path.exists():
+            out_path.mkdir(parents=True)
+        shutil.copy(in_file, out_file)
         return None
 
     def delete_blob(self, blob: ClientBlobFS) -> None:
@@ -231,7 +243,7 @@ class BucketClientFS(BucketClient):
             updated = int(round(stat.st_mtime_ns * 1000))
             yield ClientBlobFS(
                 bucket,
-                name=file_path.name,
+                name=f"{prefix if prefix is not None else ''}{file_path.name}",
                 size=file_size,
                 updated=updated,
                 owner=None,

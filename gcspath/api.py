@@ -162,9 +162,13 @@ class BucketsAccessor(_Accessor):
 
         # Folder with objects
         sep = path._flavour.sep
-        for blob in self.client.list_blobs(path, prefix=path.prefix, delimiter=sep):
+        blobs = list(self.client.list_blobs(path, prefix=path.prefix, delimiter=sep))
+        # First rename
+        for blob in blobs:
             target_key_name = blob.name.replace(str(path.key), str(target.key))
             target_bucket.copy_blob(blob, target_bucket, target_key_name)
+        # Then delete the sources
+        for blob in blobs:
             bucket.delete_blob(blob)
 
     def replace(self, path: "GCSPath", target: "GCSPath"):
