@@ -1,3 +1,10 @@
+## [0.0.6](https://github.com/justindujardin/gcspath/compare/v0.0.5...v0.0.6) (2020-03-30)
+
+
+### Features
+
+* add github releases for each pypi version ([66dbed8](https://github.com/justindujardin/gcspath/commit/66dbed851346372ab84080f027113aba054452af))
+
 ## [0.0.5](https://github.com/justindujardin/gcspath/compare/v0.0.4...v0.0.5) (2020-03-30)
 
 ### Bug Fixes
