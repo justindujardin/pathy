@@ -29,7 +29,7 @@ _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 _fs_client: Optional[BucketClientFS] = None
 
 
-def use_fs(root: Optional[Union[str, bool]] = None) -> Optional[BucketClientFS]:
+def use_fs(root: Optional[Union[str, Path, bool]] = None) -> Optional[BucketClientFS]:
     """Use a path in the local file-system to store blobs and buckets.
 
     This is useful for development and testing situations, and for embedded
@@ -45,7 +45,7 @@ def use_fs(root: Optional[Union[str, bool]] = None) -> Optional[BucketClientFS]:
         # Look up "data" folder of gcspath package similar to spaCy
         client_root = Path(__file__).parent / "data"
     else:
-        assert isinstance(root, str), f"root is not a known type: {type(root)}"
+        assert isinstance(root, (str, Path)), f"root is not a known type: {type(root)}"
         client_root = Path(root)
     if not client_root.exists():
         client_root.mkdir(parents=True)
@@ -196,7 +196,8 @@ class BucketsAccessor(_Accessor):
             self.client.rmdir(path)
 
     def mkdir(self, path: "GCSPath", mode) -> None:
-        self.client.create_bucket(path)
+        if not self.client.lookup_bucket(path):
+            self.client.create_bucket(path)
 
 
 class _PathNotSupportedMixin:
@@ -510,11 +511,8 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
         try:
             if self.bucket is None:
                 raise FileNotFoundError("No bucket in {} {}".format(type(self), self))
-            if self.key is not None and not parents:
-                raise FileNotFoundError(
-                    "Only bucket path can be created, got {}".format(self)
-                )
-            if self.bucket.exists():
+            # If the whole path is just the bucket, respect the
+            if self.key is None and not exist_ok and self.bucket.exists():
                 raise FileExistsError("Bucket {} already exists".format(self.bucket))
             return super().mkdir(mode, parents=parents, exist_ok=exist_ok)
         except OSError:
