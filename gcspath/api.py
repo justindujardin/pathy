@@ -3,7 +3,7 @@ from contextlib import suppress
 from io import DEFAULT_BUFFER_SIZE
 from pathlib import Path, PurePath, _Accessor, _PosixFlavour
 from typing import Generator, Iterable, List, Optional, Union
-
+import os
 import smart_open
 from google.api_core import exceptions as gcs_errors
 from google.cloud import storage
@@ -160,6 +160,9 @@ class BucketsAccessor(_Accessor):
         blob: Optional[ClientBlob] = self.get_blob(path)
         return blob.owner if blob is not None else None
 
+    def resolve(self, path: "GCSPath", strict=False):
+        return GCSPath(os.path.abspath(str(path)))
+
     def rename(self, path: "GCSPath", target: "GCSPath"):
         bucket: ClientBucket = self.client.get_bucket(path)
         target_bucket: ClientBucket = self.client.get_bucket(target)
@@ -281,14 +284,6 @@ class _PathNotSupportedMixin:
         GCS don't have this file system action concept
         """
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lstat.__qualname__)
-        raise NotImplementedError(message)
-
-    def resolve(self, strict=False):
-        """
-        resolve method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
-        message = self._NOT_SUPPORTED_MESSAGE.format(method=self.resolve.__qualname__)
         raise NotImplementedError(message)
 
     def symlink_to(self, *args, **kwargs):
@@ -430,6 +425,14 @@ class GCSPath(_PathNotSupportedMixin, Path, PureGCSPath):
         if not self.is_file():
             raise FileNotFoundError(str(self))
         return self._accessor.owner(self)
+
+    def resolve(self):
+        """
+        Return a copy of this path. All paths are absolute in buckets, so no
+        transformation is applied.
+        """
+        self._absolute_path_validation()
+        return self._accessor.resolve(self)
 
     def rename(self, target):
         """

@@ -83,6 +83,14 @@ def test_stat(with_adapter):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_resolve(with_adapter):
+    path = GCSPath("/fake-bucket/fake-key")
+    assert path.resolve() == path
+    path = GCSPath("/fake-bucket/dir/../fake-key")
+    assert path.resolve() == GCSPath("/fake-bucket/fake-key")
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_exists(with_adapter):
     path = GCSPath("./fake-key")
     with pytest.raises(ValueError):
