@@ -70,12 +70,6 @@ def test_lstat():
         path.lstat()
 
 
-def test_resolve():
-    path = GCSPath("/fake-bucket/fake-key")
-    with pytest.raises(NotImplementedError):
-        path.resolve()
-
-
 def test_symlink_to():
     path = GCSPath("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
