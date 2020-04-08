@@ -1,3 +1,11 @@
+## [0.0.8](https://github.com/justindujardin/gcspath/compare/v0.0.7...v0.0.8) (2020-04-08)
+
+
+### Features
+
+* allow passing GCSPath to spacy.Model.to_disk ([1d628cb](https://github.com/justindujardin/gcspath/commit/1d628cb8c5056683590d9f2403f1482e2a310971))
+* **use_fs:** allow passing root folder as Path ([3635152](https://github.com/justindujardin/gcspath/commit/36351525bf84001ed4f9b0b7abf842f8e27ef1f0))
+
 ## [0.0.7](https://github.com/justindujardin/gcspath/compare/v0.0.6...v0.0.7) (2020-03-30)
 
 
