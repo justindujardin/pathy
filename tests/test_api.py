@@ -26,6 +26,13 @@ def test_use_fs(with_fs: Path):
     assert isinstance(client, BucketClientFS)
     assert client.root == with_fs
 
+    # Can use a pathlib.Path
+    use_fs(with_fs)
+    client = get_fs_client()
+    assert isinstance(client, BucketClientFS)
+    assert client.root == with_fs
+
+
     use_fs(False)
 
 
