@@ -1,3 +1,10 @@
+## [0.0.9](https://github.com/justindujardin/gcspath/compare/v0.0.8...v0.0.9) (2020-04-08)
+
+
+### Features
+
+* add `resolve` method ([7cebc69](https://github.com/justindujardin/gcspath/commit/7cebc69bfc88b1a522defdce1637f5159c37def6))
+
 ## [0.0.8](https://github.com/justindujardin/gcspath/compare/v0.0.7...v0.0.8) (2020-04-08)
 
 
