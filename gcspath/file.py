@@ -108,9 +108,8 @@ class BucketClientFS(BucketClient):
 
         full_path = self.full_path(path)
         if not full_path.exists():
-            if full_path.suffix != "":
-                str_full = str(full_path)
-                full_path = pathlib.Path(str_full[: str_full.rindex("/") + 1])
+            if full_path.name != "":
+                full_path = full_path.parent
             full_path.mkdir(parents=True, exist_ok=True)
         return super().open(
             path,
@@ -231,11 +230,8 @@ class BucketClientFS(BucketClient):
                 raw=scan_path,
             )
 
-        # If the path can't be scanned, yield nothing and return
-        dir_entries_generator = scan_path.rglob("*")
-
-        # Yield blobs for each file (non-folder)
-        for file_path in dir_entries_generator:
+        # Yield blobs for each file
+        for file_path in scan_path.rglob("*"):
             if file_path.is_dir():
                 continue
             stat = file_path.stat()
