@@ -1,3 +1,10 @@
+## [0.0.10](https://github.com/justindujardin/gcspath/compare/v0.0.9...v0.0.10) (2020-04-14)
+
+
+### Features
+
+* add `use_fs_caching` and `GCSPath.to_local` for caching ([2894360](https://github.com/justindujardin/gcspath/commit/2894360d48e3ac4b28ecb4627eb562f9e65b3c93))
+
 ## [0.0.9](https://github.com/justindujardin/gcspath/compare/v0.0.8...v0.0.9) (2020-04-08)
 
 
