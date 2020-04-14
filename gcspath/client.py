@@ -36,8 +36,8 @@ class ClientError(BaseException):
 class BucketStat:
     """Stat for a bucket item"""
 
-    size: Optional[int]
-    last_modified: Optional[int]
+    size: int
+    last_modified: int
 
 
 @dataclass
