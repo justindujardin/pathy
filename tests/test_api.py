@@ -3,6 +3,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from time import sleep
 from uuid import uuid4
 
 import mock
@@ -17,8 +18,11 @@ from gcspath import (
     BucketStat,
     GCSPath,
     PureGCSPath,
+    clear_fs_cache,
+    get_fs_cache,
     get_fs_client,
     use_fs,
+    use_fs_cache,
 )
 
 # todo: test samefile/touch/write_text/write_bytes method
@@ -71,12 +75,59 @@ def with_adapter(adapter: str):
         # Cleanup fs temp folder
         shutil.rmtree(tmp_dir)
     use_fs(False)
+    use_fs_cache(False)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_is_path_instance(with_adapter):
     blob = GCSPath("/fake/blob")
     assert isinstance(blob, Path)
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_path_to_local(with_adapter):
+    path = GCSPath(f"/{bucket}/directory/foo.txt")
+    path.write_text("---")
+    assert isinstance(path, GCSPath)
+    use_fs_cache()
+    cached: Path = GCSPath.to_local(path)
+    second_cached: Path = GCSPath.to_local(path)
+    assert isinstance(cached, Path)
+    assert cached.exists() and cached.is_file(), "local file should exist"
+    assert second_cached == cached, "must be the same path"
+    assert second_cached.stat() == cached.stat(), "must have the same stat"
+    clear_fs_cache()
+    assert not cached.exists(), "cache clear should delete file"
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_use_fs_cache(with_adapter, with_fs: str):
+    path = GCSPath(f"/{bucket}/directory/foo.txt")
+    path.write_text("---")
+    assert isinstance(path, GCSPath)
+    with pytest.raises(ValueError):
+        GCSPath.to_local(path)
+
+    use_fs_cache(with_fs)
+    source_file: Path = GCSPath.to_local(path)
+    foo_timestamp = Path(f"{source_file}.time")
+    assert foo_timestamp.exists()
+    orig_cache_time = foo_timestamp.read_text()
+
+    # fetch from the local cache
+    cached_file: Path = GCSPath.to_local(path)
+    assert cached_file == source_file
+    cached_cache_time = foo_timestamp.read_text()
+    assert orig_cache_time == cached_cache_time, "cached blob timestamps should match"
+
+    # Update the blob
+    sleep(0.1)
+    path.write_text('{ "cool" : true }')
+
+    # Fetch the updated blob
+    res: Path = GCSPath.to_local(path)
+    updated_cache_time = foo_timestamp.read_text()
+    assert updated_cache_time != orig_cache_time, "cached timestamp did not change"
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)

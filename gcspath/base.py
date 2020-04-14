@@ -86,7 +86,7 @@ class PureGCSPath(PurePath):
         return super().as_uri()
 
     @property
-    def bucket_name(self) -> Optional[str]:
+    def bucket_name(self) -> str:
         return str(self.bucket)[1:]
 
     @property

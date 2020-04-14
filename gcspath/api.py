@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 from collections import namedtuple
 from contextlib import suppress
 from io import DEFAULT_BUFFER_SIZE
@@ -28,6 +30,7 @@ _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
 
 _fs_client: Optional[BucketClientFS] = None
+_fs_cache: Optional[Path] = None
 
 
 def use_fs(root: Optional[Union[str, Path, bool]] = None) -> Optional[BucketClientFS]:
@@ -63,6 +66,49 @@ def get_fs_client() -> Optional[BucketClientFS]:
     return _fs_client
 
 
+def use_fs_cache(root: Optional[Union[str, Path, bool]] = None) -> Optional[Path]:
+    """Use a path in the local file-system to cache blobs and buckets.
+
+    This is useful for when you want to avoid fetching large blobs multiple
+    times, or need to pass a local file path to a third-party library."""
+    global _fs_cache
+    # False - disable adapter
+    if root is False:
+        _fs_cache = None
+        return None
+
+    # None or True - enable FS cache with default root
+    if root is None or root is True:
+        # Use a temporary folder. Cache will be removed according to OS policy
+        cache_root = Path(tempfile.mkdtemp())
+    else:
+        assert isinstance(root, (str, Path)), f"root is not a known type: {type(root)}"
+        cache_root = Path(root)
+    if not cache_root.exists():
+        cache_root.mkdir(parents=True)
+    _fs_cache = cache_root
+    return cache_root
+
+
+def get_fs_cache() -> Optional[Path]:
+    """Get the file-system client (or None)"""
+    global _fs_cache
+    assert _fs_cache is None or isinstance(_fs_cache, Path), "invalid root type"
+    return _fs_cache
+
+
+def clear_fs_cache(force: bool = False) -> None:
+    """Remove the existing file-system blob cache folder.
+    
+    Raises AssertionError if the cache path is unset or points to the
+    root of the file-system."""
+    cache_path = get_fs_cache()
+    assert cache_path is not None, "no cache to clear"
+    resolved = cache_path.resolve()
+    assert str(resolved) != "/", f"refusing to remove a root path: {resolved}"
+    shutil.rmtree(str(resolved))
+
+
 class GCSPath(Path, PureGCSPath):
     """Path subclass for GCS service.
 
@@ -78,6 +124,53 @@ class GCSPath(Path, PureGCSPath):
             self._accessor = _gcs_accessor
         else:
             self._accessor = template._accessor
+
+    @classmethod
+    def from_bucket(cls, bucket_name: str) -> "GCSPath":
+        """Helper to convert a bucket name into a GCSPath without needing
+        to add the leading and trailing slashes"""
+        return GCSPath(f"/{bucket_name}/")
+
+    @classmethod
+    def to_local(cls, blob_path: Union["GCSPath", str]) -> Path:
+        """Get a bucket blob and return a local file cached version of it. The cache
+        is sensitive to the file updated time, and downloads new blobs as they become
+        available."""
+        cache_folder = get_fs_cache()
+        if cache_folder is None:
+            raise ValueError(
+                'cannot get and cache a blob without first calling "use_fs_cache"'
+            )
+
+        cache_folder.mkdir(exist_ok=True, parents=True)
+        if isinstance(blob_path, str):
+            blob_path = GCSPath(blob_path)
+
+        cache_blob: Path = cache_folder.absolute() / blob_path.bucket_name / blob_path.key
+        cache_time: Path = (
+            cache_folder.absolute() / blob_path.bucket_name / f"{blob_path.key}.time"
+        )
+        # Keep a cache of downloaded files. Fetch new ones when:
+        #  - the file isn't in the cache
+        #  - cached_stat.updated != latest_stat.updated
+        if cache_blob.exists() and cache_time.exists():
+            fs_time: str = cache_time.read_text()
+            gcs_stat: BucketStat = blob_path.stat()
+            # If the times match, return the cached blob
+            if fs_time == str(gcs_stat.last_modified):
+                return cache_blob
+            # remove the cache files because they're out of date
+            cache_blob.unlink()
+            cache_time.unlink()
+
+        # If the file isn't in the cache, download it
+        if not cache_blob.exists():
+            dest_folder = cache_blob.parent if cache_blob.suffix != "" else cache_blob
+            dest_folder.mkdir(exist_ok=True, parents=True)
+            cache_blob.write_bytes(blob_path.read_bytes())
+            blob_stat: BucketStat = blob_path.stat()
+            cache_time.write_text(str(blob_stat.last_modified))
+        return cache_blob
 
     def stat(self):
         """
