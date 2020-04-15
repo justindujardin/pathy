@@ -1,3 +1,10 @@
+## [0.0.12](https://github.com/justindujardin/gcspath/compare/v0.0.11...v0.0.12) (2020-04-15)
+
+
+### Bug Fixes
+
+* recursion error when copying blob folders ([8b6e01c](https://github.com/justindujardin/gcspath/commit/8b6e01c3e8c35a78deee60d45563b27b7a732e9a))
+
 ## [0.0.11](https://github.com/justindujardin/gcspath/compare/v0.0.10...v0.0.11) (2020-04-15)
 
 

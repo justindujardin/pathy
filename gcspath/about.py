@@ -1,5 +1,5 @@
 __title__ = "gcspath"
-__version__ = "0.0.11"
+__version__ = "0.0.12"
 __summary__ = "pathlib.Path subclasses for Google Cloud Storage"
 __uri__ = "https://github.com/justindujardin/gcspath"
 __author__ = "Justin DuJardin"
