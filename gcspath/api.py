@@ -165,11 +165,18 @@ class GCSPath(Path, PureGCSPath):
 
         # If the file isn't in the cache, download it
         if not cache_blob.exists():
-            dest_folder = cache_blob.parent if cache_blob.suffix != "" else cache_blob
-            dest_folder.mkdir(exist_ok=True, parents=True)
-            cache_blob.write_bytes(blob_path.read_bytes())
-            blob_stat: BucketStat = blob_path.stat()
-            cache_time.write_text(str(blob_stat.last_modified))
+            # Is a blob
+            if cache_blob.suffix != "":
+                dest_folder = cache_blob.parent
+                dest_folder.mkdir(exist_ok=True, parents=True)
+                cache_blob.write_bytes(blob_path.read_bytes())
+                blob_stat: BucketStat = blob_path.stat()
+                cache_time.write_text(str(blob_stat.last_modified))
+            else:
+                # If not a specific blob, enumerate all the blobs under
+                # the path and cache them, then return the cache folder
+                for blob in blob_path.rglob("*"):
+                    GCSPath.to_local(blob)
         return cache_blob
 
     def stat(self):
