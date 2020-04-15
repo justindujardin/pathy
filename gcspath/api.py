@@ -132,7 +132,7 @@ class GCSPath(Path, PureGCSPath):
         return GCSPath(f"/{bucket_name}/")
 
     @classmethod
-    def to_local(cls, blob_path: Union["GCSPath", str]) -> Path:
+    def to_local(cls, blob_path: Union["GCSPath", str], recurse: bool = True) -> Path:
         """Get a bucket blob and return a local file cached version of it. The cache
         is sensitive to the file updated time, and downloads new blobs as they become
         available."""
@@ -172,11 +172,11 @@ class GCSPath(Path, PureGCSPath):
                 cache_blob.write_bytes(blob_path.read_bytes())
                 blob_stat: BucketStat = blob_path.stat()
                 cache_time.write_text(str(blob_stat.last_modified))
-            else:
+            elif recurse:
                 # If not a specific blob, enumerate all the blobs under
                 # the path and cache them, then return the cache folder
                 for blob in blob_path.rglob("*"):
-                    GCSPath.to_local(blob)
+                    GCSPath.to_local(blob, recurse=False)
         return cache_blob
 
     def stat(self):

@@ -92,21 +92,6 @@ def test_path_to_local(with_adapter):
     assert isinstance(foo_blob, GCSPath)
     use_fs_cache()
 
-    # Cache a folder with blobs
-    sub_folder: GCSPath = root / "subfolder"
-    bar_blob: GCSPath = sub_folder / "bar.txt"
-    bar_blob.write_text("---")
-    baz_blob: GCSPath = sub_folder / "baz.txt"
-    baz_blob.write_text("---")
-
-    cached_folder: Path = GCSPath.to_local(sub_folder)
-    assert isinstance(cached_folder, Path)
-    assert cached_folder.exists() and cached_folder.is_dir()
-    bar_file = cached_folder / "bar.txt"
-    baz_file = cached_folder / "baz.txt"
-    assert bar_file.exists() and bar_file.is_file()
-    assert baz_file.exists() and baz_file.is_file()
-
     # Cache a blob
     cached: Path = GCSPath.to_local(foo_blob)
     second_cached: Path = GCSPath.to_local(foo_blob)
@@ -114,6 +99,26 @@ def test_path_to_local(with_adapter):
     assert cached.exists() and cached.is_file(), "local file should exist"
     assert second_cached == cached, "must be the same path"
     assert second_cached.stat() == cached.stat(), "must have the same stat"
+
+    # Cache a folder hierarchy with blobs
+    complex_folder = root / "complex"
+    for i in range(3):
+        folder = f"folder_{i}"
+        for j in range(2):
+            iter_blob: GCSPath = complex_folder / folder / f"file_{j}.txt"
+            iter_blob.write_text("---")
+
+    cached_folder: Path = GCSPath.to_local(complex_folder)
+    assert isinstance(cached_folder, Path)
+    assert cached_folder.exists() and cached_folder.is_dir()
+
+    # Verify all the files exist in the file-system cache folder
+    for i in range(3):
+        folder = f"folder_{i}"
+        for j in range(2):
+            iter_blob: GCSPath = cached_folder / folder / f"file_{j}.txt"
+            assert iter_blob.exists()
+            assert iter_blob.read_text() == "---"
 
     clear_fs_cache()
     assert not cached.exists(), "cache clear should delete file"
