@@ -86,16 +86,35 @@ def test_is_path_instance(with_adapter):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_path_to_local(with_adapter):
-    path = GCSPath(f"/{bucket}/directory/foo.txt")
-    path.write_text("---")
-    assert isinstance(path, GCSPath)
+    root: GCSPath = GCSPath.from_bucket(bucket) / "to_local"
+    foo_blob: GCSPath = root / "foo.txt"
+    foo_blob.write_text("---")
+    assert isinstance(foo_blob, GCSPath)
     use_fs_cache()
-    cached: Path = GCSPath.to_local(path)
-    second_cached: Path = GCSPath.to_local(path)
+
+    # Cache a folder with blobs
+    sub_folder: GCSPath = root / "subfolder"
+    bar_blob: GCSPath = sub_folder / "bar.txt"
+    bar_blob.write_text("---")
+    baz_blob: GCSPath = sub_folder / "baz.txt"
+    baz_blob.write_text("---")
+
+    cached_folder: Path = GCSPath.to_local(sub_folder)
+    assert isinstance(cached_folder, Path)
+    assert cached_folder.exists() and cached_folder.is_dir()
+    bar_file = cached_folder / "bar.txt"
+    baz_file = cached_folder / "baz.txt"
+    assert bar_file.exists() and bar_file.is_file()
+    assert baz_file.exists() and baz_file.is_file()
+
+    # Cache a blob
+    cached: Path = GCSPath.to_local(foo_blob)
+    second_cached: Path = GCSPath.to_local(foo_blob)
     assert isinstance(cached, Path)
     assert cached.exists() and cached.is_file(), "local file should exist"
     assert second_cached == cached, "must be the same path"
     assert second_cached.stat() == cached.stat(), "must have the same stat"
+
     clear_fs_cache()
     assert not cached.exists(), "cache clear should delete file"
 
