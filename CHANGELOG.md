@@ -1,3 +1,10 @@
+## [0.0.11](https://github.com/justindujardin/gcspath/compare/v0.0.10...v0.0.11) (2020-04-15)
+
+
+### Features
+
+* **to_local:** support caching folders ([cc56f6e](https://github.com/justindujardin/gcspath/commit/cc56f6eab21f850f0521013749589ad0736e261d))
+
 ## [0.0.10](https://github.com/justindujardin/gcspath/compare/v0.0.9...v0.0.10) (2020-04-14)
 
 
