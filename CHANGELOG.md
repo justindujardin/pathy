@@ -1,3 +1,10 @@
+## [0.0.13](https://github.com/justindujardin/gcspath/compare/v0.0.12...v0.0.13) (2020-04-16)
+
+
+### Bug Fixes
+
+* **to_local:** issue where files without extensions would not be cached ([3d543a8](https://github.com/justindujardin/gcspath/commit/3d543a88a81604d13f8e401422d59803d9bb3943))
+
 ## [0.0.12](https://github.com/justindujardin/gcspath/compare/v0.0.11...v0.0.12) (2020-04-15)
 
 
