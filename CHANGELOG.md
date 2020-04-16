@@ -1,3 +1,10 @@
+## [0.0.14](https://github.com/justindujardin/gcspath/compare/v0.0.13...v0.0.14) (2020-04-16)
+
+
+### Bug Fixes
+
+* **iterdir:** don't return empty results ([2a8b870](https://github.com/justindujardin/gcspath/commit/2a8b870c2ca232431c65808050363e8faff60ba2))
+
 ## [0.0.13](https://github.com/justindujardin/gcspath/compare/v0.0.12...v0.0.13) (2020-04-16)
 
 
