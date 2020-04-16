@@ -87,7 +87,7 @@ def test_is_path_instance(with_adapter):
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_path_to_local(with_adapter):
     root: GCSPath = GCSPath.from_bucket(bucket) / "to_local"
-    foo_blob: GCSPath = root / "foo.txt"
+    foo_blob: GCSPath = root / "foo"
     foo_blob.write_text("---")
     assert isinstance(foo_blob, GCSPath)
     use_fs_cache()
