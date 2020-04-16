@@ -131,15 +131,18 @@ class BucketClientGCS(BucketClient):
                 for folder in list(page.prefixes):
                     full_name = folder[:-1] if folder.endswith(sep) else folder
                     name = full_name.split(sep)[-1]
-                    yield BucketEntryGCS(name, is_dir=True, raw=None)
+                    if name:
+                        yield BucketEntryGCS(name, is_dir=True, raw=None)
                 for item in page:
-                    yield BucketEntryGCS(
-                        name=item.name.split(sep)[-1],
-                        is_dir=False,
-                        size=item.size,
-                        last_modified=item.updated.timestamp(),
-                        raw=item,
-                    )
+                    name = item.name.split(sep)[-1]
+                    if name:
+                        yield BucketEntryGCS(
+                            name=name,
+                            is_dir=False,
+                            size=item.size,
+                            last_modified=item.updated.timestamp(),
+                            raw=item,
+                        )
             if response.next_page_token is None:
                 break
             continuation_token = response.next_page_token

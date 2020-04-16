@@ -282,6 +282,15 @@ def test_iterdir(with_adapter):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_iterdir_pipstore(with_adapter):
+    path = GCSPath.from_bucket(bucket) / "iterdir/pipstore/prodigy/prodigy.whl"
+    path.write_bytes(b"---")
+    path = GCSPath.from_bucket(bucket) / "iterdir/pipstore"
+    res = [e.name for e in sorted(path.iterdir())]
+    assert res == ["prodigy"]
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_open_for_read(with_adapter):
     path = GCSPath(f"/{bucket}/read/file.txt")
     path.write_text("---")
