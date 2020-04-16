@@ -118,6 +118,12 @@ class GCSPath(Path, PureGCSPath):
     __slots__ = ()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
 
+    def __truediv__(self, key) -> "GCSPath":
+        return super().__truediv__(key)
+
+    def __rtruediv__(self, key) -> "GCSPath":
+        return super().__rtruediv__(key)
+
     def _init(self, template=None):
         super()._init(template)
         if template is None:
