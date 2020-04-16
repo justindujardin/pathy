@@ -1,3 +1,10 @@
+## [0.0.15](https://github.com/justindujardin/gcspath/compare/v0.0.14...v0.0.15) (2020-04-16)
+
+
+### Bug Fixes
+
+* **requirements:** remove typer dependency ([08e8fa0](https://github.com/justindujardin/gcspath/commit/08e8fa0baa186b710a6adf2205b0a51bbd39fe37))
+
 ## [0.0.14](https://github.com/justindujardin/gcspath/compare/v0.0.13...v0.0.14) (2020-04-16)
 
 
