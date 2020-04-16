@@ -166,7 +166,7 @@ class GCSPath(Path, PureGCSPath):
         # If the file isn't in the cache, download it
         if not cache_blob.exists():
             # Is a blob
-            if cache_blob.suffix != "":
+            if blob_path.is_file():
                 dest_folder = cache_blob.parent
                 dest_folder.mkdir(exist_ok=True, parents=True)
                 cache_blob.write_bytes(blob_path.read_bytes())
