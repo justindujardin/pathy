@@ -1,3 +1,10 @@
+## [0.0.16](https://github.com/justindujardin/gcspath/compare/v0.0.15...v0.0.16) (2020-04-16)
+
+
+### Features
+
+* **typing:** expose library python types to mypy ([53cf348](https://github.com/justindujardin/gcspath/commit/53cf34845399e1d31538dc02e462d7e02bcd32a6))
+
 ## [0.0.15](https://github.com/justindujardin/gcspath/compare/v0.0.14...v0.0.15) (2020-04-16)
 
 
