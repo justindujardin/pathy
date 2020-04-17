@@ -1,3 +1,10 @@
+## [0.0.17](https://github.com/justindujardin/gcspath/compare/v0.0.16...v0.0.17) (2020-04-17)
+
+
+### Bug Fixes
+
+* do not de/compress opened files based on extension ([22d14e7](https://github.com/justindujardin/gcspath/commit/22d14e7d4919f16ca54bf28e685c221f7c96f8d3))
+
 ## [0.0.16](https://github.com/justindujardin/gcspath/compare/v0.0.15...v0.0.16) (2020-04-16)
 
 
