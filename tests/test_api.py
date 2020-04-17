@@ -490,6 +490,18 @@ def test_mkdir(with_adapter):
     GCSPath(f"/{bucket_name}/").rmdir()
 
 
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_ignore_extension(with_adapter):
+    """The smart_open library does automatic decompression based
+    on the filename. We disable that to avoid errors, e.g. if you 
+    have a .tar.gz file that isn't gzipped."""
+    not_targz = GCSPath.from_bucket(bucket) / "ignore_ext/one.tar.gz"
+    fixture_tar = Path(__file__).parent / "fixtures" / "tar_but_not_gzipped.tar.gz"
+    not_targz.write_bytes(fixture_tar.read_bytes())
+    again = not_targz.read_bytes()
+    assert again is not None
+
+
 def test_use_fs(with_fs: Path):
     assert get_fs_client() is None
     # Use the default path

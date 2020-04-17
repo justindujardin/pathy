@@ -7,7 +7,6 @@ from io import DEFAULT_BUFFER_SIZE
 from pathlib import Path, PurePath, _Accessor, _PosixFlavour  # type:ignore
 from typing import Generator, Iterable, List, Optional, Union
 
-import smart_open
 from google.api_core import exceptions as gcs_errors
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import storage
