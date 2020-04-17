@@ -156,6 +156,8 @@ class BucketClient:
             encoding=encoding,
             errors=errors,
             newline=newline,
+            # Disable de/compression based on the file extension
+            ignore_ext=True,
         )
 
     def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucket]:
