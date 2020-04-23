@@ -35,7 +35,7 @@ def setup_package():
         install_requires=requirements,
         entry_points="""
             [console_scripts]
-            prodigyteams=gcspath.cli:main
+            pathy=pathy.cli:main
         """,
         classifiers=[
             "Development Status :: 4 - Beta",
