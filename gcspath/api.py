@@ -1,3 +1,4 @@
+from typing import cast
 import os
 import shutil
 import tempfile
@@ -12,7 +13,7 @@ from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import storage
 
 from . import gcs
-from .base import PureGCSPath
+from .base import PureGCSPath, PathType
 from .client import (
     BucketClient,
     BucketEntry,
@@ -117,27 +118,29 @@ class GCSPath(Path, PureGCSPath):
     __slots__ = ()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
 
-    def __truediv__(self, key) -> "GCSPath":
+    def __truediv__(self: PathType, key: Union[str, PathType]) -> PathType:
         return super().__truediv__(key)
 
-    def __rtruediv__(self, key) -> "GCSPath":
-        return super().__rtruediv__(key)
+    def __rtruediv__(self: PathType, key: Union[str, PathType]) -> PathType:
+        return cast(GCSPath, super().__rtruediv__(key))
 
-    def _init(self, template=None):
-        super()._init(template)
+    def _init(self: PathType, template=None):
+        super()._init(template)  # type:ignore
         if template is None:
             self._accessor = _gcs_accessor
         else:
             self._accessor = template._accessor
 
     @classmethod
-    def from_bucket(cls, bucket_name: str) -> "GCSPath":
+    def from_bucket(cls: PathType, bucket_name: str) -> "GCSPath":
         """Helper to convert a bucket name into a GCSPath without needing
         to add the leading and trailing slashes"""
-        return GCSPath(f"/{bucket_name}/")
+        return GCSPath(f"gs://{bucket_name}/")
 
     @classmethod
-    def to_local(cls, blob_path: Union["GCSPath", str], recurse: bool = True) -> Path:
+    def to_local(
+        cls: PathType, blob_path: Union["GCSPath", str], recurse: bool = True
+    ) -> Path:
         """Get a bucket blob and return a local file cached version of it. The cache
         is sensitive to the file updated time, and downloads new blobs as they become
         available."""
@@ -151,9 +154,9 @@ class GCSPath(Path, PureGCSPath):
         if isinstance(blob_path, str):
             blob_path = GCSPath(blob_path)
 
-        cache_blob: Path = cache_folder.absolute() / blob_path.bucket_name / blob_path.key
+        cache_blob: Path = cache_folder.absolute() / blob_path.root / blob_path.key
         cache_time: Path = (
-            cache_folder.absolute() / blob_path.bucket_name / f"{blob_path.key}.time"
+            cache_folder.absolute() / blob_path.root / f"{blob_path.key}.time"
         )
         # Keep a cache of downloaded files. Fetch new ones when:
         #  - the file isn't in the cache
@@ -184,17 +187,17 @@ class GCSPath(Path, PureGCSPath):
                     GCSPath.to_local(blob, recurse=False)
         return cache_blob
 
-    def stat(self):
+    def stat(self: PathType) -> BucketStat:
         """
         Returns information about this path.
         The result is looked up at each call to this method
         """
         self._absolute_path_validation()
         if not self.key:
-            return None
-        return super().stat()
+            raise ValueError("cannot stat a bucket without a key")
+        return cast(BucketStat, super().stat())
 
-    def exists(self):
+    def exists(self: PathType) -> bool:
         """
         Whether the path points to an existing Bucket, key or key prefix.
         """
@@ -203,7 +206,7 @@ class GCSPath(Path, PureGCSPath):
             return True
         return self._accessor.exists(self)
 
-    def is_dir(self):
+    def is_dir(self: PathType) -> bool:
         """
         Returns True if the path points to a Bucket or a key prefix, False if it 
         points to a full key path. False is returned if the path doesn’t exist.
@@ -214,7 +217,7 @@ class GCSPath(Path, PureGCSPath):
             return True
         return self._accessor.is_dir(self)
 
-    def is_file(self):
+    def is_file(self: PathType) -> bool:
         """
         Returns True if the path points to a Bucket key, False if it points to
         Bucket or a key prefix. False is returned if the path doesn’t exist.
@@ -228,7 +231,7 @@ class GCSPath(Path, PureGCSPath):
         except (gcs_errors.ClientError, FileNotFoundError):
             return False
 
-    def iterdir(self):
+    def iterdir(self: PathType) -> Generator[PathType, None, None]:
         """
         When the path points to a Bucket or a key prefix, yield path objects of
         the directory contents
@@ -236,14 +239,14 @@ class GCSPath(Path, PureGCSPath):
         self._absolute_path_validation()
         yield from super().iterdir()
 
-    def glob(self, pattern):
+    def glob(self: PathType, pattern) -> Generator[PathType, None, None]:
         """
         Glob the given relative pattern in the Bucket / key prefix represented
         by this path, yielding all matching files (of any kind)
         """
         yield from super().glob(pattern)
 
-    def rglob(self, pattern):
+    def rglob(self: PathType, pattern) -> Generator[PathType, None, None]:
         """
         This is like calling GCSPath.glob with "**/" added in front of the given
         relative pattern.
@@ -251,7 +254,7 @@ class GCSPath(Path, PureGCSPath):
         yield from super().rglob(pattern)
 
     def open(
-        self,
+        self: PathType,
         mode="r",
         buffering=DEFAULT_BUFFER_SIZE,
         encoding=None,
@@ -285,7 +288,7 @@ class GCSPath(Path, PureGCSPath):
             newline=newline,
         )
 
-    def owner(self):
+    def owner(self: PathType) -> Optional[str]:
         """
         Returns the name of the user owning the Bucket or key.
         Similarly to boto3's ObjectSummary owner attribute
@@ -295,7 +298,7 @@ class GCSPath(Path, PureGCSPath):
             raise FileNotFoundError(str(self))
         return self._accessor.owner(self)
 
-    def resolve(self):
+    def resolve(self: PathType) -> PathType:
         """
         Return a copy of this path. All paths are absolute in buckets, so no
         transformation is applied.
@@ -303,7 +306,7 @@ class GCSPath(Path, PureGCSPath):
         self._absolute_path_validation()
         return self._accessor.resolve(self)
 
-    def rename(self, target):
+    def rename(self: PathType, target: Union[str, PathType]) -> None:
         """
         Renames this file or Bucket / key prefix / key to the given target.
         If target exists and is a file, it will be replaced silently if the user
@@ -312,20 +315,21 @@ class GCSPath(Path, PureGCSPath):
         another GCSPath object.
         """
         self._absolute_path_validation()
-        if not isinstance(target, type(self)):
-            target = type(self)(target)
-        target._absolute_path_validation()
-        return super().rename(target)
+        self_type = type(self)
+        if not isinstance(target, self_type):
+            target = self_type(target)
+        target._absolute_path_validation()  # type:ignore
+        super().rename(target)
 
-    def replace(self, target):
+    def replace(self: PathType, target: Union[str, PathType]) -> None:
         """
         Renames this Bucket / key prefix / key to the given target.
         If target points to an existing Bucket / key prefix / key, it will be
         unconditionally replaced.
         """
-        return self.rename(target)
+        self.rename(target)
 
-    def rmdir(self):
+    def rmdir(self: PathType) -> None:
         """
         Removes this Bucket / key prefix. The Bucket / key prefix must be empty
         """
@@ -334,9 +338,9 @@ class GCSPath(Path, PureGCSPath):
             raise NotADirectoryError()
         if not self.is_dir():
             raise FileNotFoundError()
-        return super().rmdir()
+        super().rmdir()
 
-    def samefile(self, other_path):
+    def samefile(self: PathType, other_path: PathType) -> bool:
         """
         Returns whether this path points to the same Bucket key as other_path,
         Which can be either a Path object, or a string
@@ -348,7 +352,7 @@ class GCSPath(Path, PureGCSPath):
             self.bucket == other_path.bucket and self.key == self.key and self.is_file()
         )
 
-    def touch(self, mode=0o666, exist_ok=True):
+    def touch(self: PathType, mode: int = 0o666, exist_ok: bool = True):
         """
         Creates a key at this given path.
 
@@ -360,7 +364,9 @@ class GCSPath(Path, PureGCSPath):
             raise FileExistsError()
         self.write_text("")
 
-    def mkdir(self, mode=0o777, parents=False, exist_ok=False):
+    def mkdir(
+        self: PathType, mode: int = 0o777, parents: bool = False, exist_ok: bool = False
+    ) -> None:
         """
         Create a path bucket.
         GCS Service doesn't support folders, therefore the mkdir method will
@@ -391,22 +397,22 @@ class GCSPath(Path, PureGCSPath):
             if not exist_ok:
                 raise
 
-    def is_mount(self):
+    def is_mount(self: PathType) -> bool:
         return False
 
-    def is_symlink(self):
+    def is_symlink(self: PathType) -> bool:
         return False
 
-    def is_socket(self):
+    def is_socket(self: PathType) -> bool:
         return False
 
-    def is_fifo(self):
+    def is_fifo(self: PathType) -> bool:
         return False
 
     # Unsupported operations below here
 
     @classmethod
-    def cwd(cls):
+    def cwd(cls: PathType):
         """
         cwd class method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -415,7 +421,7 @@ class GCSPath(Path, PureGCSPath):
         raise NotImplementedError(message)
 
     @classmethod
-    def home(cls):
+    def home(cls: PathType):
         """
         home class method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -423,7 +429,7 @@ class GCSPath(Path, PureGCSPath):
         message = cls._NOT_SUPPORTED_MESSAGE.format(method=cls.home.__qualname__)
         raise NotImplementedError(message)
 
-    def chmod(self, mode):
+    def chmod(self: PathType, mode):
         """
         chmod method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -431,7 +437,7 @@ class GCSPath(Path, PureGCSPath):
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.chmod.__qualname__)
         raise NotImplementedError(message)
 
-    def expanduser(self):
+    def expanduser(self: PathType):
         """
         expanduser method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -441,7 +447,7 @@ class GCSPath(Path, PureGCSPath):
         )
         raise NotImplementedError(message)
 
-    def lchmod(self, mode):
+    def lchmod(self: PathType, mode):
         """
         lchmod method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -449,7 +455,7 @@ class GCSPath(Path, PureGCSPath):
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lchmod.__qualname__)
         raise NotImplementedError(message)
 
-    def group(self):
+    def group(self: PathType):
         """
         group method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -457,7 +463,7 @@ class GCSPath(Path, PureGCSPath):
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.group.__qualname__)
         raise NotImplementedError(message)
 
-    def is_block_device(self):
+    def is_block_device(self: PathType):
         """
         is_block_device method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -467,7 +473,7 @@ class GCSPath(Path, PureGCSPath):
         )
         raise NotImplementedError(message)
 
-    def is_char_device(self):
+    def is_char_device(self: PathType):
         """
         is_char_device method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -477,7 +483,7 @@ class GCSPath(Path, PureGCSPath):
         )
         raise NotImplementedError(message)
 
-    def lstat(self):
+    def lstat(self: PathType):
         """
         lstat method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -485,7 +491,7 @@ class GCSPath(Path, PureGCSPath):
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lstat.__qualname__)
         raise NotImplementedError(message)
 
-    def symlink_to(self, *args, **kwargs):
+    def symlink_to(self: PathType, *args, **kwargs):
         """
         symlink_to method is unsupported on GCS service
         GCS don't have this file system action concept
@@ -499,7 +505,7 @@ class GCSPath(Path, PureGCSPath):
 class BucketsAccessor(_Accessor):
     """Access data from blob buckets"""
 
-    _client: BucketClient
+    _client: Optional[BucketClient]
 
     @property
     def client(self) -> BucketClient:
@@ -509,15 +515,15 @@ class BucketsAccessor(_Accessor):
         assert self._client is not None, "neither GCS or FS clients are enabled"
         return self._client
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         try:
             self._client = gcs.BucketClientGCS()
         except DefaultCredentialsError:
             self._client = None
 
-    def get_blob(self, path: "GCSPath") -> Optional[ClientBlob]:
+    def get_blob(self, path: PathType) -> Optional[ClientBlob]:
         """Get the blob associated with a path or return None"""
-        if not path.bucket_name:
+        if not path.root:
             return None
         bucket = self.client.lookup_bucket(path)
         if bucket is None:
@@ -525,30 +531,30 @@ class BucketsAccessor(_Accessor):
         key_name = str(path.key)
         return bucket.get_blob(key_name)
 
-    def unlink(self, path: "GCSPath"):
+    def unlink(self, path: PathType) -> None:
         """Delete a link to a blob in a bucket."""
         bucket = self.client.get_bucket(path)
         blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
-        return blob.delete()
+        blob.delete()
 
-    def stat(self, path: "GCSPath"):
+    def stat(self, path: PathType) -> BucketStat:
         bucket = self.client.get_bucket(path)
         blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
         return BucketStat(size=blob.size, last_modified=blob.updated)
 
-    def is_dir(self, path: "GCSPath"):
+    def is_dir(self, path: PathType) -> bool:
         if str(path) == path.root:
             return True
         if self.get_blob(path) is not None:
             return False
         return self.client.is_dir(path)
 
-    def exists(self, path: "GCSPath") -> bool:
-        if not path.bucket_name:
+    def exists(self, path: PathType) -> bool:
+        if not path.root:
             return any(self.client.list_buckets())
         try:
             bucket = self.client.lookup_bucket(path)
@@ -565,15 +571,16 @@ class BucketsAccessor(_Accessor):
         # Determine if the path exists according to the current adapter
         return self.client.exists(path)
 
-    def scandir(self, path: "GCSPath") -> Generator[BucketEntry, None, None]:
+    def scandir(self, path: PathType) -> Generator[BucketEntry, None, None]:
         return self.client.scandir(path, prefix=path.prefix)
 
-    def listdir(self, path: "GCSPath") -> List[str]:
-        return [entry.name for entry in self.scandir(path)]
+    def listdir(self, path: PathType) -> Generator[str, None, None]:
+        for entry in self.scandir(path):
+            yield entry.name
 
     def open(
-        self,
-        path: "GCSPath",
+        self: PathType,
+        path: PathType,
         *,
         mode="r",
         buffering=-1,
@@ -590,14 +597,15 @@ class BucketsAccessor(_Accessor):
             newline=newline,
         )
 
-    def owner(self, path: "GCSPath") -> Optional[str]:
+    def owner(self, path: PathType) -> Optional[str]:
         blob: Optional[ClientBlob] = self.get_blob(path)
         return blob.owner if blob is not None else None
 
-    def resolve(self, path: "GCSPath", strict=False):
-        return GCSPath(os.path.abspath(str(path)))
+    def resolve(self, path: PathType, strict: bool = False) -> PathType:
+        path_parts = str(path).replace(path.drive, "")
+        return GCSPath(f"{path.drive}{os.path.abspath(path_parts)}")
 
-    def rename(self, path: "GCSPath", target: "GCSPath"):
+    def rename(self, path: PathType, target: PathType) -> None:
         bucket: ClientBucket = self.client.get_bucket(path)
         target_bucket: ClientBucket = self.client.get_bucket(target)
 
@@ -621,10 +629,10 @@ class BucketsAccessor(_Accessor):
         for blob in blobs:
             bucket.delete_blob(blob)
 
-    def replace(self, path: "GCSPath", target: "GCSPath"):
+    def replace(self, path: PathType, target: PathType) -> None:
         return self.rename(path, target)
 
-    def rmdir(self, path: "GCSPath") -> None:
+    def rmdir(self, path: PathType) -> None:
         key_name = str(path.key) if path.key is not None else None
         bucket = self.client.get_bucket(path)
         blobs = list(self.client.list_blobs(path, prefix=key_name))
@@ -632,7 +640,7 @@ class BucketsAccessor(_Accessor):
         if self.client.is_dir(path):
             self.client.rmdir(path)
 
-    def mkdir(self, path: "GCSPath", mode) -> None:
+    def mkdir(self, path: PathType, mode) -> None:
         if not self.client.lookup_bucket(path):
             self.client.create_bucket(path)
 

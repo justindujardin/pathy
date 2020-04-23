@@ -1,5 +1,6 @@
 from pathlib import PurePath, _PosixFlavour  # noqa
-from typing import Iterable, Optional, Union, List, Generator
+from typing import TypeVar, List, Tuple
+import os
 
 try:
     import google.cloud.storage  # noqa
@@ -9,11 +10,20 @@ except ImportError:
     has_gcs = False
 
 
+PathType = TypeVar("PathType")
+
+
 class _GCSFlavour(_PosixFlavour):
     is_supported = bool(has_gcs)
 
     def parse_parts(self, parts):
         drv, root, parsed = super().parse_parts(parts)
+        if len(parsed) and parsed[0] == "gs:":
+            if len(parsed) < 2:
+                raise ValueError("need atleast two parts")
+            # Restore the
+            drv = parsed[0]  # gs:
+            root = parsed[1]  # bucket_name
         for part in parsed[1:]:
             if part == "..":
                 index = parsed.index(part)
@@ -39,19 +49,6 @@ class PureGCSPath(PurePath):
     _flavour = _gcs_flavour
     __slots__ = ()
 
-    @classmethod
-    def from_uri(cls, uri):
-        """
-        from_uri class method create a class instance from url
-
-        >> from gcspath import PureGCSPath
-        >> PureGCSPath.from_url('gs://<bucket>/')
-        << PureGCSPath('/<bucket>')
-        """
-        if not uri.startswith("gs://"):
-            raise ValueError("...")
-        return cls(uri[4:])
-
     @property
     def bucket(self):
         """
@@ -59,46 +56,44 @@ class PureGCSPath(PurePath):
         return a new instance of only the bucket path
         """
         self._absolute_path_validation()
-        if not self.is_absolute():
-            raise ValueError("relative path don't have bucket")
-        try:
-            _, bucket, *_ = self.parts
-        except ValueError:
-            return None
-        return type(self)(self._flavour.sep, bucket)
+        return type(self)(f"{self.drive}//{self.root}")
 
     @property
     def key(self):
         """
-        bucket property
+        key property
         return a new instance of only the key path
         """
         self._absolute_path_validation()
         key = self._flavour.sep.join(self.parts[2:])
-        if not key:
+        if not key or len(self.parts) < 2:
             return None
         return type(self)(key)
-
-    def as_uri(self):
-        """
-        Return the path as a 'gs' URI.
-        """
-        return super().as_uri()
-
-    @property
-    def bucket_name(self) -> str:
-        return str(self.bucket)[1:]
 
     @property
     def prefix(self) -> str:
         sep = self._flavour.sep
-        if not self.key:
+        a = str(self)
+        key = self.key
+        if not key:
             return ""
-        key_name = str(self.key)
+        key_name = str(key)
         if not key_name.endswith(sep):
             return key_name + sep
         return key_name
 
     def _absolute_path_validation(self):
         if not self.is_absolute():
-            raise ValueError("relative path has no bucket/key specification")
+            raise ValueError("relative paths has no bucket/key specification")
+
+    @classmethod
+    def _format_parsed_parts(cls, drv, root, parts):
+        # Bucket path "gs://foo/bar"
+        if drv and root:
+            return f"{drv}//{root}/" + cls._flavour.join(parts[2:])
+        # Absolute path
+        elif drv or root:
+            return drv + root + cls._flavour.join(parts[1:])
+        else:
+            # Relative path
+            return cls._flavour.join(parts)
