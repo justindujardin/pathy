@@ -71,28 +71,31 @@ class ClientBucketGCS(ClientBucket):
 class BucketClientGCS(BucketClient):
     client: storage.Client = field(default_factory=lambda: storage.Client())
 
+    def make_uri(self, path: PureGCSPath):
+        return str(path)
+
     def create_bucket(self, path: PureGCSPath) -> ClientBucket:
-        return self.client.create_bucket(path.bucket_name)
+        return self.client.create_bucket(path.root)
 
     def delete_bucket(self, path: PureGCSPath) -> None:
-        bucket = self.client.get_bucket(path.bucket_name)
+        bucket = self.client.get_bucket(path.root)
         bucket.delete()
 
     def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucketGCS]:
         try:
-            native_bucket = self.client.lookup_bucket(path.bucket_name)
+            native_bucket = self.client.lookup_bucket(path.root)
             if native_bucket is not None:
-                return ClientBucketGCS(str(path.bucket_name), bucket=native_bucket)
+                return ClientBucketGCS(str(path.root), bucket=native_bucket)
         except gcs_errors.ClientError:
             pass
         return None
 
     def get_bucket(self, path: PureGCSPath) -> ClientBucketGCS:
         try:
-            native_bucket = self.client.lookup_bucket(path.bucket_name)
+            native_bucket = self.client.lookup_bucket(path.root)
             if native_bucket is not None:
-                return ClientBucketGCS(str(path.bucket_name), bucket=native_bucket)
-            raise FileNotFoundError(f"Bucket {path.bucket_name} does not exist!")
+                return ClientBucketGCS(str(path.root), bucket=native_bucket)
+            raise FileNotFoundError(f"Bucket {path.root} does not exist!")
         except gcs_errors.ClientError as e:
             raise ClientError(message=e.message, code=e.code)
 
@@ -107,7 +110,7 @@ class BucketClientGCS(BucketClient):
         include_raw: bool = False,
     ) -> Generator[BucketEntryGCS, None, None]:
         continuation_token = None
-        if path is None or not path.bucket_name:
+        if path is None or not path.root:
             for bucket in self.list_buckets():
                 yield BucketEntryGCS(bucket.name, is_dir=True, raw=None)
             return
@@ -161,14 +164,14 @@ class BucketClientGCS(BucketClient):
         while True:
             if continuation_token:
                 response = self.client.list_blobs(
-                    path.bucket_name,
+                    path.root,
                     prefix=prefix,
                     delimiter=delimiter,
                     page_token=continuation_token,
                 )
             else:
                 response = self.client.list_blobs(
-                    path.bucket_name, prefix=prefix, delimiter=delimiter
+                    path.root, prefix=prefix, delimiter=delimiter
                 )
             for page in response.pages:
                 for item in page:
