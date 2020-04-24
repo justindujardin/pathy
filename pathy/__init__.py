@@ -4,7 +4,7 @@ from .api import (  # noqa
     ClientBlob,
     ClientBucket,
     ClientError,
-    GCSPath,
+    Pathy,
     PureGCSPath,
     FluidPath,
     clear_fs_cache,

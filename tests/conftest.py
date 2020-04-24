@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from gcspath import GCSPath, use_fs, use_fs_cache
+from pathy import Pathy, use_fs, use_fs_cache
 
 
 # TODO: set this up with a service account for the CI
@@ -16,12 +16,12 @@ TEST_ADAPTERS = ["gcs", "fs"] if has_credentials else ["fs"]
 
 @pytest.fixture()
 def bucket() -> str:
-    return "gcspath-tests-1"
+    return "pathy-tests-1"
 
 
 @pytest.fixture()
 def other_bucket() -> str:
-    return "gcspath-tests-2"
+    return "pathy-tests-2"
 
 
 @pytest.fixture()
@@ -48,10 +48,10 @@ def with_adapter(adapter: str, bucket: str, other_bucket: str):
         # Use local file-system in a temp folder
         tmp_dir = tempfile.mkdtemp()
         use_fs(tmp_dir)
-        bucket_one = GCSPath.from_bucket(bucket)
+        bucket_one = Pathy.from_bucket(bucket)
         if not bucket_one.exists():
             bucket_one.mkdir()
-        bucket_two = GCSPath.from_bucket(other_bucket)
+        bucket_two = Pathy.from_bucket(other_bucket)
         if not bucket_two.exists():
             bucket_two.mkdir()
     else:
