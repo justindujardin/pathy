@@ -1,8 +1,5 @@
-#!/usr/bin/env python3.7
-from pathlib import Path
-
 import typer
-from pathy import Pathy, FluidPath
+from .api import Pathy, FluidPath
 
 app = typer.Typer()
 
@@ -68,20 +65,38 @@ def mv(from_location: str, to_location: str):
 
 
 @app.command()
-def rm(location: str, strict: bool = False):
+def rm(
+    location: str,
+    recursive: bool = typer.Option(
+        False, "--recursive", "-r", help="Recursively remove files and folders."
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Print removed files and folders."
+    ),
+):
     """
     Remove a blob or folder of blobs from a given location.
     """
     path: FluidPath = Pathy.fluid(location)
-    if not path.exists() and strict:
-        raise ValueError(f"from_path is not an existing Path or Pathy: {path}")
+    if not path.exists():
+        raise typer.Exit(f"rm: {path}: No such file or directory")
+
     if path.is_dir():
-        to_unlink = [b for b in path.rglob("*") if b.is_file()]
+        if not recursive:
+            raise typer.Exit(f"rm: {path}: is a directory")
+        selector = path.rglob("*") if recursive else path.glob("*")
+        to_unlink = [b for b in selector if b.is_file()]
         for blob in to_unlink:
+            if verbose:
+                typer.echo(str(blob))
             blob.unlink()
         if path.exists():
+            if verbose:
+                typer.echo(str(path))
             path.rmdir()
     elif path.is_file():
+        if verbose:
+            typer.echo(str(path))
         path.unlink()
 
 

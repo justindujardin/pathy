@@ -99,27 +99,49 @@ def test_cli_mv_folder_across_buckets(with_adapter, bucket: str, other_bucket: s
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_rm_folder(with_adapter, bucket: str):
-    root = Pathy.from_bucket(bucket)
-    source = root / "cli_rm_folder"
-    for i in range(2):
-        for j in range(2):
-            (source / f"{i}" / f"{j}").write_text("---")
-    assert runner.invoke(app, ["rm", str(source)]).exit_code == 0
-    assert not Pathy(source).exists()
-    # Ensure source files are gone
-    for i in range(2):
-        for j in range(2):
-            assert not (source / f"{i}" / f"{j}").is_file()
-
-
-@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_file(with_adapter, bucket: str):
     source = f"gs://{bucket}/cli_rm_file/file.txt"
     Pathy(source).write_text("---")
     assert Pathy(source).exists()
     assert runner.invoke(app, ["rm", source]).exit_code == 0
     assert not Pathy(source).exists()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_rm_verbose(with_adapter, bucket: str):
+    root = Pathy.from_bucket(bucket) / "cli_rm_folder"
+    source = str(root / "file.txt")
+    other = str(root / "folder/other")
+    Pathy(source).write_text("---")
+    Pathy(other).write_text("---")
+    result = runner.invoke(app, ["rm", "-v", source])
+    assert result.exit_code == 0
+    assert source in result.output
+    assert other not in result.output
+
+    Pathy(source).write_text("---")
+    result = runner.invoke(app, ["rm", "-rv", str(root)])
+    assert result.exit_code == 0
+    assert source in result.output
+    assert other in result.output
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_rm_folder(with_adapter, bucket: str):
+    root = Pathy.from_bucket(bucket)
+    source = root / "cli_rm_folder"
+    for i in range(2):
+        for j in range(2):
+            (source / f"{i}" / f"{j}").write_text("---")
+
+    # Returns exit code 1 without recursive flag when given a folder
+    assert runner.invoke(app, ["rm", str(source)]).exit_code == 1
+    assert runner.invoke(app, ["rm", "-r", str(source)]).exit_code == 0
+    assert not Pathy(source).exists()
+    # Ensure source files are gone
+    for i in range(2):
+        for j in range(2):
+            assert not (source / f"{i}" / f"{j}").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
