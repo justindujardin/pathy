@@ -24,7 +24,7 @@ from .client import (
 )
 from .file import BucketClientFS
 
-__all__ = ("GCSPath", "use_fs", "get_fs_client", "BucketsAccessor")
+__all__ = ("Pathy", "use_fs", "get_fs_client", "BucketsAccessor")
 
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
@@ -46,7 +46,7 @@ def use_fs(root: Optional[Union[str, Path, bool]] = None) -> Optional[BucketClie
 
     # None or True - enable FS adapter with default root
     if root is None or root is True:
-        # Look up "data" folder of gcspath package similar to spaCy
+        # Look up "data" folder of pathy package similar to spaCy
         client_root = Path(__file__).parent / "data"
     else:
         assert isinstance(root, (str, Path)), f"root is not a known type: {type(root)}"
@@ -109,7 +109,10 @@ def clear_fs_cache(force: bool = False) -> None:
     shutil.rmtree(str(resolved))
 
 
-class GCSPath(Path, PureGCSPath):
+FluidPath = Union["Pathy", Path]
+
+
+class Pathy(Path, PureGCSPath):
     """Path subclass for GCS service.
 
     Write files to and read files from the GCS service using pathlib.Path
@@ -122,7 +125,7 @@ class GCSPath(Path, PureGCSPath):
         return super().__truediv__(key)
 
     def __rtruediv__(self: PathType, key: Union[str, PathType]) -> PathType:
-        return cast(GCSPath, super().__rtruediv__(key))
+        return cast(Pathy, super().__rtruediv__(key))
 
     def _init(self: PathType, template=None):
         super()._init(template)  # type:ignore
@@ -132,14 +135,36 @@ class GCSPath(Path, PureGCSPath):
             self._accessor = template._accessor
 
     @classmethod
-    def from_bucket(cls: PathType, bucket_name: str) -> "GCSPath":
-        """Helper to convert a bucket name into a GCSPath without needing
+    def fluid(cls: PathType, path_candidate: Union[str, FluidPath]) -> FluidPath:
+        """Helper to infer a pathlib.Path or Pathy from an input path or string.
+        
+        The returned type is a union of the potential `FluidPath` types and will
+        type-check correctly against the minimum overlapping APIs of all the input
+        types.
+        
+        If you need to use specific implementation details of a type, you 
+        will need to cast the return of this function to the desired type, e.g.
+
+            # Narrow the type a specific class
+            assert isinstance(path, Pathy), "must be Pathy"
+            # Use a member specific to that class
+            print(path.prefix)
+
+        """
+        from_path: FluidPath = Pathy(path_candidate)
+        if from_path.root in ["/", ""]:
+            from_path = Path(path_candidate)
+        return from_path
+
+    @classmethod
+    def from_bucket(cls: PathType, bucket_name: str) -> "Pathy":
+        """Helper to convert a bucket name into a Pathy without needing
         to add the leading and trailing slashes"""
-        return GCSPath(f"gs://{bucket_name}/")
+        return Pathy(f"gs://{bucket_name}/")
 
     @classmethod
     def to_local(
-        cls: PathType, blob_path: Union["GCSPath", str], recurse: bool = True
+        cls: PathType, blob_path: Union["Pathy", str], recurse: bool = True
     ) -> Path:
         """Get a bucket blob and return a local file cached version of it. The cache
         is sensitive to the file updated time, and downloads new blobs as they become
@@ -152,7 +177,7 @@ class GCSPath(Path, PureGCSPath):
 
         cache_folder.mkdir(exist_ok=True, parents=True)
         if isinstance(blob_path, str):
-            blob_path = GCSPath(blob_path)
+            blob_path = Pathy(blob_path)
 
         cache_blob: Path = cache_folder.absolute() / blob_path.root / blob_path.key
         cache_time: Path = (
@@ -184,7 +209,7 @@ class GCSPath(Path, PureGCSPath):
                 # If not a specific blob, enumerate all the blobs under
                 # the path and cache them, then return the cache folder
                 for blob in blob_path.rglob("*"):
-                    GCSPath.to_local(blob, recurse=False)
+                    Pathy.to_local(blob, recurse=False)
         return cache_blob
 
     def stat(self: PathType) -> BucketStat:
@@ -248,7 +273,7 @@ class GCSPath(Path, PureGCSPath):
 
     def rglob(self: PathType, pattern) -> Generator[PathType, None, None]:
         """
-        This is like calling GCSPath.glob with "**/" added in front of the given
+        This is like calling Pathy.glob with "**/" added in front of the given
         relative pattern.
         """
         yield from super().rglob(pattern)
@@ -312,7 +337,7 @@ class GCSPath(Path, PureGCSPath):
         If target exists and is a file, it will be replaced silently if the user
         has permission. If path is a key prefix, it will replace all the keys with
         the same prefix to the new target prefix. Target can be either a string or
-        another GCSPath object.
+        another Pathy object.
         """
         self._absolute_path_validation()
         self_type = type(self)
@@ -603,7 +628,7 @@ class BucketsAccessor(_Accessor):
 
     def resolve(self, path: PathType, strict: bool = False) -> PathType:
         path_parts = str(path).replace(path.drive, "")
-        return GCSPath(f"{path.drive}{os.path.abspath(path_parts)}")
+        return Pathy(f"{path.drive}{os.path.abspath(path_parts)}")
 
     def rename(self, path: PathType, target: PathType) -> None:
         bucket: ClientBucket = self.client.get_bucket(path)

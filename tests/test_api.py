@@ -9,11 +9,12 @@ from google.auth.exceptions import DefaultCredentialsError
 
 from .conftest import TEST_ADAPTERS
 
-from gcspath import (
+from pathy import (
     BucketClientFS,
     BucketsAccessor,
     BucketStat,
-    GCSPath,
+    FluidPath,
+    Pathy,
     PureGCSPath,
     clear_fs_cache,
     get_fs_client,
@@ -28,27 +29,37 @@ from gcspath import (
 
 
 def test_api_path_support():
-    assert PureGCSPath in GCSPath.mro()  # type: ignore
-    assert Path in GCSPath.mro()  # type: ignore
+    assert PureGCSPath in Pathy.mro()  # type: ignore
+    assert Path in Pathy.mro()  # type: ignore
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_is_path_instance(with_adapter):
-    blob = GCSPath("gs://fake/blob")
+    blob = Pathy("gs://fake/blob")
     assert isinstance(blob, Path)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_fluid(with_adapter, bucket: str):
+    path: FluidPath = Pathy.fluid(f"gs://{bucket}/fake-key")
+    assert isinstance(path, Pathy)
+    path: FluidPath = Pathy.fluid(f"foo/bar.txt")
+    assert isinstance(path, Path)
+    path: FluidPath = Pathy.fluid(f"/dev/null")
+    assert isinstance(path, Path)
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_path_to_local(with_adapter, bucket: str):
-    root: GCSPath = GCSPath.from_bucket(bucket) / "to_local"
-    foo_blob: GCSPath = root / "foo"
+    root: Pathy = Pathy.from_bucket(bucket) / "to_local"
+    foo_blob: Pathy = root / "foo"
     foo_blob.write_text("---")
-    assert isinstance(foo_blob, GCSPath)
+    assert isinstance(foo_blob, Pathy)
     use_fs_cache()
 
     # Cache a blob
-    cached: Path = GCSPath.to_local(foo_blob)
-    second_cached: Path = GCSPath.to_local(foo_blob)
+    cached: Path = Pathy.to_local(foo_blob)
+    second_cached: Path = Pathy.to_local(foo_blob)
     assert isinstance(cached, Path)
     assert cached.exists() and cached.is_file(), "local file should exist"
     assert second_cached == cached, "must be the same path"
@@ -59,10 +70,10 @@ def test_api_path_to_local(with_adapter, bucket: str):
     for i in range(3):
         folder = f"folder_{i}"
         for j in range(2):
-            gcs_blob: GCSPath = complex_folder / folder / f"file_{j}.txt"
+            gcs_blob: Pathy = complex_folder / folder / f"file_{j}.txt"
             gcs_blob.write_text("---")
 
-    cached_folder: Path = GCSPath.to_local(complex_folder)
+    cached_folder: Path = Pathy.to_local(complex_folder)
     assert isinstance(cached_folder, Path)
     assert cached_folder.exists() and cached_folder.is_dir()
 
@@ -80,20 +91,20 @@ def test_api_path_to_local(with_adapter, bucket: str):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_use_fs_cache(with_adapter, with_fs: str, bucket: str):
-    path = GCSPath(f"gs://{bucket}/directory/foo.txt")
+    path = Pathy(f"gs://{bucket}/directory/foo.txt")
     path.write_text("---")
-    assert isinstance(path, GCSPath)
+    assert isinstance(path, Pathy)
     with pytest.raises(ValueError):
-        GCSPath.to_local(path)
+        Pathy.to_local(path)
 
     use_fs_cache(with_fs)
-    source_file: Path = GCSPath.to_local(path)
+    source_file: Path = Pathy.to_local(path)
     foo_timestamp = Path(f"{source_file}.time")
     assert foo_timestamp.exists()
     orig_cache_time = foo_timestamp.read_text()
 
     # fetch from the local cache
-    cached_file: Path = GCSPath.to_local(path)
+    cached_file: Path = Pathy.to_local(path)
     assert cached_file == source_file
     cached_cache_time = foo_timestamp.read_text()
     assert orig_cache_time == cached_cache_time, "cached blob timestamps should match"
@@ -103,51 +114,51 @@ def test_api_use_fs_cache(with_adapter, with_fs: str, bucket: str):
     path.write_text('{ "cool" : true }')
 
     # Fetch the updated blob
-    res: Path = GCSPath.to_local(path)
+    res: Path = Pathy.to_local(path)
     updated_cache_time = foo_timestamp.read_text()
     assert updated_cache_time != orig_cache_time, "cached timestamp did not change"
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_stat(with_adapter, bucket: str):
-    path = GCSPath("fake-bucket-1234-0987/fake-key")
+    path = Pathy("fake-bucket-1234-0987/fake-key")
     with pytest.raises(ValueError):
         path.stat()
-    path = GCSPath(f"gs://{bucket}/foo.txt")
+    path = Pathy(f"gs://{bucket}/foo.txt")
     path.write_text("a-a-a-a-a-a-a")
     stat = path.stat()
     assert isinstance(stat, BucketStat)
     assert stat.size > 0
     assert stat.last_modified > 0
     with pytest.raises(ValueError):
-        assert GCSPath(f"gs://{bucket}").stat()
+        assert Pathy(f"gs://{bucket}").stat()
     with pytest.raises(FileNotFoundError):
-        assert GCSPath(f"gs://{bucket}/nonexistant_file.txt").stat()
+        assert Pathy(f"gs://{bucket}/nonexistant_file.txt").stat()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_resolve(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/fake-key")
+    path = Pathy(f"gs://{bucket}/fake-key")
     assert path.resolve() == path
-    path = GCSPath(f"gs://{bucket}/dir/../fake-key")
-    assert path.resolve() == GCSPath(f"gs://{bucket}/fake-key")
+    path = Pathy(f"gs://{bucket}/dir/../fake-key")
+    assert path.resolve() == Pathy(f"gs://{bucket}/fake-key")
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_exists(with_adapter, bucket: str):
-    path = GCSPath("./fake-key")
+    path = Pathy("./fake-key")
     with pytest.raises(ValueError):
         path.exists()
 
     # GCS buckets are globally unique, "test-bucket" exists so this
     # raises an access error.
-    assert GCSPath("gs://test-bucket/fake-key").exists() is False
+    assert Pathy("gs://test-bucket/fake-key").exists() is False
     # invalid bucket name
-    assert GCSPath("gs://unknown-bucket-name-123987519875419").exists() is False
+    assert Pathy("gs://unknown-bucket-name-123987519875419").exists() is False
     # valid bucket with invalid object
-    assert GCSPath(f"gs://{bucket}/not_found_lol_nice.txt").exists() is False
+    assert Pathy(f"gs://{bucket}/not_found_lol_nice.txt").exists() is False
 
-    path = GCSPath(f"gs://{bucket}/directory/foo.txt")
+    path = Pathy(f"gs://{bucket}/directory/foo.txt")
     path.write_text("---")
     assert path.exists()
     for parent in path.parents:
@@ -157,42 +168,42 @@ def test_api_exists(with_adapter, bucket: str):
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_glob(with_adapter, bucket: str):
     for i in range(3):
-        path = GCSPath(f"gs://{bucket}/glob/{i}.file")
+        path = Pathy(f"gs://{bucket}/glob/{i}.file")
         path.write_text("---")
     for i in range(2):
-        path = GCSPath(f"gs://{bucket}/glob/{i}/dir/file.txt")
+        path = Pathy(f"gs://{bucket}/glob/{i}/dir/file.txt")
         path.write_text("---")
 
-    assert list(GCSPath(f"gs://{bucket}/glob/").glob("*.test")) == []
-    assert sorted(list(GCSPath(f"gs://{bucket}/glob/").glob("*.file"))) == [
-        GCSPath(f"gs://{bucket}/glob/0.file"),
-        GCSPath(f"gs://{bucket}/glob/1.file"),
-        GCSPath(f"gs://{bucket}/glob/2.file"),
+    assert list(Pathy(f"gs://{bucket}/glob/").glob("*.test")) == []
+    assert sorted(list(Pathy(f"gs://{bucket}/glob/").glob("*.file"))) == [
+        Pathy(f"gs://{bucket}/glob/0.file"),
+        Pathy(f"gs://{bucket}/glob/1.file"),
+        Pathy(f"gs://{bucket}/glob/2.file"),
     ]
-    assert list(GCSPath(f"gs://{bucket}/glob/0/").glob("*/*.txt")) == [
-        GCSPath(f"gs://{bucket}/glob/0/dir/file.txt"),
+    assert list(Pathy(f"gs://{bucket}/glob/0/").glob("*/*.txt")) == [
+        Pathy(f"gs://{bucket}/glob/0/dir/file.txt"),
     ]
-    assert sorted(GCSPath(f"gs://{bucket}").glob("*lob/")) == [
-        GCSPath(f"gs://{bucket}/glob"),
+    assert sorted(Pathy(f"gs://{bucket}").glob("*lob/")) == [
+        Pathy(f"gs://{bucket}/glob"),
     ]
     # Recursive matches
-    assert sorted(list(GCSPath(f"gs://{bucket}/glob/").glob("**/*.txt"))) == [
-        GCSPath(f"gs://{bucket}/glob/0/dir/file.txt"),
-        GCSPath(f"gs://{bucket}/glob/1/dir/file.txt"),
+    assert sorted(list(Pathy(f"gs://{bucket}/glob/").glob("**/*.txt"))) == [
+        Pathy(f"gs://{bucket}/glob/0/dir/file.txt"),
+        Pathy(f"gs://{bucket}/glob/1/dir/file.txt"),
     ]
     # rglob adds the **/ for you
-    assert sorted(list(GCSPath(f"gs://{bucket}/glob/").rglob("*.txt"))) == [
-        GCSPath(f"gs://{bucket}/glob/0/dir/file.txt"),
-        GCSPath(f"gs://{bucket}/glob/1/dir/file.txt"),
+    assert sorted(list(Pathy(f"gs://{bucket}/glob/").rglob("*.txt"))) == [
+        Pathy(f"gs://{bucket}/glob/0/dir/file.txt"),
+        Pathy(f"gs://{bucket}/glob/1/dir/file.txt"),
     ]
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_unlink_path(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/unlink/404.txt")
+    path = Pathy(f"gs://{bucket}/unlink/404.txt")
     with pytest.raises(FileNotFoundError):
         path.unlink()
-    path = GCSPath(f"gs://{bucket}/unlink/foo.txt")
+    path = Pathy(f"gs://{bucket}/unlink/foo.txt")
     path.write_text("---")
     assert path.exists()
     path.unlink()
@@ -201,7 +212,7 @@ def test_api_unlink_path(with_adapter, bucket: str):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_is_dir(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/is_dir/subfolder/another/my.file")
+    path = Pathy(f"gs://{bucket}/is_dir/subfolder/another/my.file")
     path.write_text("---")
     assert path.is_dir() is False
     for parent in path.parents:
@@ -210,7 +221,7 @@ def test_api_is_dir(with_adapter, bucket: str):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_is_file(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/is_file/subfolder/another/my.file")
+    path = Pathy(f"gs://{bucket}/is_file/subfolder/another/my.file")
     path.write_text("---")
     # The full file is a file
     assert path.is_file() is True
@@ -223,34 +234,34 @@ def test_api_is_file(with_adapter, bucket: str):
 def test_api_iterdir(with_adapter, bucket: str):
     # (n) files in a folder
     for i in range(2):
-        path = GCSPath(f"gs://{bucket}/iterdir/{i}.file")
+        path = Pathy(f"gs://{bucket}/iterdir/{i}.file")
         path.write_text("---")
 
     # 1 file in a subfolder
-    path = GCSPath(f"gs://{bucket}/iterdir/sub/file.txt")
+    path = Pathy(f"gs://{bucket}/iterdir/sub/file.txt")
     path.write_text("---")
 
-    path = GCSPath(f"gs://{bucket}/iterdir/")
+    path = Pathy(f"gs://{bucket}/iterdir/")
     check = sorted(path.iterdir())
     assert check == [
-        GCSPath(f"gs://{bucket}/iterdir/0.file"),
-        GCSPath(f"gs://{bucket}/iterdir/1.file"),
-        GCSPath(f"gs://{bucket}/iterdir/sub"),
+        Pathy(f"gs://{bucket}/iterdir/0.file"),
+        Pathy(f"gs://{bucket}/iterdir/1.file"),
+        Pathy(f"gs://{bucket}/iterdir/sub"),
     ]
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_iterdir_pipstore(with_adapter, bucket: str):
-    path = GCSPath.from_bucket(bucket) / "iterdir_pipstore/prodigy/prodigy.whl"
+    path = Pathy.from_bucket(bucket) / "iterdir_pipstore/prodigy/prodigy.whl"
     path.write_bytes(b"---")
-    path = GCSPath.from_bucket(bucket) / "iterdir_pipstore"
+    path = Pathy.from_bucket(bucket) / "iterdir_pipstore"
     res = [e.name for e in sorted(path.iterdir())]
     assert res == ["prodigy"]
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_open_for_read(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/read/file.txt")
+    path = Pathy(f"gs://{bucket}/read/file.txt")
     path.write_text("---")
     with path.open() as file_obj:
         assert file_obj.read() == "---"
@@ -259,18 +270,18 @@ def test_api_open_for_read(with_adapter, bucket: str):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_open_for_write(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/write/file.txt")
+    path = Pathy(f"gs://{bucket}/write/file.txt")
     with path.open(mode="w") as file_obj:
         file_obj.write("---")
         file_obj.writelines(["---"])
-    path = GCSPath(f"gs://{bucket}/write/file.txt")
+    path = Pathy(f"gs://{bucket}/write/file.txt")
     with path.open() as file_obj:
         assert file_obj.read() == "------"
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_open_binary_read(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/read_binary/file.txt")
+    path = Pathy(f"gs://{bucket}/read_binary/file.txt")
     path.write_bytes(b"---")
     with path.open(mode="rb") as file_obj:
         assert file_obj.readlines() == [b"---"]
@@ -281,7 +292,7 @@ def test_api_open_binary_read(with_adapter, bucket: str):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_readwrite_text(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/write_text/file.txt")
+    path = Pathy(f"gs://{bucket}/write_text/file.txt")
     path.write_text("---")
     with path.open() as file_obj:
         assert file_obj.read() == "---"
@@ -290,14 +301,14 @@ def test_api_readwrite_text(with_adapter, bucket: str):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_readwrite_bytes(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/write_bytes/file.txt")
+    path = Pathy(f"gs://{bucket}/write_bytes/file.txt")
     path.write_bytes(b"---")
     assert path.read_bytes() == b"---"
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_readwrite_lines(with_adapter, bucket: str):
-    path = GCSPath(f"gs://{bucket}/write_text/file.txt")
+    path = Pathy(f"gs://{bucket}/write_text/file.txt")
     with path.open("w") as file_obj:
         file_obj.writelines(["---"])
     with path.open("r") as file_obj:
@@ -310,9 +321,9 @@ def test_api_readwrite_lines(with_adapter, bucket: str):
 def test_api_owner(with_adapter, bucket: str):
     # Raises for invalid file
     with pytest.raises(FileNotFoundError):
-        GCSPath(f"gs://{bucket}/write_text/not_a_valid_blob").owner()
+        Pathy(f"gs://{bucket}/write_text/not_a_valid_blob").owner()
 
-    path = GCSPath(f"gs://{bucket}/write_text/file.txt")
+    path = Pathy(f"gs://{bucket}/write_text/file.txt")
     path.write_text("---")
     # TODO: How to set file owner to non-None in GCS? Then assert here.
     #
@@ -328,35 +339,35 @@ def test_api_owner(with_adapter, bucket: str):
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_rename_files_in_bucket(with_adapter, bucket: str):
     # Rename a single file
-    GCSPath(f"gs://{bucket}/rename/file.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/rename/file.txt").rename(f"gs://{bucket}/rename/other.txt")
-    assert not GCSPath(f"gs://{bucket}/rename/file.txt").exists()
-    assert GCSPath(f"gs://{bucket}/rename/other.txt").is_file()
+    Pathy(f"gs://{bucket}/rename/file.txt").write_text("---")
+    Pathy(f"gs://{bucket}/rename/file.txt").rename(f"gs://{bucket}/rename/other.txt")
+    assert not Pathy(f"gs://{bucket}/rename/file.txt").exists()
+    assert Pathy(f"gs://{bucket}/rename/other.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_rename_files_across_buckets(with_adapter, bucket: str, other_bucket: str):
     # Rename a single file across buckets
-    GCSPath(f"gs://{bucket}/rename/file.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/rename/file.txt").rename(
+    Pathy(f"gs://{bucket}/rename/file.txt").write_text("---")
+    Pathy(f"gs://{bucket}/rename/file.txt").rename(
         f"gs://{other_bucket}/rename/other.txt"
     )
-    assert not GCSPath(f"gs://{bucket}/rename/file.txt").exists()
-    assert GCSPath(f"gs://{other_bucket}/rename/other.txt").is_file()
+    assert not Pathy(f"gs://{bucket}/rename/file.txt").exists()
+    assert Pathy(f"gs://{other_bucket}/rename/other.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_rename_folders_in_bucket(with_adapter, bucket: str):
     # Rename a folder in the same bucket
-    GCSPath(f"gs://{bucket}/rename/folder/one.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/rename/folder/two.txt").write_text("---")
-    path = GCSPath(f"gs://{bucket}/rename/folder/")
-    new_path = GCSPath(f"gs://{bucket}/rename/other/")
+    Pathy(f"gs://{bucket}/rename/folder/one.txt").write_text("---")
+    Pathy(f"gs://{bucket}/rename/folder/two.txt").write_text("---")
+    path = Pathy(f"gs://{bucket}/rename/folder/")
+    new_path = Pathy(f"gs://{bucket}/rename/other/")
     path.rename(new_path)
     assert not path.exists()
     assert new_path.exists()
-    assert GCSPath(f"gs://{bucket}/rename/other/one.txt").is_file()
-    assert GCSPath(f"gs://{bucket}/rename/other/two.txt").is_file()
+    assert Pathy(f"gs://{bucket}/rename/other/one.txt").is_file()
+    assert Pathy(f"gs://{bucket}/rename/other/two.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -364,51 +375,51 @@ def test_api_rename_folders_across_buckets(
     with_adapter, bucket: str, other_bucket: str
 ):
     # Rename a folder across buckets
-    GCSPath(f"gs://{bucket}/rename/folder/one.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/rename/folder/two.txt").write_text("---")
-    path = GCSPath(f"gs://{bucket}/rename/folder/")
-    new_path = GCSPath(f"gs://{other_bucket}/rename/other/")
+    Pathy(f"gs://{bucket}/rename/folder/one.txt").write_text("---")
+    Pathy(f"gs://{bucket}/rename/folder/two.txt").write_text("---")
+    path = Pathy(f"gs://{bucket}/rename/folder/")
+    new_path = Pathy(f"gs://{other_bucket}/rename/other/")
     path.rename(new_path)
     assert not path.exists()
     assert new_path.exists()
-    assert GCSPath(f"gs://{other_bucket}/rename/other/one.txt").is_file()
-    assert GCSPath(f"gs://{other_bucket}/rename/other/two.txt").is_file()
+    assert Pathy(f"gs://{other_bucket}/rename/other/one.txt").is_file()
+    assert Pathy(f"gs://{other_bucket}/rename/other/two.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_replace_files_in_bucket(with_adapter, bucket: str):
     # replace a single file
-    GCSPath(f"gs://{bucket}/replace/file.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/replace/file.txt").replace(
+    Pathy(f"gs://{bucket}/replace/file.txt").write_text("---")
+    Pathy(f"gs://{bucket}/replace/file.txt").replace(
         f"gs://{bucket}/replace/other.txt"
     )
-    assert not GCSPath(f"gs://{bucket}/replace/file.txt").exists()
-    assert GCSPath(f"gs://{bucket}/replace/other.txt").is_file()
+    assert not Pathy(f"gs://{bucket}/replace/file.txt").exists()
+    assert Pathy(f"gs://{bucket}/replace/other.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_replace_files_across_buckets(with_adapter, bucket: str, other_bucket: str):
     # Rename a single file across buckets
-    GCSPath(f"gs://{bucket}/replace/file.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/replace/file.txt").replace(
+    Pathy(f"gs://{bucket}/replace/file.txt").write_text("---")
+    Pathy(f"gs://{bucket}/replace/file.txt").replace(
         f"gs://{other_bucket}/replace/other.txt"
     )
-    assert not GCSPath(f"gs://{bucket}/replace/file.txt").exists()
-    assert GCSPath(f"gs://{other_bucket}/replace/other.txt").is_file()
+    assert not Pathy(f"gs://{bucket}/replace/file.txt").exists()
+    assert Pathy(f"gs://{other_bucket}/replace/other.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_replace_folders_in_bucket(with_adapter, bucket: str):
     # Rename a folder in the same bucket
-    GCSPath(f"gs://{bucket}/replace/folder/one.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/replace/folder/two.txt").write_text("---")
-    path = GCSPath(f"gs://{bucket}/replace/folder/")
-    new_path = GCSPath(f"gs://{bucket}/replace/other/")
+    Pathy(f"gs://{bucket}/replace/folder/one.txt").write_text("---")
+    Pathy(f"gs://{bucket}/replace/folder/two.txt").write_text("---")
+    path = Pathy(f"gs://{bucket}/replace/folder/")
+    new_path = Pathy(f"gs://{bucket}/replace/other/")
     path.replace(new_path)
     assert not path.exists()
     assert new_path.exists()
-    assert GCSPath(f"gs://{bucket}/replace/other/one.txt").is_file()
-    assert GCSPath(f"gs://{bucket}/replace/other/two.txt").is_file()
+    assert Pathy(f"gs://{bucket}/replace/other/one.txt").is_file()
+    assert Pathy(f"gs://{bucket}/replace/other/two.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -416,46 +427,46 @@ def test_api_replace_folders_across_buckets(
     with_adapter, bucket: str, other_bucket: str
 ):
     # Rename a folder across buckets
-    GCSPath(f"gs://{bucket}/replace/folder/one.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/replace/folder/two.txt").write_text("---")
-    path = GCSPath(f"gs://{bucket}/replace/folder/")
-    new_path = GCSPath(f"gs://{other_bucket}/replace/other/")
+    Pathy(f"gs://{bucket}/replace/folder/one.txt").write_text("---")
+    Pathy(f"gs://{bucket}/replace/folder/two.txt").write_text("---")
+    path = Pathy(f"gs://{bucket}/replace/folder/")
+    new_path = Pathy(f"gs://{other_bucket}/replace/other/")
     path.replace(new_path)
     assert not path.exists()
     assert new_path.exists()
-    assert GCSPath(f"gs://{other_bucket}/replace/other/one.txt").is_file()
-    assert GCSPath(f"gs://{other_bucket}/replace/other/two.txt").is_file()
+    assert Pathy(f"gs://{other_bucket}/replace/other/one.txt").is_file()
+    assert Pathy(f"gs://{other_bucket}/replace/other/two.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_rmdir(with_adapter, bucket: str):
-    GCSPath(f"gs://{bucket}/rmdir/one.txt").write_text("---")
-    GCSPath(f"gs://{bucket}/rmdir/folder/two.txt").write_text("---")
-    path = GCSPath(f"gs://{bucket}/rmdir/")
+    Pathy(f"gs://{bucket}/rmdir/one.txt").write_text("---")
+    Pathy(f"gs://{bucket}/rmdir/folder/two.txt").write_text("---")
+    path = Pathy(f"gs://{bucket}/rmdir/")
     path.rmdir()
-    assert not GCSPath(f"gs://{bucket}/rmdir/one.txt").is_file()
-    assert not GCSPath(f"gs://{bucket}/rmdir/other/two.txt").is_file()
+    assert not Pathy(f"gs://{bucket}/rmdir/one.txt").is_file()
+    assert not Pathy(f"gs://{bucket}/rmdir/other/two.txt").is_file()
     assert not path.exists()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_mkdir(with_adapter, bucket: str):
-    bucket_name = f"gcspath-e2e-test-{uuid4().hex}"
+    bucket_name = f"pathy-e2e-test-{uuid4().hex}"
     # Create a bucket
-    GCSPath(f"gs://{bucket_name}/").mkdir()
+    Pathy(f"gs://{bucket_name}/").mkdir()
     # Does not assert if it already exists
-    GCSPath(f"gs://{bucket_name}/").mkdir(exist_ok=True)
+    Pathy(f"gs://{bucket_name}/").mkdir(exist_ok=True)
     with pytest.raises(FileExistsError):
-        GCSPath(f"gs://{bucket_name}/").mkdir(exist_ok=False)
+        Pathy(f"gs://{bucket_name}/").mkdir(exist_ok=False)
     # with pytest.raises(FileNotFoundError):
-    #     GCSPath("/test-second-bucket/test-directory/file.name").mkdir()
-    # GCSPath("/test-second-bucket/test-directory/file.name").mkdir(parents=True)
-    assert GCSPath(f"gs://{bucket_name}/").exists()
+    #     Pathy("/test-second-bucket/test-directory/file.name").mkdir()
+    # Pathy("/test-second-bucket/test-directory/file.name").mkdir(parents=True)
+    assert Pathy(f"gs://{bucket_name}/").exists()
     # remove the bucket
     # client = storage.Client()
     # bucket = client.lookup_bucket(bucket_name)
     # bucket.delete()
-    GCSPath(f"gs://{bucket_name}/").rmdir()
+    Pathy(f"gs://{bucket_name}/").rmdir()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -463,7 +474,7 @@ def test_api_ignore_extension(with_adapter, bucket: str):
     """The smart_open library does automatic decompression based
     on the filename. We disable that to avoid errors, e.g. if you 
     have a .tar.gz file that isn't gzipped."""
-    not_targz = GCSPath.from_bucket(bucket) / "ignore_ext/one.tar.gz"
+    not_targz = Pathy.from_bucket(bucket) / "ignore_ext/one.tar.gz"
     fixture_tar = Path(__file__).parent / "fixtures" / "tar_but_not_gzipped.tar.gz"
     not_targz.write_bytes(fixture_tar.read_bytes())
     again = not_targz.read_bytes()
@@ -498,7 +509,7 @@ def test_api_use_fs(with_fs: Path):
     use_fs(False)
 
 
-@mock.patch("gcspath.gcs.BucketClientGCS", side_effect=DefaultCredentialsError())
+@mock.patch("pathy.gcs.BucketClientGCS", side_effect=DefaultCredentialsError())
 def test_api_bucket_accessor_without_gcs(bucket_client_gcs_mock, temp_folder):
     accessor = BucketsAccessor()
     # Accessing the client lazily throws with no GCS or FS adapters configured
@@ -513,10 +524,10 @@ def test_api_bucket_accessor_without_gcs(bucket_client_gcs_mock, temp_folder):
 def test_api_export_spacy_model(temp_folder):
     """spaCy model loading is one of the things we need to support"""
     use_fs(temp_folder)
-    bucket = GCSPath("gs://my-bucket/")
+    bucket = Pathy("gs://my-bucket/")
     bucket.mkdir(exist_ok=True)
     model = spacy.blank("en")
-    output_path = GCSPath("gs://my-bucket/models/my_model")
+    output_path = Pathy("gs://my-bucket/models/my_model")
     model.to_disk(output_path)
     sorted_entries = sorted([str(p) for p in output_path.glob("*")])
     expected_entries = [
