@@ -109,6 +109,9 @@ def clear_fs_cache(force: bool = False) -> None:
     shutil.rmtree(str(resolved))
 
 
+FluidPath = Union["GCSPath", Path]
+
+
 class GCSPath(Path, PureGCSPath):
     """Path subclass for GCS service.
 
@@ -130,6 +133,28 @@ class GCSPath(Path, PureGCSPath):
             self._accessor = _gcs_accessor
         else:
             self._accessor = template._accessor
+
+    @classmethod
+    def fluid(cls: PathType, path_candidate: Union[str, FluidPath]) -> FluidPath:
+        """Helper to infer a pathlib.Path or GCSPath from an input path or string.
+        
+        The returned type is a union of the potential `FluidPath` types and will
+        type-check correctly against the minimum overlapping APIs of all the input
+        types.
+        
+        If you need to use specific implementation details of a type, you 
+        will need to cast the return of this function to the desired type, e.g.
+
+            # Narrow the type a specific class
+            assert isinstance(path, GCSPath), "must be GCSPath"
+            # Use a member specific to that class
+            print(path.prefix)
+
+        """
+        from_path: FluidPath = GCSPath(path_candidate)
+        if from_path.root in ["/", ""]:
+            from_path = Path(path_candidate)
+        return from_path
 
     @classmethod
     def from_bucket(cls: PathType, bucket_name: str) -> "GCSPath":

@@ -6,6 +6,7 @@ from .api import (  # noqa
     ClientError,
     GCSPath,
     PureGCSPath,
+    FluidPath,
     clear_fs_cache,
     get_fs_cache,
     get_fs_client,

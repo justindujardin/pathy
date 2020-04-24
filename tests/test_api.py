@@ -13,6 +13,7 @@ from gcspath import (
     BucketClientFS,
     BucketsAccessor,
     BucketStat,
+    FluidPath,
     GCSPath,
     PureGCSPath,
     clear_fs_cache,
@@ -36,6 +37,16 @@ def test_api_path_support():
 def test_api_is_path_instance(with_adapter):
     blob = GCSPath("gs://fake/blob")
     assert isinstance(blob, Path)
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_fluid(with_adapter, bucket: str):
+    path: FluidPath = GCSPath.fluid(f"gs://{bucket}/fake-key")
+    assert isinstance(path, GCSPath)
+    path: FluidPath = GCSPath.fluid(f"foo/bar.txt")
+    assert isinstance(path, Path)
+    path: FluidPath = GCSPath.fluid(f"/dev/null")
+    assert isinstance(path, Path)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
