@@ -85,5 +85,18 @@ def rm(location: str, strict: bool = False):
         path.unlink()
 
 
+@app.command()
+def ls(location: str):
+    """
+    List the blobs that exist at a given location.
+    """
+    path: FluidPath = GCSPath.fluid(location)
+    if not path.exists() or path.is_file():
+        typer.echo(f"ls: {path}: No such file or directory")
+        return
+    for file in path.iterdir():
+        typer.echo(file)
+
+
 if __name__ == "__main__":
     app()

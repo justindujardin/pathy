@@ -120,3 +120,19 @@ def test_cli_rm_file(with_adapter, bucket: str):
     assert GCSPath(source).exists()
     assert runner.invoke(app, ["rm", source]).exit_code == 0
     assert not GCSPath(source).exists()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_ls(with_adapter, bucket: str):
+    root = GCSPath.from_bucket(bucket) / "cli_ls"
+    one = str(root / f"file.txt")
+    two = str(root / f"other.txt")
+    three = str(root / f"folder/file.txt")
+    GCSPath(one).write_text("---")
+    GCSPath(two).write_text("---")
+    GCSPath(three).write_text("---")
+    result = runner.invoke(app, ["ls", str(root)])
+    assert result.exit_code == 0
+    assert one in result.output
+    assert two in result.output
+    assert str(root / "folder") in result.output
