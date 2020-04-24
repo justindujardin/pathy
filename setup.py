@@ -35,7 +35,7 @@ def setup_package():
         install_requires=requirements,
         entry_points="""
             [console_scripts]
-            pathy=pathy.cli:main
+            pathy=gcspath.cli:app
         """,
         classifiers=[
             "Development Status :: 4 - Beta",
