@@ -67,5 +67,23 @@ def mv(from_location: str, to_location: str):
         from_path.unlink()
 
 
+@app.command()
+def rm(location: str, strict: bool = False):
+    """
+    Remove a blob or folder of blobs from a given location.
+    """
+    path: FluidPath = GCSPath.fluid(location)
+    if not path.exists() and strict:
+        raise ValueError(f"from_path is not an existing Path or GCSPath: {path}")
+    if path.is_dir():
+        to_unlink = [b for b in path.rglob("*") if b.is_file()]
+        for blob in to_unlink:
+            blob.unlink()
+        if path.exists():
+            path.rmdir()
+    elif path.is_file():
+        path.unlink()
+
+
 if __name__ == "__main__":
     app()

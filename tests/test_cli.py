@@ -67,42 +67,56 @@ def test_cli_mv_file(with_adapter, bucket: str):
     assert GCSPath(destination).is_file()
 
 
-# @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-# def test_cli_rename_files_across_buckets(with_adapter, bucket: str, other_bucket: str):
-#     # Rename a single file across buckets
-#     GCSPath(f"gs://{bucket}/rename/file.txt").write_text("---")
-#     GCSPath(f"gs://{bucket}/rename/file.txt").rename(
-#         f"gs://{other_bucket}/rename/other.txt"
-#     )
-#     assert not GCSPath(f"gs://{bucket}/rename/file.txt").exists()
-#     assert GCSPath(f"gs://{other_bucket}/rename/other.txt").is_file()
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_mv_file_across_buckets(with_adapter, bucket: str, other_bucket: str):
+    source = f"gs://{bucket}/cli_mv_file_across_buckets/file.txt"
+    destination = f"gs://{other_bucket}/cli_mv_file_across_buckets/other.txt"
+    GCSPath(source).write_text("---")
+    assert GCSPath(source).exists()
+    assert runner.invoke(app, ["mv", source, destination]).exit_code == 0
+    assert not GCSPath(source).exists()
+    assert GCSPath(destination).is_file()
 
 
-# @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-# def test_cli_rename_folders_in_bucket(with_adapter, bucket: str):
-#     # Rename a folder in the same bucket
-#     GCSPath(f"gs://{bucket}/rename/folder/one.txt").write_text("---")
-#     GCSPath(f"gs://{bucket}/rename/folder/two.txt").write_text("---")
-#     path = GCSPath(f"gs://{bucket}/rename/folder/")
-#     new_path = GCSPath(f"gs://{bucket}/rename/other/")
-#     path.rename(new_path)
-#     assert not path.exists()
-#     assert new_path.exists()
-#     assert GCSPath(f"gs://{bucket}/rename/other/one.txt").is_file()
-#     assert GCSPath(f"gs://{bucket}/rename/other/two.txt").is_file()
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_mv_folder_across_buckets(with_adapter, bucket: str, other_bucket: str):
+    source = GCSPath.from_bucket(bucket) / "cli_mv_folder_across_buckets"
+    destination = GCSPath.from_bucket(other_bucket) / "cli_mv_folder_across_buckets"
+    for i in range(2):
+        for j in range(2):
+            (source / f"{i}" / f"{j}").write_text("---")
+    assert runner.invoke(app, ["mv", str(source), str(destination)]).exit_code == 0
+    assert not GCSPath(source).exists()
+    assert GCSPath(destination).is_dir()
+    # Ensure source files are gone
+    for i in range(2):
+        for j in range(2):
+            assert not (source / f"{i}" / f"{j}").is_file()
+    # And dest files exist
+    for i in range(2):
+        for j in range(2):
+            assert (destination / f"{i}" / f"{j}").is_file()
 
 
-# @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-# def test_cli_rename_folders_across_buckets(
-#     with_adapter, bucket: str, other_bucket: str
-# ):
-#     # Rename a folder across buckets
-#     GCSPath(f"gs://{bucket}/rename/folder/one.txt").write_text("---")
-#     GCSPath(f"gs://{bucket}/rename/folder/two.txt").write_text("---")
-#     path = GCSPath(f"gs://{bucket}/rename/folder/")
-#     new_path = GCSPath(f"gs://{other_bucket}/rename/other/")
-#     path.rename(new_path)
-#     assert not path.exists()
-#     assert new_path.exists()
-#     assert GCSPath(f"gs://{other_bucket}/rename/other/one.txt").is_file()
-#     assert GCSPath(f"gs://{other_bucket}/rename/other/two.txt").is_file()
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_rm_folder(with_adapter, bucket: str):
+    root = GCSPath.from_bucket(bucket)
+    source = root / "cli_rm_folder"
+    for i in range(2):
+        for j in range(2):
+            (source / f"{i}" / f"{j}").write_text("---")
+    assert runner.invoke(app, ["rm", str(source)]).exit_code == 0
+    assert not GCSPath(source).exists()
+    # Ensure source files are gone
+    for i in range(2):
+        for j in range(2):
+            assert not (source / f"{i}" / f"{j}").is_file()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_rm_file(with_adapter, bucket: str):
+    source = f"gs://{bucket}/cli_rm_file/file.txt"
+    GCSPath(source).write_text("---")
+    assert GCSPath(source).exists()
+    assert runner.invoke(app, ["rm", source]).exit_code == 0
+    assert not GCSPath(source).exists()
