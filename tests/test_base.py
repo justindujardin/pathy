@@ -4,79 +4,79 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
-from gcspath import GCSPath, PureGCSPath
+from pathy import Pathy, PureGCSPath
 
 
 def test_base_not_supported(monkeypatch):
-    monkeypatch.setattr(GCSPath._flavour, "is_supported", False)
+    monkeypatch.setattr(Pathy._flavour, "is_supported", False)
     with pytest.raises(NotImplementedError):
-        GCSPath()
+        Pathy()
 
 
 def test_base_cwd():
     with pytest.raises(NotImplementedError):
-        GCSPath.cwd()
+        Pathy.cwd()
 
 
 def test_base_home():
     with pytest.raises(NotImplementedError):
-        GCSPath.home()
+        Pathy.home()
 
 
 def test_base_chmod():
-    path = GCSPath("/fake-bucket/fake-key")
+    path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.chmod(0o666)
 
 
 def test_base_lchmod():
-    path = GCSPath("/fake-bucket/fake-key")
+    path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.lchmod(0o666)
 
 
 def test_base_group():
-    path = GCSPath("/fake-bucket/fake-key")
+    path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.group()
 
 
 def test_base_is_mount():
-    assert not GCSPath("/fake-bucket/fake-key").is_mount()
+    assert not Pathy("/fake-bucket/fake-key").is_mount()
 
 
 def test_base_is_symlink():
-    assert not GCSPath("/fake-bucket/fake-key").is_symlink()
+    assert not Pathy("/fake-bucket/fake-key").is_symlink()
 
 
 def test_base_is_socket():
-    assert not GCSPath("/fake-bucket/fake-key").is_socket()
+    assert not Pathy("/fake-bucket/fake-key").is_socket()
 
 
 def test_base_is_fifo():
-    assert not GCSPath("/fake-bucket/fake-key").is_fifo()
+    assert not Pathy("/fake-bucket/fake-key").is_fifo()
 
 
 def test_base_is_block_device():
-    path = GCSPath("/fake-bucket/fake-key")
+    path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.is_block_device()
 
 
 def test_base_is_char_device():
-    path = GCSPath("/fake-bucket/fake-key")
+    path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.is_char_device()
 
 
 def test_base_lstat():
-    path = GCSPath("/fake-bucket/fake-key")
+    path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.lstat()
 
 
 def test_base_symlink_to():
-    path = GCSPath("/fake-bucket/fake-key")
+    path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.symlink_to("file_name")
 

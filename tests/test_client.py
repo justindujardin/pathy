@@ -1,8 +1,8 @@
 from pathlib import Path
 
 
-from gcspath import PureGCSPath
-from gcspath.file import BucketClientFS
+from pathy import PureGCSPath
+from pathy.file import BucketClientFS
 
 
 def test_client_create_bucket(temp_folder: Path):

@@ -2,7 +2,7 @@
 from pathlib import Path
 
 import typer
-from gcspath import GCSPath, FluidPath
+from pathy import Pathy, FluidPath
 
 app = typer.Typer()
 
@@ -12,10 +12,10 @@ def cp(from_location: str, to_location: str):
     """
     Copy a blob or folder of blobs from one bucket to another.
     """
-    from_path: FluidPath = GCSPath.fluid(from_location)
+    from_path: FluidPath = Pathy.fluid(from_location)
     if not from_path.exists():
-        raise ValueError(f"from_path is not an existing Path or GCSPath: {from_path}")
-    to_path: FluidPath = GCSPath.fluid(to_location)
+        raise ValueError(f"from_path is not an existing Path or Pathy: {from_path}")
+    to_path: FluidPath = Pathy.fluid(to_location)
     if from_path.is_dir():
         to_path.mkdir(parents=True, exist_ok=True)
         for blob in from_path.rglob("*"):
@@ -27,7 +27,7 @@ def cp(from_location: str, to_location: str):
         # Copy prefix from the source if the to_path has none.
         #
         # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        if isinstance(to_path, GCSPath) and to_path.prefix == "":
+        if isinstance(to_path, Pathy) and to_path.prefix == "":
             to_path = to_path / from_path
 
         to_path.parent.mkdir(parents=True, exist_ok=True)
@@ -39,10 +39,10 @@ def mv(from_location: str, to_location: str):
     """
     Move a blob or folder of blobs from one path to another.
     """
-    from_path: FluidPath = GCSPath.fluid(from_location)
+    from_path: FluidPath = Pathy.fluid(from_location)
     if not from_path.exists():
-        raise ValueError(f"from_path is not an existing Path or GCSPath: {from_path}")
-    to_path: FluidPath = GCSPath.fluid(to_location)
+        raise ValueError(f"from_path is not an existing Path or Pathy: {from_path}")
+    to_path: FluidPath = Pathy.fluid(to_location)
     if from_path.is_dir():
         to_path.mkdir(parents=True, exist_ok=True)
         to_unlink = []
@@ -60,7 +60,7 @@ def mv(from_location: str, to_location: str):
         # Copy prefix from the source if the to_path has none.
         #
         # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        if isinstance(to_path, GCSPath) and to_path.prefix == "":
+        if isinstance(to_path, Pathy) and to_path.prefix == "":
             to_path = to_path / from_path
         to_path.parent.mkdir(parents=True, exist_ok=True)
         to_path.write_bytes(from_path.read_bytes())
@@ -72,9 +72,9 @@ def rm(location: str, strict: bool = False):
     """
     Remove a blob or folder of blobs from a given location.
     """
-    path: FluidPath = GCSPath.fluid(location)
+    path: FluidPath = Pathy.fluid(location)
     if not path.exists() and strict:
-        raise ValueError(f"from_path is not an existing Path or GCSPath: {path}")
+        raise ValueError(f"from_path is not an existing Path or Pathy: {path}")
     if path.is_dir():
         to_unlink = [b for b in path.rglob("*") if b.is_file()]
         for blob in to_unlink:
@@ -90,7 +90,7 @@ def ls(location: str):
     """
     List the blobs that exist at a given location.
     """
-    path: FluidPath = GCSPath.fluid(location)
+    path: FluidPath = Pathy.fluid(location)
     if not path.exists() or path.is_file():
         typer.echo(f"ls: {path}: No such file or directory")
         return

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 
 def setup_package():
-    package_name = "gcspath"
+    package_name = "pathy"
     root = pathlib.Path(__file__).parent.resolve()
 
     about_path = root / package_name / "about.py"
@@ -35,7 +35,7 @@ def setup_package():
         install_requires=requirements,
         entry_points="""
             [console_scripts]
-            pathy=gcspath.cli:app
+            pathy=pathy.cli:app
         """,
         classifiers=[
             "Development Status :: 4 - Beta",
