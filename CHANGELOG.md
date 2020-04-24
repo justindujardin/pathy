@@ -1,3 +1,10 @@
+## [0.1.1](https://github.com/justindujardin/pathy/compare/v0.1.0...v0.1.1) (2020-04-24)
+
+
+### Features
+
+* **cli:** add -r and -v flags for safer usage ([a87e36f](https://github.com/justindujardin/pathy/commit/a87e36fbc13a705c1f7f9ed7909ff6c9fe8e494e))
+
 # [0.1.0](https://github.com/justindujardin/pathy/compare/v0.0.17...v0.1.0) (2020-04-24)
 
 
