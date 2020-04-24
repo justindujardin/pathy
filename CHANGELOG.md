@@ -1,3 +1,14 @@
+# [0.1.0](https://github.com/justindujardin/pathy/compare/v0.0.17...v0.1.0) (2020-04-24)
+
+
+### Features
+
+* add FluidPath and GCSPath.fluid method ([3393226](https://github.com/justindujardin/pathy/commit/3393226bc7f390f696d109bfac5f44e59a8b5151))
+* **cli:** add ls [path] command ([17cab1d](https://github.com/justindujardin/pathy/commit/17cab1d8b96d92ca79e18512ac7e8a42aa136066))
+* **cli:** add pathy executable with cp and mv commands ([98760fc](https://github.com/justindujardin/pathy/commit/98760fcfc0cb62891b7f2aac81a74fef088fdf78))
+* **cli:** add rm [path] command ([31cea91](https://github.com/justindujardin/pathy/commit/31cea9156d99d9d465569c20c566943d4238c5dd))
+* **pathy:** rename library to be more generic ([c62b14d](https://github.com/justindujardin/pathy/commit/c62b14da2aba25024af647e29df09ee57a13f6bd))
+
 ## [0.0.17](https://github.com/justindujardin/pathy/compare/v0.0.16...v0.0.17) (2020-04-17)
 
 
