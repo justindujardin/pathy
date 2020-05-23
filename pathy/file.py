@@ -39,9 +39,16 @@ class ClientBucketFS(ClientBucket):
         if not native_blob.exists() or native_blob.is_dir():
             return None
         stat = native_blob.stat()
+        # path.owner() raises KeyError if the owner's UID isn't known
+        #
+        # https://docs.python.org/3/library/pathlib.html#pathlib.Path.owner
+        try:
+            owner = native_blob.owner()
+        except KeyError:
+            owner = None
         return ClientBlobFS(
             bucket=self,
-            owner=native_blob.owner(),
+            owner=owner,
             name=blob_name,
             raw=native_blob,
             size=stat.st_size,

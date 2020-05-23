@@ -37,9 +37,19 @@ def mv(from_location: str, to_location: str):
     Move a blob or folder of blobs from one path to another.
     """
     from_path: FluidPath = Pathy.fluid(from_location)
-    if not from_path.exists():
-        raise ValueError(f"from_path is not an existing Path or Pathy: {from_path}")
     to_path: FluidPath = Pathy.fluid(to_location)
+
+    if from_path.is_file():
+        # Copy prefix from the source if the to_path has none.
+        #
+        # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
+        if isinstance(to_path, Pathy) and to_path.prefix == "":
+            to_path = to_path / from_path
+        to_path.parent.mkdir(parents=True, exist_ok=True)
+        to_path.write_bytes(from_path.read_bytes())
+        from_path.unlink()
+        return
+
     if from_path.is_dir():
         to_path.mkdir(parents=True, exist_ok=True)
         to_unlink = []
@@ -53,15 +63,6 @@ def mv(from_location: str, to_location: str):
             blob.unlink()
         if from_path.is_dir():
             from_path.rmdir()
-    elif from_path.is_file():
-        # Copy prefix from the source if the to_path has none.
-        #
-        # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        if isinstance(to_path, Pathy) and to_path.prefix == "":
-            to_path = to_path / from_path
-        to_path.parent.mkdir(parents=True, exist_ok=True)
-        to_path.write_bytes(from_path.read_bytes())
-        from_path.unlink()
 
 
 @app.command()
