@@ -1,5 +1,5 @@
 __title__ = "pathy"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __summary__ = "pathlib.Path subclasses for Google Cloud Storage"
 __uri__ = "https://github.com/justindujardin/pathy"
 __author__ = "Justin DuJardin"

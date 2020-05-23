@@ -1,3 +1,10 @@
+## [0.1.2](https://github.com/justindujardin/pathy/compare/v0.1.1...v0.1.2) (2020-05-23)
+
+
+### Bug Fixes
+
+* path.owner() can raise when using filesystem adapter ([2877b06](https://github.com/justindujardin/pathy/commit/2877b06562e4bb1d4767e9c297e2aee2fc1284ad))
+
 ## [0.1.1](https://github.com/justindujardin/pathy/compare/v0.1.0...v0.1.1) (2020-04-24)
 
 
