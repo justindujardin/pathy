@@ -1,3 +1,10 @@
+## [0.1.3](https://github.com/justindujardin/pathy/compare/v0.1.2...v0.1.3) (2020-06-28)
+
+
+### Features
+
+* upgrade typer support ([e481000](https://github.com/justindujardin/pathy/commit/e4810004eff21a605626d30cd717983787a6a8c6))
+
 ## [0.1.2](https://github.com/justindujardin/pathy/compare/v0.1.1...v0.1.2) (2020-05-23)
 
 
