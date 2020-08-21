@@ -8,6 +8,9 @@ from .conftest import TEST_ADAPTERS
 
 runner = CliRunner()
 
+# TODO: add a test for wildcard cp/mv/rm/ls paths (e.g. "pathy cp gs://my-bucket/*.file ./")
+# TODO: add a test for streaming in/out sources (e.g. "pathy cp - gs://my-bucket/my.file")
+
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_file(with_adapter, bucket: str):

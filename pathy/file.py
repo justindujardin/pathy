@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional, List, Generator, cast
 from .client import BucketClient, ClientBucket, ClientBlob, ClientError, BucketEntry
-from .base import PureGCSPath
+from .base import PurePathy
 import pathlib
 import shutil
 import os
@@ -79,11 +79,11 @@ class BucketClientFS(BucketClient):
     # Root to store file-system buckets as children of
     root: pathlib.Path
 
-    def make_uri(self, path: PureGCSPath):
+    def make_uri(self, path: PurePathy):
         uri = super().make_uri(path)
         return uri.replace("gs://", "file:///")
 
-    def full_path(self, path: PureGCSPath) -> pathlib.Path:
+    def full_path(self, path: PurePathy) -> pathlib.Path:
         if path.root is None:
             raise ValueError(f"Invalid bucket name for path: {path}")
         full_path = self.root.absolute() / path.root
@@ -91,20 +91,20 @@ class BucketClientFS(BucketClient):
             full_path = full_path / path.key
         return full_path
 
-    def exists(self, path: PureGCSPath) -> bool:
+    def exists(self, path: PurePathy) -> bool:
         """Return True if the path exists as a file or folder on disk"""
         return self.full_path(path).exists()
 
-    def is_dir(self, path: PureGCSPath) -> bool:
+    def is_dir(self, path: PurePathy) -> bool:
         return self.full_path(path).is_dir()
 
-    def rmdir(self, path: PureGCSPath) -> None:
+    def rmdir(self, path: PurePathy) -> None:
         full_path = self.full_path(path)
         return shutil.rmtree(str(full_path))
 
     def open(
         self,
-        path: PureGCSPath,
+        path: PurePathy,
         *,
         mode="r",
         buffering=-1,
@@ -129,13 +129,13 @@ class BucketClientFS(BucketClient):
             newline=newline,
         )
 
-    def make_uri(self, path: PureGCSPath) -> str:
+    def make_uri(self, path: PurePathy) -> str:
         if not path.root:
             raise ValueError(f"cannot make a URI to an invalid bucket: {path.root}")
         result = f"file://{self.root.absolute() / path.root / path.key}"
         return result
 
-    def create_bucket(self, path: PureGCSPath) -> ClientBucket:
+    def create_bucket(self, path: PurePathy) -> ClientBucket:
         if not path.root:
             raise ValueError(f"Invalid bucket name: {path.root}")
         bucket_path: pathlib.Path = self.root / path.root
@@ -144,19 +144,19 @@ class BucketClientFS(BucketClient):
         bucket_path.mkdir(parents=True, exist_ok=True)
         return ClientBucketFS(str(path.root), bucket=bucket_path)
 
-    def delete_bucket(self, path: PureGCSPath) -> None:
+    def delete_bucket(self, path: PurePathy) -> None:
         bucket_path: pathlib.Path = self.root / str(path.root)
         if bucket_path.exists():
             shutil.rmtree(bucket_path)
 
-    def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucketFS]:
+    def lookup_bucket(self, path: PurePathy) -> Optional[ClientBucketFS]:
         if path.root:
             bucket_path: pathlib.Path = self.root / path.root
             if bucket_path.exists():
                 return ClientBucketFS(str(path.root), bucket=bucket_path)
         return None
 
-    def get_bucket(self, path: PureGCSPath) -> ClientBucketFS:
+    def get_bucket(self, path: PurePathy) -> ClientBucketFS:
         if not path.root:
             raise ValueError(f"path has an invalid bucket_name: {path.root}")
         bucket_path: pathlib.Path = self.root / path.root
@@ -171,7 +171,7 @@ class BucketClientFS(BucketClient):
 
     def scandir(
         self,
-        path: Optional[PureGCSPath] = None,
+        path: Optional[PurePathy] = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> Generator[BucketEntryFS, None, None]:
@@ -210,7 +210,7 @@ class BucketClientFS(BucketClient):
 
     def list_blobs(
         self,
-        path: PureGCSPath,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_dirs: bool = False,

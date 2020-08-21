@@ -13,7 +13,7 @@ from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import storage
 
 from . import gcs
-from .base import PureGCSPath, PathType
+from .base import PurePathy, PathType
 from .client import (
     BucketClient,
     BucketEntry,
@@ -112,7 +112,7 @@ def clear_fs_cache(force: bool = False) -> None:
 FluidPath = Union["Pathy", Path]
 
 
-class Pathy(Path, PureGCSPath):
+class Pathy(Path, PurePathy):
     """Path subclass for GCS service.
 
     Write files to and read files from the GCS service using pathlib.Path

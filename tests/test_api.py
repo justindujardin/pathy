@@ -15,7 +15,7 @@ from pathy import (
     BucketStat,
     FluidPath,
     Pathy,
-    PureGCSPath,
+    PurePathy,
     clear_fs_cache,
     get_fs_client,
     use_fs,
@@ -29,7 +29,7 @@ from pathy import (
 
 
 def test_api_path_support():
-    assert PureGCSPath in Pathy.mro()  # type: ignore
+    assert PurePathy in Pathy.mro()  # type: ignore
     assert Path in Pathy.mro()  # type: ignore
 
 

@@ -39,31 +39,21 @@ class _GCSFlavour(_PosixFlavour):
 _gcs_flavour = _GCSFlavour()
 
 
-class PureGCSPath(PurePath):
-    """
-    PurePath subclass for GCS service.
-
-    GCS is not a file-system but we can look at it like a POSIX system.
-    """
+class PurePathy(PurePath):
+    """PurePath subclass for bucket storage."""
 
     _flavour = _gcs_flavour
     __slots__ = ()
 
     @property
     def bucket(self):
-        """
-        bucket property
-        return a new instance of only the bucket path
-        """
+        """Return a new instance of only the bucket path."""
         self._absolute_path_validation()
         return type(self)(f"{self.drive}//{self.root}")
 
     @property
     def key(self):
-        """
-        key property
-        return a new instance of only the key path
-        """
+        """Return a new instance of only the key path."""
         self._absolute_path_validation()
         key = self._flavour.sep.join(self.parts[2:])
         if not key or len(self.parts) < 2:

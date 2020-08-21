@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional, List, Generator
 from .client import BucketClient, ClientBucket, ClientBlob, ClientError, BucketEntry
-from .base import PureGCSPath
+from .base import PurePathy
 
 try:
     from google.cloud import storage
@@ -71,17 +71,17 @@ class ClientBucketGCS(ClientBucket):
 class BucketClientGCS(BucketClient):
     client: storage.Client = field(default_factory=lambda: storage.Client())
 
-    def make_uri(self, path: PureGCSPath):
+    def make_uri(self, path: PurePathy):
         return str(path)
 
-    def create_bucket(self, path: PureGCSPath) -> ClientBucket:
+    def create_bucket(self, path: PurePathy) -> ClientBucket:
         return self.client.create_bucket(path.root)
 
-    def delete_bucket(self, path: PureGCSPath) -> None:
+    def delete_bucket(self, path: PurePathy) -> None:
         bucket = self.client.get_bucket(path.root)
         bucket.delete()
 
-    def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucketGCS]:
+    def lookup_bucket(self, path: PurePathy) -> Optional[ClientBucketGCS]:
         try:
             native_bucket = self.client.lookup_bucket(path.root)
             if native_bucket is not None:
@@ -90,7 +90,7 @@ class BucketClientGCS(BucketClient):
             pass
         return None
 
-    def get_bucket(self, path: PureGCSPath) -> ClientBucketGCS:
+    def get_bucket(self, path: PurePathy) -> ClientBucketGCS:
         try:
             native_bucket = self.client.lookup_bucket(path.root)
             if native_bucket is not None:
@@ -104,7 +104,7 @@ class BucketClientGCS(BucketClient):
 
     def scandir(
         self,
-        path: Optional[PureGCSPath] = None,
+        path: Optional[PurePathy] = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_raw: bool = False,
@@ -152,7 +152,7 @@ class BucketClientGCS(BucketClient):
 
     def list_blobs(
         self,
-        path: PureGCSPath,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
