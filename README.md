@@ -1,6 +1,6 @@
 # Pathy: a python Path interface for bucket storage
 
-[![Build status](https://travis-ci.org/justindujardin/pathy.svg?branch=master)](https://travis-ci.org/justindujardin/pathy)
+[![Build status](https://travis-ci.com/justindujardin/pathy.svg?branch=master)](https://travis-ci.com/justindujardin/pathy)
 [![Pypi version](https://badgen.net/pypi/v/pathy)](https://pypi.org/project/pathy/)
 
 Pathy is a python package (_with type annotations_) for working with Bucket storage providers. It provides a CLI app for basic file operations between local files and remote buckets. It enables a smooth developer experience by supporting local file-system backed buckets during development and testing. It makes converting bucket blobs into local files a snap with optional local file caching of blobs.
