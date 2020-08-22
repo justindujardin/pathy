@@ -1,16 +1,16 @@
-from typing import cast
+import io
 import os
 import shutil
 import tempfile
 from io import DEFAULT_BUFFER_SIZE
 from pathlib import Path, _Accessor  # type:ignore
-from typing import Generator, Optional, Union
+from typing import Generator, Optional, Union, cast
 
 from google.api_core import exceptions as gcs_errors
 from google.auth.exceptions import DefaultCredentialsError
 
 from . import gcs
-from .base import PurePathy, PathType
+from .base import PathType, PurePathy
 from .client import (
     BucketClient,
     BucketEntry,
@@ -88,7 +88,7 @@ def use_fs_cache(root: Optional[Union[str, Path, bool]] = None) -> Optional[Path
 
 
 def get_fs_cache() -> Optional[Path]:
-    """Get the file-system client (or None)"""
+    """Get the folder that holds file-system cached blobs and timestamps."""
     global _fs_cache
     assert _fs_cache is None or isinstance(_fs_cache, Path), "invalid root type"
     return _fs_cache
@@ -130,20 +130,21 @@ class Pathy(Path, PurePathy):
 
     @classmethod
     def fluid(cls: PathType, path_candidate: Union[str, FluidPath]) -> FluidPath:
-        """Helper to infer a pathlib.Path or Pathy from an input path or string.
+        """Infer either a Pathy or pathlib.Path from an input path or string.
 
         The returned type is a union of the potential `FluidPath` types and will
         type-check correctly against the minimum overlapping APIs of all the input
         types.
 
-        If you need to use specific implementation details of a type, you
-        will need to narrow the return of this function to the desired type, e.g.
+        If you need to use specific implementation details of a type, "narrow" the
+        return of this function to the desired type, e.g.
 
         ```python
+        fluid_path = FluidPath("gs://my_bucket/foo.txt")
         # Narrow the type to a specific class
-        assert isinstance(path, Pathy), "must be Pathy"
+        assert isinstance(fluid_path, Pathy), "must be Pathy"
         # Use a member specific to that class
-        print(path.prefix)
+        print(fluid_path.prefix)
         ```
         """
         from_path: FluidPath = Pathy(path_candidate)
@@ -153,17 +154,24 @@ class Pathy(Path, PurePathy):
 
     @classmethod
     def from_bucket(cls: PathType, bucket_name: str) -> "Pathy":
-        """Helper to convert a bucket name into a Pathy without needing
-        to add the leading and trailing slashes"""
+        """Initialize a Pathy from a bucket name. This helper adds a trailing slash and
+        the appropriate prefix.
+
+        ```python
+        assert str(Pathy.from_bucket("one")) == "gs://one/"
+        assert str(Pathy.from_bucket("two")) == "gs://two/"
+        ```
+        """
         return Pathy(f"gs://{bucket_name}/")
 
     @classmethod
     def to_local(
         cls: PathType, blob_path: Union["Pathy", str], recurse: bool = True
     ) -> Path:
-        """Get a bucket blob and return a local file cached version of it. The cache
-        is sensitive to the file updated time, and downloads new blobs as they become
-        available."""
+        """Download and cache either a blob or a set of blobs matching a prefix.
+
+        The cache is sensitive to the file updated time, and downloads new blobs
+        as their updated timestamps change."""
         cache_folder = get_fs_cache()
         if cache_folder is None:
             raise ValueError(
@@ -208,29 +216,25 @@ class Pathy(Path, PurePathy):
         return cache_blob
 
     def stat(self: PathType) -> BucketStat:
-        """
-        Returns information about this path.
-        The result is looked up at each call to this method
-        """
+        """Returns information about this bucket path."""
         self._absolute_path_validation()
         if not self.key:
             raise ValueError("cannot stat a bucket without a key")
         return cast(BucketStat, super().stat())
 
     def exists(self: PathType) -> bool:
-        """
-        Whether the path points to an existing Bucket, key or key prefix.
-        """
+        """Returns True if the path points to an existing bucket, blob, or prefix."""
         self._absolute_path_validation()
         if not self.bucket:
             return True
         return self._accessor.exists(self)
 
     def is_dir(self: PathType) -> bool:
-        """
-        Returns True if the path points to a Bucket or a key prefix, False if it 
-        points to a full key path. False is returned if the path doesn’t exist.
-        Other errors (such as permission errors) are propagated.
+        """Determine if the path points to a bucket or a prefix of a given blob
+        in the bucket.
+
+        Returns True if the path points to a bucket or a blob prefix.
+        Returns False if it points to a blob or the path doesn't exist.
         """
         self._absolute_path_validation()
         if self.bucket and not self.key:
@@ -238,10 +242,11 @@ class Pathy(Path, PurePathy):
         return self._accessor.is_dir(self)
 
     def is_file(self: PathType) -> bool:
-        """
-        Returns True if the path points to a Bucket key, False if it points to
-        Bucket or a key prefix. False is returned if the path doesn’t exist.
-        Other errors (such as permission errors) are propagated.
+        """Determine if the path points to a blob in the bucket.
+
+        Returns True if the path points to a blob.
+        Returns False if it points to a bucket or blob prefix, or if the path doesn’t
+        exist.
         """
         self._absolute_path_validation()
         if not self.bucket or not self.key:
@@ -252,25 +257,18 @@ class Pathy(Path, PurePathy):
             return False
 
     def iterdir(self: PathType) -> Generator[PathType, None, None]:
-        """
-        When the path points to a Bucket or a key prefix, yield path objects of
-        the directory contents
-        """
+        """Iterate over the blobs found in the given bucket or blob prefix path."""
         self._absolute_path_validation()
         yield from super().iterdir()
 
     def glob(self: PathType, pattern) -> Generator[PathType, None, None]:
-        """
-        Glob the given relative pattern in the Bucket / key prefix represented
-        by this path, yielding all matching files (of any kind)
-        """
+        """Perform a glob match relative to this Pathy instance, yielding all matched
+        blobs."""
         yield from super().glob(pattern)
 
     def rglob(self: PathType, pattern) -> Generator[PathType, None, None]:
-        """
-        This is like calling Pathy.glob with "**/" added in front of the given
-        relative pattern.
-        """
+        """Perform a recursive glob match relative to this Pathy instance, yielding
+        all matched blobs. Imagine adding "**/" before a call to glob."""
         yield from super().rglob(pattern)
 
     def open(
@@ -280,11 +278,10 @@ class Pathy(Path, PurePathy):
         encoding=None,
         errors=None,
         newline=None,
-    ):
-        """
-        Opens the Bucket key pointed to by the path, returns a Key file object
-        that you can read/write with.
-        """
+    ) -> io.IOBase:
+        """Open the given blob for streaming. This delegates to the `smart_open`
+        library that handles large file streaming for a number of bucket API
+        providers."""
         self._absolute_path_validation()
         if mode not in _SUPPORTED_OPEN_MODES:
             raise ValueError(
@@ -309,27 +306,33 @@ class Pathy(Path, PurePathy):
         )
 
     def owner(self: PathType) -> Optional[str]:
-        """
-        Returns the name of the user owning the Bucket or key.
-        Similarly to boto3's ObjectSummary owner attribute
-        """
+        """Returns the name of the user that owns the bucket or blob
+        this path points to. Returns None if the owner is unknown or
+        not supported by the bucket API provider."""
         self._absolute_path_validation()
         if not self.is_file():
             raise FileNotFoundError(str(self))
         return self._accessor.owner(self)
 
     def resolve(self: PathType) -> PathType:
-        """Resolve the given path to remove any relative path specifiers."""
+        """Resolve the given path to remove any relative path specifiers.
+
+        ```python
+        path = Pathy("gs://my_bucket/folder/../blob")
+        assert path.resolve() == Pathy("gs://my_bucket/blob")
+        ```
+        """
         self._absolute_path_validation()
         return self._accessor.resolve(self)
 
     def rename(self: PathType, target: Union[str, PathType]) -> None:
-        """Rename this file or Bucket / key prefix / key to the given target.
-        If target exists and is a file, it will be replaced silently if the user
-        has permission. If path is a key prefix, it will replace all the keys with
-        the same prefix to the new target prefix. Target can be either a string or
-        another Pathy object.
-        """
+        """Rename this path to the given target.
+
+        If the target exists and is a file, it will be replaced silently if the user
+        has permission.
+
+        If path is a blob prefix, it will replace all the blobs with the same prefix
+        to match the target prefix."""
         self._absolute_path_validation()
         self_type = type(self)
         if not isinstance(target, self_type):
@@ -338,17 +341,13 @@ class Pathy(Path, PurePathy):
         super().rename(target)
 
     def replace(self: PathType, target: Union[str, PathType]) -> None:
-        """
-        Renames this Bucket / key prefix / key to the given target.
-        If target points to an existing Bucket / key prefix / key, it will be
-        unconditionally replaced.
-        """
+        """Renames this path to the given target.
+
+        If target points to an existing path, it will be replaced."""
         self.rename(target)
 
     def rmdir(self: PathType) -> None:
-        """
-        Removes this Bucket / key prefix. The Bucket / key prefix must be empty
-        """
+        """Removes this bucket or blob prefix. It must be empty."""
         self._absolute_path_validation()
         if self.is_file():
             raise NotADirectoryError()
@@ -357,10 +356,7 @@ class Pathy(Path, PurePathy):
         super().rmdir()
 
     def samefile(self: PathType, other_path: PathType) -> bool:
-        """
-        Returns whether this path points to the same Bucket key as other_path,
-        Which can be either a Path object, or a string
-        """
+        """Determine if this path points to the same location as other_path."""
         self._absolute_path_validation()
         if not isinstance(other_path, Path):
             other_path = type(self)(other_path)
@@ -369,10 +365,9 @@ class Pathy(Path, PurePathy):
         )
 
     def touch(self: PathType, mode: int = 0o666, exist_ok: bool = True):
-        """
-        Creates a key at this given path.
+        """Create a blob at this path.
 
-        If the key already exists, the function succeeds if exist_ok is true
+        If the blob already exists, the function succeeds if exist_ok is true
         (and its modification time is updated to the current time), otherwise
         FileExistsError is raised.
         """
@@ -383,22 +378,17 @@ class Pathy(Path, PurePathy):
     def mkdir(
         self: PathType, mode: int = 0o777, parents: bool = False, exist_ok: bool = False
     ) -> None:
-        """
-        Create a path bucket.
-        Bucket storage doesn't support folders explicitly, so mkdir will only create a bucket.
+        """Create a bucket from the given path. Since bucket APIs only have implicit
+        folder structures (determined by the existence of a blob with an overlapping
+        prefix) this does nothing other than create buckets.
 
-        If exist_ok is false (the default), FileExistsError is raised if the
-        target Bucket already exists.
+        If parents is False, the bucket will only be created if the path points to
+        exactly the bucket and nothing else. If parents is true the bucket will be
+        created even if the path points to a specific blob.
 
-        If exist_ok is true, OSError exceptions will be ignored.
+        The mode param is ignored.
 
-        if parents is false (the default), mkdir will create the bucket only
-        if this is a Bucket path.
-
-        if parents is true, mkdir will create the bucket even if the path
-        have a Key path.
-
-        mode argument is ignored.
+        Raises FileExistsError if exist_ok is false and the bucket already exists.
         """
         try:
             if self.bucket is None:
