@@ -279,6 +279,14 @@ If the blob already exists, the function succeeds if exist_ok is true
 (and its modification time is updated to the current time), otherwise
 FileExistsError is raised.
 
+# BucketStat
+
+```python
+BucketStat(self, size: int, last_modified: int) -> None
+```
+
+Stat for a bucket item
+
 # use_fs
 
 ```python
