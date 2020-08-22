@@ -2,15 +2,12 @@ from typing import cast
 import os
 import shutil
 import tempfile
-from collections import namedtuple
-from contextlib import suppress
 from io import DEFAULT_BUFFER_SIZE
-from pathlib import Path, PurePath, _Accessor, _PosixFlavour  # type:ignore
-from typing import Generator, Iterable, List, Optional, Union
+from pathlib import Path, _Accessor  # type:ignore
+from typing import Generator, Optional, Union
 
 from google.api_core import exceptions as gcs_errors
 from google.auth.exceptions import DefaultCredentialsError
-from google.cloud import storage
 
 from . import gcs
 from .base import PurePathy, PathType
@@ -99,7 +96,7 @@ def get_fs_cache() -> Optional[Path]:
 
 def clear_fs_cache(force: bool = False) -> None:
     """Remove the existing file-system blob cache folder.
-    
+
     Raises AssertionError if the cache path is unset or points to the
     root of the file-system."""
     cache_path = get_fs_cache()
@@ -113,10 +110,7 @@ FluidPath = Union["Pathy", Path]
 
 
 class Pathy(Path, PurePathy):
-    """Path subclass for GCS service.
-
-    Write files to and read files from the GCS service using pathlib.Path
-    methods."""
+    """Subclass of pathlib.Path that works with bucket storage providers."""
 
     __slots__ = ()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
@@ -137,19 +131,20 @@ class Pathy(Path, PurePathy):
     @classmethod
     def fluid(cls: PathType, path_candidate: Union[str, FluidPath]) -> FluidPath:
         """Helper to infer a pathlib.Path or Pathy from an input path or string.
-        
+
         The returned type is a union of the potential `FluidPath` types and will
         type-check correctly against the minimum overlapping APIs of all the input
         types.
-        
-        If you need to use specific implementation details of a type, you 
-        will need to cast the return of this function to the desired type, e.g.
 
-            # Narrow the type a specific class
-            assert isinstance(path, Pathy), "must be Pathy"
-            # Use a member specific to that class
-            print(path.prefix)
+        If you need to use specific implementation details of a type, you
+        will need to narrow the return of this function to the desired type, e.g.
 
+        ```python
+        # Narrow the type to a specific class
+        assert isinstance(path, Pathy), "must be Pathy"
+        # Use a member specific to that class
+        print(path.prefix)
+        ```
         """
         from_path: FluidPath = Pathy(path_candidate)
         if from_path.root in ["/", ""]:
@@ -324,16 +319,12 @@ class Pathy(Path, PurePathy):
         return self._accessor.owner(self)
 
     def resolve(self: PathType) -> PathType:
-        """
-        Return a copy of this path. All paths are absolute in buckets, so no
-        transformation is applied.
-        """
+        """Resolve the given path to remove any relative path specifiers."""
         self._absolute_path_validation()
         return self._accessor.resolve(self)
 
     def rename(self: PathType, target: Union[str, PathType]) -> None:
-        """
-        Renames this file or Bucket / key prefix / key to the given target.
+        """Rename this file or Bucket / key prefix / key to the given target.
         If target exists and is a file, it will be replaced silently if the user
         has permission. If path is a key prefix, it will replace all the keys with
         the same prefix to the new target prefix. Target can be either a string or
@@ -394,9 +385,7 @@ class Pathy(Path, PurePathy):
     ) -> None:
         """
         Create a path bucket.
-        GCS Service doesn't support folders, therefore the mkdir method will
-        only create the current bucket. If the bucket path already exists,
-        FileExistsError is raised.
+        Bucket storage doesn't support folders explicitly, so mkdir will only create a bucket.
 
         If exist_ok is false (the default), FileExistsError is raised if the
         target Bucket already exists.
@@ -438,89 +427,49 @@ class Pathy(Path, PurePathy):
 
     @classmethod
     def cwd(cls: PathType):
-        """
-        cwd class method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = cls._NOT_SUPPORTED_MESSAGE.format(method=cls.cwd.__qualname__)
         raise NotImplementedError(message)
 
     @classmethod
     def home(cls: PathType):
-        """
-        home class method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = cls._NOT_SUPPORTED_MESSAGE.format(method=cls.home.__qualname__)
         raise NotImplementedError(message)
 
     def chmod(self: PathType, mode):
-        """
-        chmod method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.chmod.__qualname__)
         raise NotImplementedError(message)
 
     def expanduser(self: PathType):
-        """
-        expanduser method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = self._NOT_SUPPORTED_MESSAGE.format(
             method=self.expanduser.__qualname__
         )
         raise NotImplementedError(message)
 
     def lchmod(self: PathType, mode):
-        """
-        lchmod method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lchmod.__qualname__)
         raise NotImplementedError(message)
 
     def group(self: PathType):
-        """
-        group method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.group.__qualname__)
         raise NotImplementedError(message)
 
     def is_block_device(self: PathType):
-        """
-        is_block_device method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = self._NOT_SUPPORTED_MESSAGE.format(
             method=self.is_block_device.__qualname__
         )
         raise NotImplementedError(message)
 
     def is_char_device(self: PathType):
-        """
-        is_char_device method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = self._NOT_SUPPORTED_MESSAGE.format(
             method=self.is_char_device.__qualname__
         )
         raise NotImplementedError(message)
 
     def lstat(self: PathType):
-        """
-        lstat method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lstat.__qualname__)
         raise NotImplementedError(message)
 
     def symlink_to(self: PathType, *args, **kwargs):
-        """
-        symlink_to method is unsupported on GCS service
-        GCS don't have this file system action concept
-        """
         message = self._NOT_SUPPORTED_MESSAGE.format(
             method=self.symlink_to.__qualname__
         )

@@ -1,7 +1,7 @@
 import typer
 from .api import Pathy, FluidPath
 
-app = typer.Typer()
+app = typer.Typer(help="Pathy command line interface.")
 
 
 @app.command()
