@@ -412,3 +412,7 @@ $ rm [OPTIONS] LOCATION
 - `--help`: Show this message and exit.
 
 <!-- AUTO_DOCZ_END -->
+
+# Credits
+
+Pathy is originally based on the [S3Path](https://github.com/liormizr/s3path) project, which provides a Path interface for S3 buckets.
