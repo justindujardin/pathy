@@ -1,3 +1,21 @@
+# [0.2.0](https://github.com/justindujardin/pathy/compare/v0.1.3...v0.2.0) (2020-08-22)
+
+
+### Code Refactoring
+
+* rename PureGCSPath to PurePathy ([5632f26](https://github.com/justindujardin/pathy/commit/5632f264ed5d22b54b1c284ca1d79d2e248c5fd3))
+
+
+### Features
+
+* **build:** use husky to auto update docs when code changes ([5a32357](https://github.com/justindujardin/pathy/commit/5a32357db47f003fb3ebc6345d7fa4cee829fd99))
+* **README:** generate API and CLI docs ([0213d2f](https://github.com/justindujardin/pathy/commit/0213d2f7028c08d40d863d1cc123e7d55ff1c89f))
+
+
+### BREAKING CHANGES
+
+* PureGCSPath is now PurePathy
+
 ## [0.1.3](https://github.com/justindujardin/pathy/compare/v0.1.2...v0.1.3) (2020-06-28)
 
 
