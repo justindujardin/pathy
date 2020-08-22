@@ -4,7 +4,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
-from pathy import Pathy, PureGCSPath
+from pathy import Pathy, PurePathy
 
 
 def test_base_not_supported(monkeypatch):
@@ -83,201 +83,200 @@ def test_base_symlink_to():
 
 def test_base_paths_of_a_different_flavour():
     with pytest.raises(TypeError):
-        PureGCSPath("/bucket/key") < PurePosixPath("/bucket/key")
+        PurePathy("/bucket/key") < PurePosixPath("/bucket/key")
 
     with pytest.raises(TypeError):
-        PureWindowsPath("/bucket/key") > PureGCSPath("/bucket/key")
+        PureWindowsPath("/bucket/key") > PurePathy("/bucket/key")
 
 
 def test_base_repr():
-    a = PureGCSPath("/var/tests/fake")
-    f = a.prefix
+    a = PurePathy("/var/tests/fake")
     assert a.as_posix() == "/var/tests/fake"
-    assert repr(PureGCSPath("fake_file.txt")) == "PureGCSPath('fake_file.txt')"
-    assert str(PureGCSPath("fake_file.txt")) == "fake_file.txt"
-    assert bytes(PureGCSPath("fake_file.txt")) == b"fake_file.txt"
+    assert repr(PurePathy("fake_file.txt")) == "PurePathy('fake_file.txt')"
+    assert str(PurePathy("fake_file.txt")) == "fake_file.txt"
+    assert bytes(PurePathy("fake_file.txt")) == b"fake_file.txt"
 
 
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
 def test_base_fspath():
-    assert os.fspath(PureGCSPath("/var/tests/fake")) == "/var/tests/fake"
+    assert os.fspath(PurePathy("/var/tests/fake")) == "/var/tests/fake"
 
 
 def test_base_join_strs():
-    assert PureGCSPath("foo", "some/path", "bar") == PureGCSPath("foo/some/path/bar")
+    assert PurePathy("foo", "some/path", "bar") == PurePathy("foo/some/path/bar")
 
 
 def test_base_join_paths():
-    assert PureGCSPath(Path("foo"), Path("bar")) == PureGCSPath("foo/bar")
+    assert PurePathy(Path("foo"), Path("bar")) == PurePathy("foo/bar")
 
 
 def test_base_empty():
-    assert PureGCSPath() == PureGCSPath(".")
+    assert PurePathy() == PurePathy(".")
 
 
 def test_base_absolute_paths():
-    assert PureGCSPath("/etc", "/usr", "lib64") == PureGCSPath("/usr/lib64")
+    assert PurePathy("/etc", "/usr", "lib64") == PurePathy("/usr/lib64")
 
 
 def test_base_slashes_single_double_dots():
-    assert PureGCSPath("foo//bar") == PureGCSPath("foo/bar")
-    assert PureGCSPath("foo/./bar") == PureGCSPath("foo/bar")
-    assert PureGCSPath("foo/../bar") == PureGCSPath("bar")
-    assert PureGCSPath("../bar") == PureGCSPath("../bar")
-    assert PureGCSPath("foo", "../bar") == PureGCSPath("bar")
+    assert PurePathy("foo//bar") == PurePathy("foo/bar")
+    assert PurePathy("foo/./bar") == PurePathy("foo/bar")
+    assert PurePathy("foo/../bar") == PurePathy("bar")
+    assert PurePathy("../bar") == PurePathy("../bar")
+    assert PurePathy("foo", "../bar") == PurePathy("bar")
 
 
 def test_base_operators():
-    assert PureGCSPath("/etc") / "init.d" / "apache2" == PureGCSPath(
+    assert PurePathy("/etc") / "init.d" / "apache2" == PurePathy(
         "/etc/init.d/apache2"
     )
-    assert "/var" / PureGCSPath("tests") / "fake" == PureGCSPath("/var/tests/fake")
+    assert "/var" / PurePathy("tests") / "fake" == PurePathy("/var/tests/fake")
 
 
 def test_base_parts():
-    assert PureGCSPath("../bar").parts == ("..", "bar")
-    assert PureGCSPath("foo//bar").parts == ("foo", "bar")
-    assert PureGCSPath("foo/./bar").parts == ("foo", "bar")
-    assert PureGCSPath("foo/../bar").parts == ("bar",)
-    assert PureGCSPath("foo", "../bar").parts == ("bar",)
-    assert PureGCSPath("/foo/bar").parts == ("/", "foo", "bar")
+    assert PurePathy("../bar").parts == ("..", "bar")
+    assert PurePathy("foo//bar").parts == ("foo", "bar")
+    assert PurePathy("foo/./bar").parts == ("foo", "bar")
+    assert PurePathy("foo/../bar").parts == ("bar",)
+    assert PurePathy("foo", "../bar").parts == ("bar",)
+    assert PurePathy("/foo/bar").parts == ("/", "foo", "bar")
 
 
 def test_base_drive():
-    assert PureGCSPath("foo//bar").drive == ""
-    assert PureGCSPath("foo/./bar").drive == ""
-    assert PureGCSPath("foo/../bar").drive == ""
-    assert PureGCSPath("../bar").drive == ""
-    assert PureGCSPath("foo", "../bar").drive == ""
-    assert PureGCSPath("/foo/bar").drive == ""
+    assert PurePathy("foo//bar").drive == ""
+    assert PurePathy("foo/./bar").drive == ""
+    assert PurePathy("foo/../bar").drive == ""
+    assert PurePathy("../bar").drive == ""
+    assert PurePathy("foo", "../bar").drive == ""
+    assert PurePathy("/foo/bar").drive == ""
 
 
 def test_base_root():
-    assert PureGCSPath("foo//bar").root == ""
-    assert PureGCSPath("foo/./bar").root == ""
-    assert PureGCSPath("foo/../bar").root == ""
-    assert PureGCSPath("../bar").root == ""
-    assert PureGCSPath("foo", "../bar").root == ""
-    assert PureGCSPath("/foo/bar").root == "/"
+    assert PurePathy("foo//bar").root == ""
+    assert PurePathy("foo/./bar").root == ""
+    assert PurePathy("foo/../bar").root == ""
+    assert PurePathy("../bar").root == ""
+    assert PurePathy("foo", "../bar").root == ""
+    assert PurePathy("/foo/bar").root == "/"
 
 
 def test_base_anchor():
-    assert PureGCSPath("foo//bar").anchor == ""
-    assert PureGCSPath("foo/./bar").anchor == ""
-    assert PureGCSPath("foo/../bar").anchor == ""
-    assert PureGCSPath("../bar").anchor == ""
-    assert PureGCSPath("foo", "../bar").anchor == ""
-    assert PureGCSPath("/foo/bar").anchor == "/"
+    assert PurePathy("foo//bar").anchor == ""
+    assert PurePathy("foo/./bar").anchor == ""
+    assert PurePathy("foo/../bar").anchor == ""
+    assert PurePathy("../bar").anchor == ""
+    assert PurePathy("foo", "../bar").anchor == ""
+    assert PurePathy("/foo/bar").anchor == "/"
 
 
 def test_base_parents():
-    assert tuple(PureGCSPath("foo//bar").parents) == (
-        PureGCSPath("foo"),
-        PureGCSPath("."),
+    assert tuple(PurePathy("foo//bar").parents) == (
+        PurePathy("foo"),
+        PurePathy("."),
     )
-    assert tuple(PureGCSPath("foo/./bar").parents) == (
-        PureGCSPath("foo"),
-        PureGCSPath("."),
+    assert tuple(PurePathy("foo/./bar").parents) == (
+        PurePathy("foo"),
+        PurePathy("."),
     )
-    assert tuple(PureGCSPath("foo/../bar").parents) == (PureGCSPath("."),)
-    assert tuple(PureGCSPath("../bar").parents) == (PureGCSPath(".."), PureGCSPath("."))
-    assert tuple(PureGCSPath("foo", "../bar").parents) == (PureGCSPath("."),)
-    assert tuple(PureGCSPath("/foo/bar").parents) == (
-        PureGCSPath("/foo"),
-        PureGCSPath("/"),
+    assert tuple(PurePathy("foo/../bar").parents) == (PurePathy("."),)
+    assert tuple(PurePathy("../bar").parents) == (PurePathy(".."), PurePathy("."))
+    assert tuple(PurePathy("foo", "../bar").parents) == (PurePathy("."),)
+    assert tuple(PurePathy("/foo/bar").parents) == (
+        PurePathy("/foo"),
+        PurePathy("/"),
     )
 
 
 def test_base_parent():
-    assert PureGCSPath("foo//bar").parent == PureGCSPath("foo")
-    assert PureGCSPath("foo/./bar").parent == PureGCSPath("foo")
-    assert PureGCSPath("foo/../bar").parent == PureGCSPath(".")
-    assert PureGCSPath("../bar").parent == PureGCSPath("..")
-    assert PureGCSPath("foo", "../bar").parent == PureGCSPath(".")
-    assert PureGCSPath("/foo/bar").parent == PureGCSPath("/foo")
-    assert PureGCSPath(".").parent == PureGCSPath(".")
-    assert PureGCSPath("/").parent == PureGCSPath("/")
+    assert PurePathy("foo//bar").parent == PurePathy("foo")
+    assert PurePathy("foo/./bar").parent == PurePathy("foo")
+    assert PurePathy("foo/../bar").parent == PurePathy(".")
+    assert PurePathy("../bar").parent == PurePathy("..")
+    assert PurePathy("foo", "../bar").parent == PurePathy(".")
+    assert PurePathy("/foo/bar").parent == PurePathy("/foo")
+    assert PurePathy(".").parent == PurePathy(".")
+    assert PurePathy("/").parent == PurePathy("/")
 
 
 def test_base_name():
-    assert PureGCSPath("my/library/fake_file.txt").name == "fake_file.txt"
+    assert PurePathy("my/library/fake_file.txt").name == "fake_file.txt"
 
 
 def test_base_suffix():
-    assert PureGCSPath("my/library/fake_file.txt").suffix == ".txt"
-    assert PureGCSPath("my/library.tar.gz").suffix == ".gz"
-    assert PureGCSPath("my/library").suffix == ""
+    assert PurePathy("my/library/fake_file.txt").suffix == ".txt"
+    assert PurePathy("my/library.tar.gz").suffix == ".gz"
+    assert PurePathy("my/library").suffix == ""
 
 
 def test_base_suffixes():
-    assert PureGCSPath("my/library.tar.gar").suffixes == [".tar", ".gar"]
-    assert PureGCSPath("my/library.tar.gz").suffixes == [".tar", ".gz"]
-    assert PureGCSPath("my/library").suffixes == []
+    assert PurePathy("my/library.tar.gar").suffixes == [".tar", ".gar"]
+    assert PurePathy("my/library.tar.gz").suffixes == [".tar", ".gz"]
+    assert PurePathy("my/library").suffixes == []
 
 
 def test_base_stem():
-    assert PureGCSPath("my/library.tar.gar").stem == "library.tar"
-    assert PureGCSPath("my/library.tar").stem == "library"
-    assert PureGCSPath("my/library").stem == "library"
+    assert PurePathy("my/library.tar.gar").stem == "library.tar"
+    assert PurePathy("my/library.tar").stem == "library"
+    assert PurePathy("my/library").stem == "library"
 
 
 def test_base_uri():
-    assert PureGCSPath("/etc/passwd").as_uri() == "gs://etc/passwd"
-    assert PureGCSPath("/etc/init.d/apache2").as_uri() == "gs://etc/init.d/apache2"
-    assert PureGCSPath("/bucket/key").as_uri() == "gs://bucket/key"
+    assert PurePathy("/etc/passwd").as_uri() == "gs://etc/passwd"
+    assert PurePathy("/etc/init.d/apache2").as_uri() == "gs://etc/init.d/apache2"
+    assert PurePathy("/bucket/key").as_uri() == "gs://bucket/key"
 
 
 def test_base_absolute():
-    assert PureGCSPath("/a/b").is_absolute()
-    assert not PureGCSPath("a/b").is_absolute()
+    assert PurePathy("/a/b").is_absolute()
+    assert not PurePathy("a/b").is_absolute()
 
 
 def test_base_reserved():
-    assert not PureGCSPath("/a/b").is_reserved()
-    assert not PureGCSPath("a/b").is_reserved()
+    assert not PurePathy("/a/b").is_reserved()
+    assert not PurePathy("a/b").is_reserved()
 
 
 def test_base_joinpath():
-    assert PureGCSPath("/etc").joinpath("passwd") == PureGCSPath("/etc/passwd")
-    assert PureGCSPath("/etc").joinpath(PureGCSPath("passwd")) == PureGCSPath(
+    assert PurePathy("/etc").joinpath("passwd") == PurePathy("/etc/passwd")
+    assert PurePathy("/etc").joinpath(PurePathy("passwd")) == PurePathy(
         "/etc/passwd"
     )
-    assert PureGCSPath("/etc").joinpath("init.d", "apache2") == PureGCSPath(
+    assert PurePathy("/etc").joinpath("init.d", "apache2") == PurePathy(
         "/etc/init.d/apache2"
     )
 
 
 def test_base_match():
-    assert PureGCSPath("a/b.py").match("*.py")
-    assert PureGCSPath("/a/b/c.py").match("b/*.py")
-    assert not PureGCSPath("/a/b/c.py").match("a/*.py")
-    assert PureGCSPath("/a.py").match("/*.py")
-    assert not PureGCSPath("a/b.py").match("/*.py")
-    assert not PureGCSPath("a/b.py").match("*.Py")
+    assert PurePathy("a/b.py").match("*.py")
+    assert PurePathy("/a/b/c.py").match("b/*.py")
+    assert not PurePathy("/a/b/c.py").match("a/*.py")
+    assert PurePathy("/a.py").match("/*.py")
+    assert not PurePathy("a/b.py").match("/*.py")
+    assert not PurePathy("a/b.py").match("*.Py")
 
 
 def test_base_relative_to():
-    gcs_path = PureGCSPath("/etc/passwd")
-    assert gcs_path.relative_to("/") == PureGCSPath("etc/passwd")
-    assert gcs_path.relative_to("/etc") == PureGCSPath("passwd")
+    gcs_path = PurePathy("/etc/passwd")
+    assert gcs_path.relative_to("/") == PurePathy("etc/passwd")
+    assert gcs_path.relative_to("/etc") == PurePathy("passwd")
     with pytest.raises(ValueError):
         gcs_path.relative_to("/usr")
 
 
 def test_base_with_name():
-    gcs_path = PureGCSPath("/Downloads/pathlib.tar.gz")
-    assert gcs_path.with_name("fake_file.txt") == PureGCSPath(
+    gcs_path = PurePathy("/Downloads/pathlib.tar.gz")
+    assert gcs_path.with_name("fake_file.txt") == PurePathy(
         "/Downloads/fake_file.txt"
     )
-    gcs_path = PureGCSPath("/")
+    gcs_path = PurePathy("/")
     with pytest.raises(ValueError):
         gcs_path.with_name("fake_file.txt")
 
 
 def test_base_with_suffix():
-    gcs_path = PureGCSPath("/Downloads/pathlib.tar.gz")
-    assert gcs_path.with_suffix(".bz2") == PureGCSPath("/Downloads/pathlib.tar.bz2")
-    gcs_path = PureGCSPath("README")
-    assert gcs_path.with_suffix(".txt") == PureGCSPath("README.txt")
-    gcs_path = PureGCSPath("README.txt")
-    assert gcs_path.with_suffix("") == PureGCSPath("README")
+    gcs_path = PurePathy("/Downloads/pathlib.tar.gz")
+    assert gcs_path.with_suffix(".bz2") == PurePathy("/Downloads/pathlib.tar.bz2")
+    gcs_path = PurePathy("README")
+    assert gcs_path.with_suffix(".txt") == PurePathy("README.txt")
+    gcs_path = PurePathy("README.txt")
+    assert gcs_path.with_suffix("") == PurePathy("README")

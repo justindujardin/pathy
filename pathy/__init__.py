@@ -5,7 +5,7 @@ from .api import (  # noqa
     ClientBucket,
     ClientError,
     Pathy,
-    PureGCSPath,
+    PurePathy,
     FluidPath,
     clear_fs_cache,
     get_fs_cache,

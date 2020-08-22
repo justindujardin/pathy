@@ -3,7 +3,7 @@ from typing import Generator, Generic, List, Optional, TypeVar
 
 import smart_open
 
-from .base import PureGCSPath
+from .base import PurePathy
 
 __all__ = (
     "BucketStat",
@@ -118,16 +118,16 @@ class ClientBucket:
 class BucketClient:
     """Base class for a client that interacts with a bucket-based storage system."""
 
-    def make_uri(self, path: PureGCSPath) -> str:
+    def make_uri(self, path: PurePathy) -> str:
         return path.as_uri()
 
-    def is_dir(self, path: PureGCSPath) -> bool:
+    def is_dir(self, path: PurePathy) -> bool:
         return any(self.list_blobs(path, prefix=path.prefix))
 
-    def rmdir(self, path: PureGCSPath) -> None:
+    def rmdir(self, path: PurePathy) -> None:
         return None
 
-    def exists(self, path: PureGCSPath) -> bool:
+    def exists(self, path: PurePathy) -> bool:
         # Because we want all the parents of a valid blob (e.g. "directory" in
         # "directory/foo.file") to return True, we enumerate the blobs with a prefix
         # and compare the object names to see if they match a substring of the path
@@ -141,7 +141,7 @@ class BucketClient:
 
     def open(
         self,
-        path: PureGCSPath,
+        path: PurePathy,
         *,
         mode="r",
         buffering=-1,
@@ -160,10 +160,10 @@ class BucketClient:
             ignore_ext=True,
         )
 
-    def lookup_bucket(self, path: PureGCSPath) -> Optional[ClientBucket]:
+    def lookup_bucket(self, path: PurePathy) -> Optional[ClientBucket]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def get_bucket(self, path: PureGCSPath) -> ClientBucket:
+    def get_bucket(self, path: PurePathy) -> ClientBucket:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def list_buckets(self) -> Generator[ClientBucket, None, None]:
@@ -171,7 +171,7 @@ class BucketClient:
 
     def list_blobs(
         self,
-        path: PureGCSPath,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
@@ -180,14 +180,14 @@ class BucketClient:
 
     def scandir(
         self,
-        path: PureGCSPath = None,
+        path: PurePathy = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> Generator[BucketEntry[BucketType, BucketBlobType], None, None]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def create_bucket(self, path: PureGCSPath) -> ClientBucket:
+    def create_bucket(self, path: PurePathy) -> ClientBucket:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def delete_bucket(self, path: PureGCSPath) -> None:
+    def delete_bucket(self, path: PurePathy) -> None:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
