@@ -110,7 +110,7 @@ FluidPath = Union["Pathy", Path]
 
 
 class Pathy(Path, PurePathy):
-    """Subclass of pathlib.Path that works with bucket storage providers."""
+    """Subclass of `pathlib.Path` that works with bucket APIs."""
 
     __slots__ = ()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"

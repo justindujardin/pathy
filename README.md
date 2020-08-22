@@ -43,7 +43,7 @@ assert not greeting.exists()
 Pathy(self, args, kwargs)
 ```
 
-Subclass of pathlib.Path that works with bucket storage providers.
+Subclass of `pathlib.Path` that works with bucket APIs.
 
 ## exists
 
