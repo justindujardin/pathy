@@ -11,7 +11,7 @@ matrix:
       script:
         - sh tools/test.sh
       after_success:
-        - echo "todo: python coverage reporting to coveralls"
+        - sh tools/codecov.sh
         - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then sh tools/deploy.sh; fi
 cache:
   directories:
