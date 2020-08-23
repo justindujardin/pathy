@@ -38,7 +38,7 @@ assert not greeting.exists()
 <!-- NOTE: The below code is auto-generated. Update source files to change API documentation. -->
 <!-- AUTO_DOCZ_START -->
 
-# Pathy
+# Pathy <kbd>class</kbd>
 
 ```python
 Pathy(self, args, kwargs)
@@ -46,7 +46,7 @@ Pathy(self, args, kwargs)
 
 Subclass of `pathlib.Path` that works with bucket APIs.
 
-## exists
+## exists <kbd>method</kbd>
 
 ```python
 Pathy.exists(self: ~PathType) -> bool
@@ -54,7 +54,7 @@ Pathy.exists(self: ~PathType) -> bool
 
 Returns True if the path points to an existing bucket, blob, or prefix.
 
-## fluid
+## fluid <kbd>classmethod</kbd>
 
 ```python
 Pathy.fluid(
@@ -79,7 +79,7 @@ assert isinstance(fluid_path, Pathy), "must be Pathy"
 print(fluid_path.prefix)
 ```
 
-## from_bucket
+## from_bucket <kbd>classmethod</kbd>
 
 ```python
 Pathy.from_bucket(bucket_name: str) -> 'Pathy'
@@ -93,7 +93,7 @@ assert str(Pathy.from_bucket("one")) == "gs://one/"
 assert str(Pathy.from_bucket("two")) == "gs://two/"
 ```
 
-## glob
+## glob <kbd>method</kbd>
 
 ```python
 Pathy.glob(self: ~PathType, pattern) -> Generator[~PathType, NoneType, NoneType]
@@ -102,7 +102,7 @@ Pathy.glob(self: ~PathType, pattern) -> Generator[~PathType, NoneType, NoneType]
 Perform a glob match relative to this Pathy instance, yielding all matched
 blobs.
 
-## is_dir
+## is_dir <kbd>method</kbd>
 
 ```python
 Pathy.is_dir(self: ~PathType) -> bool
@@ -114,7 +114,7 @@ in the bucket.
 Returns True if the path points to a bucket or a blob prefix.
 Returns False if it points to a blob or the path doesn't exist.
 
-## is_file
+## is_file <kbd>method</kbd>
 
 ```python
 Pathy.is_file(self: ~PathType) -> bool
@@ -126,7 +126,7 @@ Returns True if the path points to a blob.
 Returns False if it points to a bucket or blob prefix, or if the path doesn’t
 exist.
 
-## iterdir
+## iterdir <kbd>method</kbd>
 
 ```python
 Pathy.iterdir(self: ~PathType) -> Generator[~PathType, NoneType, NoneType]
@@ -134,7 +134,7 @@ Pathy.iterdir(self: ~PathType) -> Generator[~PathType, NoneType, NoneType]
 
 Iterate over the blobs found in the given bucket or blob prefix path.
 
-## mkdir
+## mkdir <kbd>method</kbd>
 
 ```python
 Pathy.mkdir(
@@ -157,7 +157,7 @@ The mode param is ignored.
 
 Raises FileExistsError if exist_ok is false and the bucket already exists.
 
-## open
+## open <kbd>method</kbd>
 
 ```python
 Pathy.open(
@@ -174,7 +174,7 @@ Open the given blob for streaming. This delegates to the `smart_open`
 library that handles large file streaming for a number of bucket API
 providers.
 
-## owner
+## owner <kbd>method</kbd>
 
 ```python
 Pathy.owner(self: ~PathType) -> Optional[str]
@@ -184,7 +184,7 @@ Returns the name of the user that owns the bucket or blob
 this path points to. Returns None if the owner is unknown or
 not supported by the bucket API provider.
 
-## rename
+## rename <kbd>method</kbd>
 
 ```python
 Pathy.rename(self: ~PathType, target: Union[str, ~PathType]) -> None
@@ -198,7 +198,7 @@ has permission.
 If path is a blob prefix, it will replace all the blobs with the same prefix
 to match the target prefix.
 
-## replace
+## replace <kbd>method</kbd>
 
 ```python
 Pathy.replace(self: ~PathType, target: Union[str, ~PathType]) -> None
@@ -208,7 +208,7 @@ Renames this path to the given target.
 
 If target points to an existing path, it will be replaced.
 
-## resolve
+## resolve <kbd>method</kbd>
 
 ```python
 Pathy.resolve(self: ~PathType) -> ~PathType
@@ -221,7 +221,7 @@ path = Pathy("gs://my_bucket/folder/../blob")
 assert path.resolve() == Pathy("gs://my_bucket/blob")
 ```
 
-## rglob
+## rglob <kbd>method</kbd>
 
 ```python
 Pathy.rglob(self: ~PathType, pattern) -> Generator[~PathType, NoneType, NoneType]
@@ -230,7 +230,7 @@ Pathy.rglob(self: ~PathType, pattern) -> Generator[~PathType, NoneType, NoneType
 Perform a recursive glob match relative to this Pathy instance, yielding
 all matched blobs. Imagine adding "\*\*/" before a call to glob.
 
-## rmdir
+## rmdir <kbd>method</kbd>
 
 ```python
 Pathy.rmdir(self: ~PathType) -> None
@@ -238,7 +238,7 @@ Pathy.rmdir(self: ~PathType) -> None
 
 Removes this bucket or blob prefix. It must be empty.
 
-## samefile
+## samefile <kbd>method</kbd>
 
 ```python
 Pathy.samefile(self: ~PathType, other_path: ~PathType) -> bool
@@ -246,7 +246,7 @@ Pathy.samefile(self: ~PathType, other_path: ~PathType) -> bool
 
 Determine if this path points to the same location as other_path.
 
-## stat
+## stat <kbd>method</kbd>
 
 ```python
 Pathy.stat(self: ~PathType) -> pathy.client.BucketStat
@@ -254,7 +254,7 @@ Pathy.stat(self: ~PathType) -> pathy.client.BucketStat
 
 Returns information about this bucket path.
 
-## to_local
+## to_local <kbd>classmethod</kbd>
 
 ```python
 Pathy.to_local(
@@ -268,7 +268,7 @@ Download and cache either a blob or a set of blobs matching a prefix.
 The cache is sensitive to the file updated time, and downloads new blobs
 as their updated timestamps change.
 
-## touch
+## touch <kbd>method</kbd>
 
 ```python
 Pathy.touch(self: ~PathType, mode: int = 438, exist_ok: bool = True)
@@ -280,7 +280,7 @@ If the blob already exists, the function succeeds if exist_ok is true
 (and its modification time is updated to the current time), otherwise
 FileExistsError is raised.
 
-# BucketStat
+# BucketStat <kbd>dataclass</kbd>
 
 ```python
 BucketStat(self, size: int, last_modified: int) -> None
@@ -288,7 +288,7 @@ BucketStat(self, size: int, last_modified: int) -> None
 
 Stat for a bucket item
 
-# use_fs
+# use_fs <kbd>function</kbd>
 
 ```python
 use_fs(
@@ -301,7 +301,7 @@ Use a path in the local file-system to store blobs and buckets.
 This is useful for development and testing situations, and for embedded
 applications.
 
-# get_fs_client
+# get_fs_client <kbd>function</kbd>
 
 ```python
 get_fs_client() -> Optional[pathy.file.BucketClientFS]
@@ -309,7 +309,7 @@ get_fs_client() -> Optional[pathy.file.BucketClientFS]
 
 Get the file-system client (or None)
 
-# use_fs_cache
+# use_fs_cache <kbd>function</kbd>
 
 ```python
 use_fs_cache(
@@ -322,7 +322,7 @@ Use a path in the local file-system to cache blobs and buckets.
 This is useful for when you want to avoid fetching large blobs multiple
 times, or need to pass a local file path to a third-party library.
 
-# get_fs_cache
+# get_fs_cache <kbd>function</kbd>
 
 ```python
 get_fs_cache() -> Optional[pathlib.Path]
@@ -365,6 +365,8 @@ $ cp [OPTIONS] FROM_LOCATION TO_LOCATION
 
 **Options**:
 
+- `FROM_LOCATION`: [required]
+- `TO_LOCATION`: [required]
 - `--help`: Show this message and exit.
 
 ## `ls`
@@ -379,6 +381,7 @@ $ ls [OPTIONS] LOCATION
 
 **Options**:
 
+- `LOCATION`: [required]
 - `--help`: Show this message and exit.
 
 ## `mv`
@@ -393,6 +396,8 @@ $ mv [OPTIONS] FROM_LOCATION TO_LOCATION
 
 **Options**:
 
+- `FROM_LOCATION`: [required]
+- `TO_LOCATION`: [required]
 - `--help`: Show this message and exit.
 
 ## `rm`
@@ -407,8 +412,9 @@ $ rm [OPTIONS] LOCATION
 
 **Options**:
 
-- `-r, --recursive`: Recursively remove files and folders.
-- `-v, --verbose`: Print removed files and folders.
+- `LOCATION`: [required]
+- `-r, --recursive`: Recursively remove files and folders. [default: False]
+- `-v, --verbose`: Print removed files and folders. [default: False]
 - `--help`: Show this message and exit.
 
 <!-- AUTO_DOCZ_END -->
