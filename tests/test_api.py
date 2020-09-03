@@ -41,9 +41,9 @@ def test_api_is_path_instance(with_adapter):
 def test_api_fluid(with_adapter, bucket: str):
     path: FluidPath = Pathy.fluid(f"gs://{bucket}/fake-key")
     assert isinstance(path, Pathy)
-    path: FluidPath = Pathy.fluid(f"foo/bar.txt")
+    path: FluidPath = Pathy.fluid("foo/bar.txt")
     assert isinstance(path, Path)
-    path: FluidPath = Pathy.fluid(f"/dev/null")
+    path: FluidPath = Pathy.fluid("/dev/null")
     assert isinstance(path, Path)
 
 
@@ -112,7 +112,7 @@ def test_api_use_fs_cache(with_adapter, with_fs: str, bucket: str):
     path.write_text('{ "cool" : true }')
 
     # Fetch the updated blob
-    res: Path = Pathy.to_local(path)
+    Pathy.to_local(path)
     updated_cache_time = foo_timestamp.read_text()
     assert updated_cache_time != orig_cache_time, "cached timestamp did not change"
 

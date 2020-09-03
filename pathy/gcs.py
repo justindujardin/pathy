@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 from .base import Blob, Bucket, BucketClient, BucketEntry, ClientError, PurePathy
 
@@ -14,7 +14,7 @@ except ImportError:
     has_gcs = False
 
 _MISSING_DEPS = """You are using the GCS functionality of Pathy without
-having the required dependencies installed. 
+having the required dependencies installed.
 
 Please try installing them:
 
@@ -28,7 +28,7 @@ class BucketEntryGCS(BucketEntry["BucketGCS", "storage.Blob"]):
 
 
 @dataclass
-class BlobGCS(Blob["BucketGCS", "storage.Blob"]):
+class BlobGCS(Blob["storage.Bucket", "storage.Blob"]):
     def delete(self) -> None:
         self.raw.delete()
 
@@ -58,10 +58,10 @@ class BucketGCS(Bucket):
             name=native_blob.name,
             raw=native_blob,
             size=native_blob.size,
-            updated=native_blob.updated.timestamp(),
+            updated=int(native_blob.updated.timestamp()),
         )
 
-    def copy_blob(
+    def copy_blob(  # type:ignore[override]
         self, blob: BlobGCS, target: "BucketGCS", name: str
     ) -> Optional[BlobGCS]:
         assert blob.raw is not None, "raw storage.Blob instance required"
@@ -74,13 +74,13 @@ class BucketGCS(Bucket):
             name=native_blob.name,
             raw=native_blob,
             size=native_blob.size,
-            updated=native_blob.updated.timestamp(),
+            updated=int(native_blob.updated.timestamp()),
         )
 
-    def delete_blob(self, blob: BlobGCS) -> None:
+    def delete_blob(self, blob: BlobGCS) -> None:  # type:ignore[override]
         return self.bucket.delete_blob(blob.name)
 
-    def delete_blobs(self, blobs: List[BlobGCS]) -> None:
+    def delete_blobs(self, blobs: List[BlobGCS]) -> None:  # type:ignore[override]
         return self.bucket.delete_blobs(blobs)
 
     def exists(self) -> bool:
@@ -147,22 +147,24 @@ class BucketClientGCS(BucketClient):
         except gcs_errors.ClientError as e:
             raise ClientError(message=e.message, code=e.code)
 
-    def list_buckets(self, **kwargs) -> Generator[Bucket, None, None]:
+    def list_buckets(
+        self, **kwargs: Dict[str, Any]
+    ) -> Generator["storage.Bucket", None, None]:
         assert self.client is not None, _MISSING_DEPS
-        return self.client.list_buckets(**kwargs)
+        return self.client.list_buckets(**kwargs)  # type:ignore
 
-    def scandir(
+    def scandir(  # type:ignore[override]
         self,
         path: Optional[PurePathy] = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-        include_raw: bool = False,
-    ) -> Generator[BucketEntryGCS, None, None]:
+    ) -> Generator[BucketEntryGCS, None, None]:  # type:ignore[override]
         assert self.client is not None, _MISSING_DEPS
         continuation_token = None
         if path is None or not path.root:
-            for bucket in self.list_buckets():
-                yield BucketEntryGCS(bucket.name, is_dir=True, raw=None)
+            gcs_bucket: "storage.Bucket"
+            for gcs_bucket in self.list_buckets():
+                yield BucketEntryGCS(gcs_bucket.name, is_dir=True, raw=None)
             return
         sep = path._flavour.sep
         bucket = self.lookup_bucket(path)

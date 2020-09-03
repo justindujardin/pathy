@@ -26,7 +26,7 @@ PathType = TypeVar("PathType", bound="Pathy")
 StreamableType = IO[Any]
 FluidPath = Union["Pathy", Path]
 BucketClientType = TypeVar("BucketClientType", bound="BucketClient")
-BucketType = TypeVar("BucketType", bound="Bucket")
+BucketType = TypeVar("BucketType")
 BucketBlobType = TypeVar("BucketBlobType")
 
 
@@ -46,16 +46,16 @@ class ClientError(BaseException):
 class BlobStat:
     """Stat for a bucket item"""
 
-    size: int
-    last_modified: int
+    size: Optional[int]
+    last_modified: Optional[int]
 
 
 @dataclass
 class Blob(Generic[BucketType, BucketBlobType]):
     bucket: "Bucket"
     name: str
-    size: int
-    updated: int
+    size: Optional[int]
+    updated: Optional[int]
     owner: Optional[str]
     raw: BucketBlobType
 

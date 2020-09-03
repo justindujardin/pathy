@@ -151,9 +151,9 @@ def test_cli_rm_folder(with_adapter, bucket: str):
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_ls(with_adapter, bucket: str):
     root = Pathy.from_bucket(bucket) / "cli_ls"
-    one = str(root / f"file.txt")
-    two = str(root / f"other.txt")
-    three = str(root / f"folder/file.txt")
+    one = str(root / "file.txt")
+    two = str(root / "other.txt")
+    three = str(root / "folder/file.txt")
     Pathy(one).write_text("---")
     Pathy(two).write_text("---")
     Pathy(three).write_text("---")

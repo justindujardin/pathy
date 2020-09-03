@@ -292,7 +292,11 @@ FileExistsError is raised.
 # BlobStat <kbd>dataclass</kbd>
 
 ```python
-BlobStat(self, size: int, last_modified: int) -> None
+BlobStat(
+    self,
+    size: Optional[int],
+    last_modified: Optional[int],
+) -> None
 ```
 
 Stat for a bucket item
