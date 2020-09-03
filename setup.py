@@ -18,7 +18,8 @@ def setup_package():
     readme_path = root / "README.md"
     with readme_path.open("r", encoding="utf8") as f:
         long_description = f.read()
-
+    extras = {"gcs": ["google-cloud-storage>=1.26.0,<2.0.0"]}
+    extras["all"] = [item for group in extras.values() for item in group]
     setup(
         name=about["__title__"],
         description=about["__summary__"],
