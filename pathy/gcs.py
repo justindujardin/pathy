@@ -15,12 +15,12 @@ except ImportError:
     has_gcs = False
 
 
-class BucketEntryGCS(BucketEntry["ClientBucketGCS", "storage.Blob"]):
+class BucketEntryGCS(BucketEntry["BucketGCS", "storage.Blob"]):
     ...
 
 
 @dataclass
-class ClientBlobGCS(Blob["ClientBucketGCS", "storage.Blob"]):
+class BlobGCS(Blob["BucketGCS", "storage.Blob"]):
     def delete(self) -> None:
         self.raw.delete()
 
@@ -29,11 +29,11 @@ class ClientBlobGCS(Blob["ClientBucketGCS", "storage.Blob"]):
 
 
 @dataclass
-class ClientBucketGCS(Bucket):
+class BucketGCS(Bucket):
     name: str
     bucket: "storage.Bucket"
 
-    def get_blob(self, blob_name: str) -> Optional[ClientBlobGCS]:
+    def get_blob(self, blob_name: str) -> Optional[BlobGCS]:
         assert isinstance(
             blob_name, str
         ), f"expected str blob name, but found: {type(blob_name)}"
@@ -44,7 +44,7 @@ class ClientBucketGCS(Bucket):
             pass
         if native_blob is None:
             return None
-        return ClientBlobGCS(
+        return BlobGCS(
             bucket=self.bucket,
             owner=native_blob.owner,
             name=native_blob.name,
@@ -54,13 +54,13 @@ class ClientBucketGCS(Bucket):
         )
 
     def copy_blob(
-        self, blob: ClientBlobGCS, target: "ClientBucketGCS", name: str
-    ) -> Optional[ClientBlobGCS]:
+        self, blob: BlobGCS, target: "BucketGCS", name: str
+    ) -> Optional[BlobGCS]:
         assert blob.raw is not None, "raw storage.Blob instance required"
         native_blob = self.bucket.copy_blob(blob.raw, target.bucket, name)
         if native_blob is None:
             return None
-        return ClientBlobGCS(
+        return BlobGCS(
             bucket=self.bucket,
             owner=native_blob.owner,
             name=native_blob.name,
@@ -69,10 +69,10 @@ class ClientBucketGCS(Bucket):
             updated=native_blob.updated.timestamp(),
         )
 
-    def delete_blob(self, blob: ClientBlobGCS) -> None:
+    def delete_blob(self, blob: BlobGCS) -> None:
         return self.bucket.delete_blob(blob.name)
 
-    def delete_blobs(self, blobs: List[ClientBlobGCS]) -> None:
+    def delete_blobs(self, blobs: List[BlobGCS]) -> None:
         return self.bucket.delete_blobs(blobs)
 
     def exists(self) -> bool:
@@ -91,13 +91,15 @@ class BucketClientGCS(BucketClient):
         except (BaseException, DefaultCredentialsError):
             self.client = None
 
-    def make_uri(self, path: PurePathy):
+    def make_uri(self, path: PurePathy) -> str:
         return str(path)
 
     def create_bucket(self, path: PurePathy) -> Bucket:
+        assert self.client is not None
         return self.client.create_bucket(path.root)
 
     def delete_bucket(self, path: PurePathy) -> None:
+        assert self.client is not None
         bucket = self.client.get_bucket(path.root)
         bucket.delete()
 
@@ -116,26 +118,29 @@ class BucketClientGCS(BucketClient):
             return False
         return False
 
-    def lookup_bucket(self, path: PurePathy) -> Optional[ClientBucketGCS]:
+    def lookup_bucket(self, path: PurePathy) -> Optional[BucketGCS]:
+        assert self.client is not None
         try:
             native_bucket = self.client.bucket(path.root)
             if native_bucket is not None:
-                return ClientBucketGCS(str(path.root), bucket=native_bucket)
+                return BucketGCS(str(path.root), bucket=native_bucket)
         except gcs_errors.ClientError as err:
             print(err)
 
         return None
 
-    def get_bucket(self, path: PurePathy) -> ClientBucketGCS:
+    def get_bucket(self, path: PurePathy) -> BucketGCS:
+        assert self.client is not None
         try:
             native_bucket = self.client.bucket(path.root)
             if native_bucket is not None:
-                return ClientBucketGCS(str(path.root), bucket=native_bucket)
+                return BucketGCS(str(path.root), bucket=native_bucket)
             raise FileNotFoundError(f"Bucket {path.root} does not exist!")
         except gcs_errors.ClientError as e:
             raise ClientError(message=e.message, code=e.code)
 
     def list_buckets(self, **kwargs) -> Generator[Bucket, None, None]:
+        assert self.client is not None
         return self.client.list_buckets(**kwargs)
 
     def scandir(
@@ -145,6 +150,7 @@ class BucketClientGCS(BucketClient):
         delimiter: Optional[str] = None,
         include_raw: bool = False,
     ) -> Generator[BucketEntryGCS, None, None]:
+        assert self.client is not None
         continuation_token = None
         if path is None or not path.root:
             for bucket in self.list_buckets():
@@ -192,7 +198,8 @@ class BucketClientGCS(BucketClient):
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
-    ) -> Generator[ClientBlobGCS, None, None]:
+    ) -> Generator[BlobGCS, None, None]:
+        assert self.client is not None
         continuation_token = None
         bucket = self.lookup_bucket(path)
         if bucket is None:
@@ -211,7 +218,7 @@ class BucketClientGCS(BucketClient):
                 )
             for page in response.pages:
                 for item in page:
-                    yield ClientBlobGCS(
+                    yield BlobGCS(
                         bucket=bucket,
                         owner=item.owner,
                         name=item.name,

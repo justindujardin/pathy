@@ -1,33 +1,24 @@
 import os
 from io import DEFAULT_BUFFER_SIZE
-from pathlib import _Accessor  # type:ignore
-from pathlib import Path
-from typing import Generator, Optional, Union, cast
+from pathlib import Path  # type:ignore
+from pathlib import PurePath, _Accessor
+from typing import Any, Generator, Optional, Union, cast
 
-from .base import PathType, PurePathy, StreamableType
-from .client import Blob, BlobStat, Bucket, BucketClient, BucketEntry, ClientError
+from .base import BasePathy, BlobStat, FluidPath, PathType, StreamableType
+from .client import Blob, Bucket, BucketClient, BucketEntry, ClientError
 
 __all__ = ()
 
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
 
-FluidPath = Union["Pathy", Path]
-
-
-class Pathy(Path, PurePathy):
+class Pathy(BasePathy):
     """Subclass of `pathlib.Path` that works with bucket APIs."""
 
     __slots__ = ()
-    _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
+    _accessor: "BucketsAccessor"
 
-    def __truediv__(self: PathType, key: Union[str, PathType]) -> PathType:
-        return super().__truediv__(key)
-
-    def __rtruediv__(self: PathType, key: Union[str, PathType]) -> PathType:
-        return cast(Pathy, super().__rtruediv__(key))
-
-    def _init(self: PathType, template=None):
+    def _init(self: "Pathy", template: Optional[Any] = None) -> None:
         super()._init(template)  # type:ignore
         if template is None:
             self._accessor = _gcs_accessor
@@ -35,7 +26,7 @@ class Pathy(Path, PurePathy):
             self._accessor = template._accessor
 
     @classmethod
-    def fluid(cls: PathType, path_candidate: Union[str, FluidPath]) -> FluidPath:
+    def fluid(cls, path_candidate: Union[str, FluidPath]) -> FluidPath:
         """Infer either a Pathy or pathlib.Path from an input path or string.
 
         The returned type is a union of the potential `FluidPath` types and will
@@ -59,7 +50,7 @@ class Pathy(Path, PurePathy):
         return from_path
 
     @classmethod
-    def from_bucket(cls: PathType, bucket_name: str) -> "Pathy":
+    def from_bucket(cls, bucket_name: str) -> PathType:
         """Initialize a Pathy from a bucket name. This helper adds a trailing slash and
         the appropriate prefix.
 
@@ -71,9 +62,7 @@ class Pathy(Path, PurePathy):
         return Pathy(f"gs://{bucket_name}/")
 
     @classmethod
-    def to_local(
-        cls: PathType, blob_path: Union["Pathy", str], recurse: bool = True
-    ) -> Path:
+    def to_local(cls, blob_path: Union[PathType, str], recurse: bool = True) -> Path:
         """Download and cache either a blob or a set of blobs matching a prefix.
 
         The cache is sensitive to the file updated time, and downloads new blobs
@@ -87,7 +76,7 @@ class Pathy(Path, PurePathy):
             )
 
         cache_folder.mkdir(exist_ok=True, parents=True)
-        if isinstance(blob_path, str):
+        if not isinstance(blob_path, Pathy):
             blob_path = Pathy(blob_path)
 
         cache_blob: Path = cache_folder.absolute() / blob_path.root / blob_path.key
@@ -130,11 +119,9 @@ class Pathy(Path, PurePathy):
             raise ValueError("cannot stat a bucket without a key")
         return cast(BlobStat, super().stat())
 
-    def exists(self: PathType) -> bool:
+    def exists(self) -> bool:
         """Returns True if the path points to an existing bucket, blob, or prefix."""
         self._absolute_path_validation()
-        if not self.bucket:
-            return True
         return self._accessor.exists(self)
 
     def is_dir(self: PathType) -> bool:
@@ -169,12 +156,12 @@ class Pathy(Path, PurePathy):
         self._absolute_path_validation()
         yield from super().iterdir()
 
-    def glob(self: PathType, pattern) -> Generator[PathType, None, None]:
+    def glob(self: PathType, pattern: str) -> Generator[PathType, None, None]:
         """Perform a glob match relative to this Pathy instance, yielding all matched
         blobs."""
         yield from super().glob(pattern)
 
-    def rglob(self: PathType, pattern) -> Generator[PathType, None, None]:
+    def rglob(self: PathType, pattern: str) -> Generator[PathType, None, None]:
         """Perform a recursive glob match relative to this Pathy instance, yielding
         all matched blobs. Imagine adding "**/" before a call to glob."""
         yield from super().rglob(pattern)
@@ -202,8 +189,9 @@ class Pathy(Path, PurePathy):
         if "b" in mode and encoding:
             raise ValueError("binary mode doesn't take an encoding argument")
 
-        if self._closed:
-            self._raise_closed()
+        # Leftover pathlib internals stuff
+        if self._closed:  # type:ignore
+            self._raise_closed()  # type:ignore
         return self._accessor.open(
             self,
             mode=mode,
@@ -213,7 +201,7 @@ class Pathy(Path, PurePathy):
             newline=newline,
         )
 
-    def owner(self: PathType) -> Optional[str]:
+    def owner(self: "Pathy") -> Optional[str]:
         """Returns the name of the user that owns the bucket or blob
         this path points to. Returns None if the owner is unknown or
         not supported by the bucket API provider."""
@@ -222,7 +210,7 @@ class Pathy(Path, PurePathy):
             raise FileNotFoundError(str(self))
         return self._accessor.owner(self)
 
-    def resolve(self: PathType) -> PathType:
+    def resolve(self, strict: bool = False) -> PathType:
         """Resolve the given path to remove any relative path specifiers.
 
         ```python
@@ -231,9 +219,9 @@ class Pathy(Path, PurePathy):
         ```
         """
         self._absolute_path_validation()
-        return self._accessor.resolve(self)
+        return self._accessor.resolve(self, strict=strict)
 
-    def rename(self: PathType, target: Union[str, PathType]) -> None:
+    def rename(self: "Pathy", target: Union[str, PurePath]) -> None:
         """Rename this path to the given target.
 
         If the target exists and is a file, it will be replaced silently if the user
@@ -248,13 +236,13 @@ class Pathy(Path, PurePathy):
         target._absolute_path_validation()  # type:ignore
         super().rename(target)
 
-    def replace(self: PathType, target: Union[str, PathType]) -> None:
+    def replace(self: PathType, target: Union[str, PurePath]) -> None:
         """Renames this path to the given target.
 
         If target points to an existing path, it will be replaced."""
         self.rename(target)
 
-    def rmdir(self: PathType) -> None:
+    def rmdir(self: "Pathy") -> None:
         """Removes this bucket or blob prefix. It must be empty."""
         self._absolute_path_validation()
         if self.is_file():
@@ -263,17 +251,17 @@ class Pathy(Path, PurePathy):
             raise FileNotFoundError()
         super().rmdir()
 
-    def samefile(self: PathType, other_path: PathType) -> bool:
+    def samefile(self: "Pathy", other_path: Union[str, bytes, int, Path]) -> bool:
         """Determine if this path points to the same location as other_path."""
         self._absolute_path_validation()
         if not isinstance(other_path, Path):
-            other_path = type(self)(other_path)
+            other_path = type(self)(other_path)  # type:ignore
         assert isinstance(other_path, Pathy)
         return (
             self.bucket == other_path.bucket and self.key == self.key and self.is_file()
         )
 
-    def touch(self: PathType, mode: int = 0o666, exist_ok: bool = True):
+    def touch(self: PathType, mode: int = 0o666, exist_ok: bool = True) -> None:
         """Create a blob at this path.
 
         If the blob already exists, the function succeeds if exist_ok is true
@@ -285,7 +273,7 @@ class Pathy(Path, PurePathy):
         self.write_text("")
 
     def mkdir(
-        self: PathType, mode: int = 0o777, parents: bool = False, exist_ok: bool = False
+        self, mode: int = 0o777, parents: bool = False, exist_ok: bool = False
     ) -> None:
         """Create a bucket from the given path. Since bucket APIs only have implicit
         folder structures (determined by the existence of a blob with an overlapping
@@ -309,70 +297,6 @@ class Pathy(Path, PurePathy):
         except OSError:
             if not exist_ok:
                 raise
-
-    def is_mount(self: PathType) -> bool:
-        return False
-
-    def is_symlink(self: PathType) -> bool:
-        return False
-
-    def is_socket(self: PathType) -> bool:
-        return False
-
-    def is_fifo(self: PathType) -> bool:
-        return False
-
-    # Unsupported operations below here
-
-    @classmethod
-    def cwd(cls: PathType):
-        message = cls._NOT_SUPPORTED_MESSAGE.format(method=cls.cwd.__qualname__)
-        raise NotImplementedError(message)
-
-    @classmethod
-    def home(cls: PathType):
-        message = cls._NOT_SUPPORTED_MESSAGE.format(method=cls.home.__qualname__)
-        raise NotImplementedError(message)
-
-    def chmod(self: PathType, mode):
-        message = self._NOT_SUPPORTED_MESSAGE.format(method=self.chmod.__qualname__)
-        raise NotImplementedError(message)
-
-    def expanduser(self: PathType):
-        message = self._NOT_SUPPORTED_MESSAGE.format(
-            method=self.expanduser.__qualname__
-        )
-        raise NotImplementedError(message)
-
-    def lchmod(self: PathType, mode):
-        message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lchmod.__qualname__)
-        raise NotImplementedError(message)
-
-    def group(self: PathType):
-        message = self._NOT_SUPPORTED_MESSAGE.format(method=self.group.__qualname__)
-        raise NotImplementedError(message)
-
-    def is_block_device(self: PathType):
-        message = self._NOT_SUPPORTED_MESSAGE.format(
-            method=self.is_block_device.__qualname__
-        )
-        raise NotImplementedError(message)
-
-    def is_char_device(self: PathType):
-        message = self._NOT_SUPPORTED_MESSAGE.format(
-            method=self.is_char_device.__qualname__
-        )
-        raise NotImplementedError(message)
-
-    def lstat(self: PathType):
-        message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lstat.__qualname__)
-        raise NotImplementedError(message)
-
-    def symlink_to(self: PathType, *args, **kwargs):
-        message = self._NOT_SUPPORTED_MESSAGE.format(
-            method=self.symlink_to.__qualname__
-        )
-        raise NotImplementedError(message)
 
 
 class BucketsAccessor(_Accessor):
@@ -432,7 +356,7 @@ class BucketsAccessor(_Accessor):
             return True
 
         key_name = str(path.key)
-        blob = bucket.get_blob(key_name)
+        blob: Optional[Blob] = bucket.get_blob(key_name)
         if blob is not None:
             return blob.exists()
         # Determine if the path exists according to the current adapter
@@ -446,7 +370,7 @@ class BucketsAccessor(_Accessor):
             yield entry.name
 
     def open(
-        self: PathType,
+        self,
         path: PathType,
         *,
         mode: str = "r",
@@ -468,7 +392,7 @@ class BucketsAccessor(_Accessor):
         blob: Optional[Blob] = self.get_blob(path)
         return blob.owner if blob is not None else None
 
-    def resolve(self, path: PathType, strict: bool = False) -> PathType:
+    def resolve(self, path: PathType, strict: bool = False) -> "Pathy":
         path_parts = str(path).replace(path.drive, "")
         return Pathy(f"{path.drive}{os.path.abspath(path_parts)}")
 
@@ -503,18 +427,21 @@ class BucketsAccessor(_Accessor):
     def rmdir(self, path: PathType) -> None:
         client: BucketClient = self.client(path)
         key_name = str(path.key) if path.key is not None else None
-        bucket = client.get_bucket(path)
+        bucket: Bucket = client.get_bucket(path)
         blobs = list(client.list_blobs(path, prefix=key_name))
         bucket.delete_blobs(blobs)
-        if client.is_dir(path):
+        # The path is just the bucket
+        if key_name is None:
+            client.delete_bucket(path)
+        elif client.is_dir(path):
             client.rmdir(path)
 
-    def mkdir(self, path: PathType, mode) -> None:
+    def mkdir(self, path: PathType, mode: int) -> None:
         client: BucketClient = self.client(path)
         bucket: Optional[Bucket] = client.lookup_bucket(path)
         if bucket is None or not bucket.exists():
             client.create_bucket(path)
-        elif path.key is not None:
+        elif isinstance(path, Pathy) and path.key is not None:
             assert isinstance(path, Pathy)
             blob: Optional[Blob] = bucket.get_blob(str(path.key))
             if blob is not None and blob.exists():

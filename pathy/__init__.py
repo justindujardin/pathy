@@ -6,9 +6,9 @@ from .api import (
     ClientError,
     FluidPath,
     Pathy,
-    PurePathy,
 )
-from .client import BlobStat, BucketEntry
+from .base import BlobStat, PurePathy
+from .client import BucketEntry
 from .clients import (
     clear_fs_cache,
     get_client,
@@ -18,5 +18,5 @@ from .clients import (
     use_fs,
     use_fs_cache,
 )
-from .file import BucketClientFS, BucketEntryFS, ClientBlobFS, ClientBucketFS
-from .gcs import BucketClientGCS, BucketEntryGCS, ClientBlobGCS, ClientBucketGCS
+from .file import BlobFS, BucketClientFS, BucketEntryFS, BucketFS
+from .gcs import BlobGCS, BucketClientGCS, BucketEntryGCS, BucketGCS

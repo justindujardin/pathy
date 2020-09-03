@@ -465,6 +465,21 @@ def test_api_mkdir(with_adapter, bucket: str):
     # bucket = client.lookup_bucket(bucket_name)
     # bucket.delete()
     path.rmdir()
+    assert not path.exists()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_list_buckets(with_adapter):
+    bucket_name = f"pathy-e2e-test-{uuid4().hex}"
+    bucket = Pathy(f"gs://{bucket_name}/")
+    bucket.mkdir()
+    assert bucket.exists()
+
+    Pathy("").glob("*")
+    # Can enumerate the buckets (including the one we just created)
+
+    bucket.rmdir()
+    assert not bucket.exists()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)

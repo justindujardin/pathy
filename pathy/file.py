@@ -9,14 +9,14 @@ from .base import PurePathy, StreamableType
 from .client import Blob, Bucket, BucketClient, BucketEntry, ClientError
 
 
-class BucketEntryFS(BucketEntry["ClientBucketFS", pathlib.Path]):
+class BucketEntryFS(BucketEntry["BucketFS", pathlib.Path]):
     ...
 
 
 @dataclass
-class ClientBlobFS(Blob["ClientBucketFS", pathlib.Path]):
+class BlobFS(Blob["BucketFS", pathlib.Path]):
     raw: pathlib.Path
-    bucket: "ClientBucketFS"
+    bucket: "BucketFS"
 
     def delete(self) -> None:
         """Delete a file-based blob."""
@@ -32,11 +32,11 @@ class ClientBlobFS(Blob["ClientBucketFS", pathlib.Path]):
 
 
 @dataclass
-class ClientBucketFS(Bucket):
+class BucketFS(Bucket):
     name: str
     bucket: pathlib.Path
 
-    def get_blob(self, blob_name: str) -> Optional[ClientBlobFS]:
+    def get_blob(self, blob_name: str) -> Optional[BlobFS]:
         native_blob = self.bucket / blob_name
         if not native_blob.exists() or native_blob.is_dir():
             return None
@@ -48,7 +48,7 @@ class ClientBucketFS(Bucket):
             owner = native_blob.owner()
         except KeyError:
             owner = None
-        return ClientBlobFS(
+        return BlobFS(
             bucket=self,
             owner=owner,
             name=blob_name,
@@ -58,8 +58,8 @@ class ClientBucketFS(Bucket):
         )
 
     def copy_blob(
-        self, blob: ClientBlobFS, target: "ClientBucketFS", name: str
-    ) -> Optional[ClientBlobFS]:
+        self, blob: BlobFS, target: "BucketFS", name: str
+    ) -> Optional[BlobFS]:
         in_file = str(blob.bucket.bucket / blob.name)
         out_file = str(target.bucket / name)
         out_path = pathlib.Path(os.path.dirname(out_file))
@@ -68,10 +68,10 @@ class ClientBucketFS(Bucket):
         shutil.copy(in_file, out_file)
         return None
 
-    def delete_blob(self, blob: ClientBlobFS) -> None:
+    def delete_blob(self, blob: BlobFS) -> None:
         blob.delete()
 
-    def delete_blobs(self, blobs: List[ClientBlobFS]) -> None:
+    def delete_blobs(self, blobs: List[BlobFS]) -> None:
         for blob in blobs:
             blob.delete()
 
@@ -147,32 +147,32 @@ class BucketClientFS(BucketClient):
         if bucket_path.exists():
             raise FileExistsError(f"Bucket already exists at: {bucket_path}")
         bucket_path.mkdir(parents=True, exist_ok=True)
-        return ClientBucketFS(str(path.root), bucket=bucket_path)
+        return BucketFS(str(path.root), bucket=bucket_path)
 
     def delete_bucket(self, path: PurePathy) -> None:
         bucket_path: pathlib.Path = self.root / str(path.root)
         if bucket_path.exists():
             shutil.rmtree(bucket_path)
 
-    def lookup_bucket(self, path: PurePathy) -> Optional[ClientBucketFS]:
+    def lookup_bucket(self, path: PurePathy) -> Optional[BucketFS]:
         if path.root:
             bucket_path: pathlib.Path = self.root / path.root
             if bucket_path.exists():
-                return ClientBucketFS(str(path.root), bucket=bucket_path)
+                return BucketFS(str(path.root), bucket=bucket_path)
         return None
 
-    def get_bucket(self, path: PurePathy) -> ClientBucketFS:
+    def get_bucket(self, path: PurePathy) -> BucketFS:
         if not path.root:
             raise ValueError(f"path has an invalid bucket_name: {path.root}")
         bucket_path: pathlib.Path = self.root / path.root
         if bucket_path.is_dir():
-            return ClientBucketFS(str(path.root), bucket=bucket_path)
+            return BucketFS(str(path.root), bucket=bucket_path)
         raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
-    def list_buckets(self, **kwargs) -> Generator[ClientBucketFS, None, None]:
+    def list_buckets(self, **kwargs) -> Generator[BucketFS, None, None]:
         for f in self.root.glob("*"):
             if f.is_dir():
-                yield ClientBucketFS(f.name, f)
+                yield BucketFS(f.name, f)
 
     def scandir(
         self,
@@ -197,7 +197,7 @@ class BucketClientFS(BucketClient):
                 stat = file_path.stat()
                 file_size = stat.st_size
                 updated = int(round(stat.st_mtime_ns * 1000))
-                blob: Blob = ClientBlobFS(
+                blob: Blob = BlobFS(
                     self.get_bucket(path),
                     name=dir_entry.name,
                     size=file_size,
@@ -219,7 +219,7 @@ class BucketClientFS(BucketClient):
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
-    ) -> Generator[ClientBlobFS, None, None]:
+    ) -> Generator[BlobFS, None, None]:
         assert path.root is not None
         bucket = self.get_bucket(path)
         scan_path = self.root / path.root
@@ -233,7 +233,7 @@ class BucketClientFS(BucketClient):
             stat = scan_path.stat()
             file_size = stat.st_size
             updated = int(round(stat.st_mtime_ns * 1000))
-            yield ClientBlobFS(
+            yield BlobFS(
                 bucket,
                 name=scan_path.name,
                 size=file_size,
@@ -249,7 +249,7 @@ class BucketClientFS(BucketClient):
             stat = file_path.stat()
             file_size = stat.st_size
             updated = int(round(stat.st_mtime_ns * 1000))
-            yield ClientBlobFS(
+            yield BlobFS(
                 bucket,
                 name=f"{prefix if prefix is not None else ''}{file_path.name}",
                 size=file_size,

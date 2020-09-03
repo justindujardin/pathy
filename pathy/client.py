@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from io import DEFAULT_BUFFER_SIZE
-from typing import Generator, Generic, List, Optional, TypeVar
+from typing import Any, Dict, Generator, Generic, List, Optional, TypeVar
 
 import smart_open
 
-from .base import PurePathy, StreamableType
+from .base import SUBCLASS_ERROR, BlobStat, PathType, StreamableType
 
 __all__ = (
-    "BlobStat",
     "BucketEntry",
     "BucketClient",
     "ClientError",
@@ -15,10 +14,9 @@ __all__ = (
     "Blob",
 )
 
-BucketType = TypeVar("BucketType")
-BucketBlobType = TypeVar("BucketBlobType")
-
-_SUBCLASS_MUST_IMPLEMENT = "must be implemented in a subclass"
+BucketClientType = TypeVar("BucketClientType", bound="BucketClient")
+BucketType = TypeVar("BucketType", bound="Bucket")
+BucketBlobType = TypeVar("BucketBlobType", bound="Blob")
 
 
 @dataclass
@@ -34,14 +32,6 @@ class ClientError(BaseException):
 
 
 @dataclass
-class BlobStat:
-    """Stat for a bucket item"""
-
-    size: int
-    last_modified: int
-
-
-@dataclass
 class Blob(Generic[BucketType, BucketBlobType]):
     bucket: "Bucket"
     name: str
@@ -50,11 +40,11 @@ class Blob(Generic[BucketType, BucketBlobType]):
     owner: Optional[str]
     raw: BucketBlobType
 
-    def delete(self):
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def delete(self) -> None:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
     def exists(self) -> bool:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+        raise NotImplementedError(SUBCLASS_ERROR)
 
 
 class BucketEntry(Generic[BucketType, BucketBlobType]):
@@ -78,43 +68,45 @@ class BucketEntry(Generic[BucketType, BucketBlobType]):
         self._is_dir = is_dir
         self._stat = BlobStat(size=size, last_modified=last_modified)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}(name={}, is_dir={}, stat={})".format(
             type(self).__name__, self.name, self._is_dir, self._stat
         )
 
-    def inode(self, *args, **kwargs):
+    def inode(self, *args: Any, **kwargs: Dict[str, Any]) -> None:
         return None
 
-    def is_dir(self):
+    def is_dir(self) -> bool:
         return self._is_dir
 
-    def is_file(self):
+    def is_file(self) -> bool:
         return not self._is_dir
 
-    def is_symlink(self, *args, **kwargs):
+    def is_symlink(self) -> bool:
         return False
 
-    def stat(self):
+    def stat(self) -> BlobStat:
         return self._stat
 
 
 @dataclass
 class Bucket:
-    def get_blob(self, blob_name: str) -> Optional[Blob]:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def get_blob(self, blob_name: str) -> Optional[Blob[BucketType, BucketBlobType]]:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
-    def copy_blob(self, blob: Blob, target: "Bucket", name: str) -> Optional[Blob]:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def copy_blob(
+        self, blob: Blob[BucketType, BucketBlobType], target: "Bucket", name: str
+    ) -> Optional[Blob[BucketType, BucketBlobType]]:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
-    def delete_blob(self, blob: Blob) -> None:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def delete_blob(self, blob: Blob[BucketType, BucketBlobType]) -> None:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
-    def delete_blobs(self, blobs: List[Blob]) -> None:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def delete_blobs(self, blobs: List[Blob[BucketType, BucketBlobType]]) -> None:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
     def exists(self) -> bool:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+        raise NotImplementedError(SUBCLASS_ERROR)
 
 
 class BucketClient:
@@ -122,7 +114,7 @@ class BucketClient:
 
     def open(
         self,
-        path: PurePathy,
+        path: PathType,
         *,
         mode: str = "r",
         buffering: int = DEFAULT_BUFFER_SIZE,
@@ -141,46 +133,46 @@ class BucketClient:
             ignore_ext=True,
         )  # type:ignore
 
-    def make_uri(self, path: PurePathy) -> str:
+    def make_uri(self, path: PathType) -> str:
         return path.as_uri()
 
-    def is_dir(self, path: PurePathy) -> bool:
+    def is_dir(self, path: PathType) -> bool:
         return any(self.list_blobs(path, prefix=path.prefix))
 
-    def rmdir(self, path: PurePathy) -> None:
+    def rmdir(self, path: PathType) -> None:
         return None
 
-    def exists(self, path: PurePathy) -> bool:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def exists(self, path: PathType) -> bool:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
-    def lookup_bucket(self, path: PurePathy) -> Optional[Bucket]:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def lookup_bucket(self, path: PathType) -> Optional[Bucket]:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
-    def get_bucket(self, path: PurePathy) -> Bucket:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def get_bucket(self, path: PathType) -> Bucket:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
     def list_buckets(self) -> Generator[Bucket, None, None]:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+        raise NotImplementedError(SUBCLASS_ERROR)
 
     def list_blobs(
         self,
-        path: PurePathy,
+        path: PathType,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
     ) -> Generator[Blob, None, None]:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+        raise NotImplementedError(SUBCLASS_ERROR)
 
     def scandir(
         self,
-        path: PurePathy = None,
+        path: PathType = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> Generator[BucketEntry[BucketType, BucketBlobType], None, None]:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+        raise NotImplementedError(SUBCLASS_ERROR)
 
-    def create_bucket(self, path: PurePathy) -> Bucket:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def create_bucket(self, path: PathType) -> Bucket:
+        raise NotImplementedError(SUBCLASS_ERROR)
 
-    def delete_bucket(self, path: PurePathy) -> None:
-        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+    def delete_bucket(self, path: PathType) -> None:
+        raise NotImplementedError(SUBCLASS_ERROR)

@@ -3,7 +3,7 @@ import shutil
 import tempfile
 from typing import Dict, Optional, Type, Union
 
-from .client import BucketClient
+from .client import BucketClient, BucketClientType
 from .file import BucketClientFS
 from .gcs import BucketClientGCS
 
@@ -25,7 +25,7 @@ def register_client() -> None:
     global _client_registry
 
 
-def get_client(scheme: str) -> "BucketClient":
+def get_client(scheme: str) -> "BucketClientType":
     """Retrieve the bucket client for use with a given scheme"""
     global _client_registry, _instance_cache, _fs_client
     if _fs_client is not None:

@@ -6,7 +6,7 @@ app = typer.Typer(help="Pathy command line interface.")
 
 
 @app.command()
-def cp(from_location: str, to_location: str):
+def cp(from_location: str, to_location: str) -> None:
     """
     Copy a blob or folder of blobs from one bucket to another.
     """
@@ -33,7 +33,7 @@ def cp(from_location: str, to_location: str):
 
 
 @app.command()
-def mv(from_location: str, to_location: str):
+def mv(from_location: str, to_location: str) -> None:
     """
     Move a blob or folder of blobs from one path to another.
     """
@@ -75,17 +75,19 @@ def rm(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Print removed files and folders."
     ),
-):
+) -> None:
     """
     Remove a blob or folder of blobs from a given location.
     """
     path: FluidPath = Pathy.fluid(location)
     if not path.exists():
-        raise typer.Exit(f"rm: {path}: No such file or directory")
+        typer.echo(f"rm: {path}: No such file or directory")
+        raise typer.Exit(1)
 
     if path.is_dir():
         if not recursive:
-            raise typer.Exit(f"rm: {path}: is a directory")
+            typer.echo(f"rm: {path}: is a directory")
+            raise typer.Exit(1)
         selector = path.rglob("*") if recursive else path.glob("*")
         to_unlink = [b for b in selector if b.is_file()]
         for blob in to_unlink:
@@ -103,7 +105,7 @@ def rm(
 
 
 @app.command()
-def ls(location: str):
+def ls(location: str) -> None:
     """
     List the blobs that exist at a given location.
     """
