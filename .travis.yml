@@ -10,7 +10,6 @@ matrix:
         - sh tools/setup.sh
       script:
         - sh tools/lint.sh
-      script:
         - sh tools/test.sh
       after_success:
         - sh tools/codecov.sh
