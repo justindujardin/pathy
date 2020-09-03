@@ -20,8 +20,7 @@ from pathy import (
 
 from .conftest import TEST_ADAPTERS
 
-# todo: test samefile/touch/write_text/write_bytes method
-# todo: test security and boto config changes
+# todo: test samefile/touch method
 # todo: test open method check R/W bytes/unicode
 # todo(jd): replace global test-bucket with mock or generate buckets and call these e2e tests
 
