@@ -82,7 +82,7 @@ print(fluid_path.prefix)
 ## from_bucket <kbd>classmethod</kbd>
 
 ```python
-Pathy.from_bucket(bucket_name: str) -> ~PathType
+Pathy.from_bucket(bucket_name: str) -> 'Pathy'
 ```
 
 Initialize a Pathy from a bucket name. This helper adds a trailing slash and
@@ -97,9 +97,9 @@ assert str(Pathy.from_bucket("two")) == "gs://two/"
 
 ```python
 Pathy.glob(
-    self: ~PathType,
+    self: 'Pathy',
     pattern: str,
-) -> Generator[~PathType, NoneType, NoneType]
+) -> Generator[Pathy, NoneType, NoneType]
 ```
 
 Perform a glob match relative to this Pathy instance, yielding all matched
@@ -108,7 +108,7 @@ blobs.
 ## is_dir <kbd>method</kbd>
 
 ```python
-Pathy.is_dir(self: ~PathType) -> bool
+Pathy.is_dir(self: 'Pathy') -> bool
 ```
 
 Determine if the path points to a bucket or a prefix of a given blob
@@ -120,7 +120,7 @@ Returns False if it points to a blob or the path doesn't exist.
 ## is_file <kbd>method</kbd>
 
 ```python
-Pathy.is_file(self: ~PathType) -> bool
+Pathy.is_file(self: 'Pathy') -> bool
 ```
 
 Determine if the path points to a blob in the bucket.
@@ -132,7 +132,9 @@ exist.
 ## iterdir <kbd>method</kbd>
 
 ```python
-Pathy.iterdir(self: ~PathType) -> Generator[~PathType, NoneType, NoneType]
+Pathy.iterdir(
+    self: 'Pathy',
+) -> Generator[Pathy, NoneType, NoneType]
 ```
 
 Iterate over the blobs found in the given bucket or blob prefix path.
@@ -164,7 +166,7 @@ Raises FileExistsError if exist_ok is false and the bucket already exists.
 
 ```python
 Pathy.open(
-    self: ~PathType,
+    self: 'Pathy',
     mode: str = 'r',
     buffering: int = 8192,
     encoding: Optional[str] = None,
@@ -204,7 +206,7 @@ to match the target prefix.
 ## replace <kbd>method</kbd>
 
 ```python
-Pathy.replace(self: ~PathType, target: Union[str, pathlib.PurePath]) -> None
+Pathy.replace(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> None
 ```
 
 Renames this path to the given target.
@@ -228,9 +230,9 @@ assert path.resolve() == Pathy("gs://my_bucket/blob")
 
 ```python
 Pathy.rglob(
-    self: ~PathType,
+    self: 'Pathy',
     pattern: str,
-) -> Generator[~PathType, NoneType, NoneType]
+) -> Generator[Pathy, NoneType, NoneType]
 ```
 
 Perform a recursive glob match relative to this Pathy instance, yielding
@@ -258,7 +260,7 @@ Determine if this path points to the same location as other_path.
 ## stat <kbd>method</kbd>
 
 ```python
-Pathy.stat(self: ~PathType) -> pathy.base.BlobStat
+Pathy.stat(self: 'Pathy') -> pathy.base.BlobStat
 ```
 
 Returns information about this bucket path.
@@ -267,7 +269,7 @@ Returns information about this bucket path.
 
 ```python
 Pathy.to_local(
-    blob_path: Union[~PathType, str],
+    blob_path: Union[Pathy, str],
     recurse: bool = True,
 ) -> pathlib.Path
 ```
@@ -280,7 +282,7 @@ as their updated timestamps change.
 ## touch <kbd>method</kbd>
 
 ```python
-Pathy.touch(self: ~PathType, mode: int = 438, exist_ok: bool = True) -> None
+Pathy.touch(self: 'Pathy', mode: int = 438, exist_ok: bool = True) -> None
 ```
 
 Create a blob at this path.
