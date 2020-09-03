@@ -5,7 +5,6 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import pytest
 
 from pathy import Pathy, PurePathy
-from pathy.base import BasePathy
 
 
 def test_base_not_supported(monkeypatch):
@@ -281,26 +280,3 @@ def test_base_with_suffix():
     assert gcs_path.with_suffix(".txt") == PurePathy("README.txt")
     gcs_path = PurePathy("README.txt")
     assert gcs_path.with_suffix("") == PurePathy("README")
-
-
-def test_base_class_abstract_methods():
-    path = BasePathy("gs://foo/bar")
-    other = Pathy("gs://other")
-    with pytest.raises(NotImplementedError):
-        path.exists()
-    with pytest.raises(NotImplementedError):
-        path.is_dir()
-    with pytest.raises(NotImplementedError):
-        path.is_file()
-    with pytest.raises(NotImplementedError):
-        path.touch()
-    with pytest.raises(NotImplementedError):
-        path.open()
-    with pytest.raises(NotImplementedError):
-        path.owner()
-    with pytest.raises(NotImplementedError):
-        path.resolve()
-    with pytest.raises(NotImplementedError):
-        path.replace(other)
-    with pytest.raises(NotImplementedError):
-        path.samefile(other)

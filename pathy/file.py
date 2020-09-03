@@ -5,8 +5,15 @@ from dataclasses import dataclass, field
 from io import DEFAULT_BUFFER_SIZE
 from typing import Generator, List, Optional
 
-from .base import PurePathy, StreamableType
-from .client import Blob, Bucket, BucketClient, BucketEntry, ClientError
+from .base import (
+    Blob,
+    Bucket,
+    BucketClient,
+    BucketEntry,
+    ClientError,
+    PurePathy,
+    StreamableType,
+)
 
 
 class BucketEntryFS(BucketEntry["BucketFS", pathlib.Path]):
@@ -83,10 +90,6 @@ class BucketFS(Bucket):
 class BucketClientFS(BucketClient):
     # Root to store file-system buckets as children of
     root: pathlib.Path = field(default_factory=lambda: pathlib.Path("/tmp/"))
-
-    def make_uri(self, path: PurePathy):
-        uri = super().make_uri(path)
-        return uri.replace("gs://", "file:///")
 
     def full_path(self, path: PurePathy) -> pathlib.Path:
         if path.root is None:

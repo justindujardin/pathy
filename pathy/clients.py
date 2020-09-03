@@ -1,9 +1,9 @@
 import pathlib
 import shutil
 import tempfile
-from typing import Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Type, Union
 
-from .client import BucketClient, BucketClientType
+from .base import BucketClient, BucketClientType
 from .file import BucketClientFS
 from .gcs import BucketClientGCS
 
@@ -15,7 +15,7 @@ _client_registry: Dict[str, Type[BucketClient]] = {
     "gs": BucketClientGCS,
 }
 
-_instance_cache: Dict[str, BucketClient] = {}
+_instance_cache: Dict[str, Any] = {}
 _fs_client: Optional[BucketClientFS] = None
 _fs_cache: Optional[pathlib.Path] = None
 
@@ -25,11 +25,11 @@ def register_client() -> None:
     global _client_registry
 
 
-def get_client(scheme: str) -> "BucketClientType":
+def get_client(scheme: str) -> BucketClientType:
     """Retrieve the bucket client for use with a given scheme"""
     global _client_registry, _instance_cache, _fs_client
     if _fs_client is not None:
-        return _fs_client
+        return _fs_client  # type: ignore
     if scheme in _instance_cache:
         return _instance_cache[scheme]
     elif scheme in _client_registry:

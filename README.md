@@ -58,8 +58,8 @@ Returns True if the path points to an existing bucket, blob, or prefix.
 
 ```python
 Pathy.fluid(
-    path_candidate: Union[str, BasePathy, pathlib.Path],
-) -> Union[BasePathy, pathlib.Path]
+    path_candidate: Union[str, Pathy, pathlib.Path],
+) -> Union[Pathy, pathlib.Path]
 ```
 
 Infer either a Pathy or pathlib.Path from an input path or string.
@@ -214,7 +214,7 @@ If target points to an existing path, it will be replaced.
 ## resolve <kbd>method</kbd>
 
 ```python
-Pathy.resolve(self, strict: bool = False) -> ~PathType
+Pathy.resolve(self, strict: bool = False) -> 'Pathy'
 ```
 
 Resolve the given path to remove any relative path specifiers.

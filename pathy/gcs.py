@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Generator, List, Optional
 
-from .base import PurePathy
-from .client import Blob, Bucket, BucketClient, BucketEntry, ClientError
+from .base import Blob, Bucket, BucketClient, BucketEntry, ClientError, PurePathy
 
 try:
     from google.api_core import exceptions as gcs_errors

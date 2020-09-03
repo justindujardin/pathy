@@ -1,14 +1,15 @@
-from .api import (
+from .base import (
     Blob,
+    BlobStat,
     Bucket,
     BucketClient,
+    BucketEntry,
     BucketsAccessor,
     ClientError,
     FluidPath,
     Pathy,
+    PurePathy,
 )
-from .base import BlobStat, PurePathy
-from .client import BucketEntry
 from .clients import (
     clear_fs_cache,
     get_client,
