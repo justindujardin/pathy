@@ -13,6 +13,15 @@ except ImportError:
     storage = None
     has_gcs = False
 
+_MISSING_DEPS = """You are using the GCS functionality of Pathy without
+having the required dependencies installed. 
+
+Please try installing them:
+
+    pip install pathy[gcs]
+
+"""
+
 
 class BucketEntryGCS(BucketEntry["BucketGCS", "storage.Blob"]):
     ...
@@ -94,11 +103,11 @@ class BucketClientGCS(BucketClient):
         return str(path)
 
     def create_bucket(self, path: PurePathy) -> Bucket:
-        assert self.client is not None
+        assert self.client is not None, _MISSING_DEPS
         return self.client.create_bucket(path.root)
 
     def delete_bucket(self, path: PurePathy) -> None:
-        assert self.client is not None
+        assert self.client is not None, _MISSING_DEPS
         bucket = self.client.get_bucket(path.root)
         bucket.delete()
 
@@ -118,7 +127,7 @@ class BucketClientGCS(BucketClient):
         return False
 
     def lookup_bucket(self, path: PurePathy) -> Optional[BucketGCS]:
-        assert self.client is not None
+        assert self.client is not None, _MISSING_DEPS
         try:
             native_bucket = self.client.bucket(path.root)
             if native_bucket is not None:
@@ -129,7 +138,7 @@ class BucketClientGCS(BucketClient):
         return None
 
     def get_bucket(self, path: PurePathy) -> BucketGCS:
-        assert self.client is not None
+        assert self.client is not None, _MISSING_DEPS
         try:
             native_bucket = self.client.bucket(path.root)
             if native_bucket is not None:
@@ -139,7 +148,7 @@ class BucketClientGCS(BucketClient):
             raise ClientError(message=e.message, code=e.code)
 
     def list_buckets(self, **kwargs) -> Generator[Bucket, None, None]:
-        assert self.client is not None
+        assert self.client is not None, _MISSING_DEPS
         return self.client.list_buckets(**kwargs)
 
     def scandir(
@@ -149,7 +158,7 @@ class BucketClientGCS(BucketClient):
         delimiter: Optional[str] = None,
         include_raw: bool = False,
     ) -> Generator[BucketEntryGCS, None, None]:
-        assert self.client is not None
+        assert self.client is not None, _MISSING_DEPS
         continuation_token = None
         if path is None or not path.root:
             for bucket in self.list_buckets():
@@ -198,7 +207,7 @@ class BucketClientGCS(BucketClient):
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
     ) -> Generator[BlobGCS, None, None]:
-        assert self.client is not None
+        assert self.client is not None, _MISSING_DEPS
         continuation_token = None
         bucket = self.lookup_bucket(path)
         if bucket is None:
