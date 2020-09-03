@@ -34,6 +34,7 @@ def setup_package():
         packages=find_packages(),
         python_requires=">= 3.6",
         install_requires=requirements,
+        extras_require=extras,
         entry_points="""
             [console_scripts]
             pathy=pathy.cli:app
