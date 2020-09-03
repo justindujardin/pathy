@@ -1,11 +1,13 @@
-from dataclasses import dataclass, field
-from typing import Optional, List, Generator
-from .client import BucketClient, ClientBucket, ClientBlob, ClientError, BucketEntry
+from dataclasses import dataclass
+from typing import Generator, List, Optional
+
 from .base import PurePathy
+from .client import Blob, Bucket, BucketClient, BucketEntry, ClientError
 
 try:
-    from google.cloud import storage
     from google.api_core import exceptions as gcs_errors
+    from google.auth.exceptions import DefaultCredentialsError
+    from google.cloud import storage
 
     has_gcs = True
 except ImportError:
@@ -13,12 +15,12 @@ except ImportError:
     has_gcs = False
 
 
-class BucketEntryGCS(BucketEntry["ClientBucketGCS", storage.Blob]):
+class BucketEntryGCS(BucketEntry["ClientBucketGCS", "storage.Blob"]):
     ...
 
 
 @dataclass
-class ClientBlobGCS(ClientBlob["ClientBucketGCS", storage.Blob]):
+class ClientBlobGCS(Blob["ClientBucketGCS", "storage.Blob"]):
     def delete(self) -> None:
         self.raw.delete()
 
@@ -27,12 +29,19 @@ class ClientBlobGCS(ClientBlob["ClientBucketGCS", storage.Blob]):
 
 
 @dataclass
-class ClientBucketGCS(ClientBucket):
+class ClientBucketGCS(Bucket):
     name: str
-    bucket: storage.Bucket
+    bucket: "storage.Bucket"
 
     def get_blob(self, blob_name: str) -> Optional[ClientBlobGCS]:
-        native_blob = self.bucket.get_blob(blob_name)
+        assert isinstance(
+            blob_name, str
+        ), f"expected str blob name, but found: {type(blob_name)}"
+        native_blob = None
+        try:
+            native_blob = self.bucket.get_blob(blob_name)
+        except gcs_errors.ClientError:
+            pass
         if native_blob is None:
             return None
         return ClientBlobGCS(
@@ -66,40 +75,67 @@ class ClientBucketGCS(ClientBucket):
     def delete_blobs(self, blobs: List[ClientBlobGCS]) -> None:
         return self.bucket.delete_blobs(blobs)
 
+    def exists(self) -> bool:
+        try:
+            return self.bucket.exists()
+        except gcs_errors.ClientError:
+            return False
 
-@dataclass
+
 class BucketClientGCS(BucketClient):
-    client: storage.Client = field(default_factory=lambda: storage.Client())
+    client: Optional["storage.Client"]
+
+    def __init__(self, client: Optional["storage.Client"] = None):
+        try:
+            self.client = storage.Client() if storage else None
+        except (BaseException, DefaultCredentialsError):
+            self.client = None
 
     def make_uri(self, path: PurePathy):
         return str(path)
 
-    def create_bucket(self, path: PurePathy) -> ClientBucket:
+    def create_bucket(self, path: PurePathy) -> Bucket:
         return self.client.create_bucket(path.root)
 
     def delete_bucket(self, path: PurePathy) -> None:
         bucket = self.client.get_bucket(path.root)
         bucket.delete()
 
+    def exists(self, path: PurePathy) -> bool:
+        # Because we want all the parents of a valid blob (e.g. "directory" in
+        # "directory/foo.file") to return True, we enumerate the blobs with a prefix
+        # and compare the object names to see if they match a substring of the path
+        key_name = str(path.key)
+        try:
+            for obj in self.list_blobs(path):
+                if obj.name == key_name:
+                    return True
+                if obj.name.startswith(key_name + path._flavour.sep):
+                    return True
+        except gcs_errors.ClientError:
+            return False
+        return False
+
     def lookup_bucket(self, path: PurePathy) -> Optional[ClientBucketGCS]:
         try:
-            native_bucket = self.client.lookup_bucket(path.root)
+            native_bucket = self.client.bucket(path.root)
             if native_bucket is not None:
                 return ClientBucketGCS(str(path.root), bucket=native_bucket)
-        except gcs_errors.ClientError:
-            pass
+        except gcs_errors.ClientError as err:
+            print(err)
+
         return None
 
     def get_bucket(self, path: PurePathy) -> ClientBucketGCS:
         try:
-            native_bucket = self.client.lookup_bucket(path.root)
+            native_bucket = self.client.bucket(path.root)
             if native_bucket is not None:
                 return ClientBucketGCS(str(path.root), bucket=native_bucket)
             raise FileNotFoundError(f"Bucket {path.root} does not exist!")
         except gcs_errors.ClientError as e:
             raise ClientError(message=e.message, code=e.code)
 
-    def list_buckets(self, **kwargs) -> Generator[ClientBucket, None, None]:
+    def list_buckets(self, **kwargs) -> Generator[Bucket, None, None]:
         return self.client.list_buckets(**kwargs)
 
     def scandir(

@@ -1,10 +1,12 @@
-from dataclasses import dataclass, field
-from typing import Optional, List, Generator, cast
-from .client import BucketClient, ClientBucket, ClientBlob, ClientError, BucketEntry
-from .base import PurePathy
+import os
 import pathlib
 import shutil
-import os
+from dataclasses import dataclass, field
+from io import DEFAULT_BUFFER_SIZE
+from typing import Generator, List, Optional
+
+from .base import PurePathy, StreamableType
+from .client import Blob, Bucket, BucketClient, BucketEntry, ClientError
 
 
 class BucketEntryFS(BucketEntry["ClientBucketFS", pathlib.Path]):
@@ -12,7 +14,7 @@ class BucketEntryFS(BucketEntry["ClientBucketFS", pathlib.Path]):
 
 
 @dataclass
-class ClientBlobFS(ClientBlob["ClientBucketFS", pathlib.Path]):
+class ClientBlobFS(Blob["ClientBucketFS", pathlib.Path]):
     raw: pathlib.Path
     bucket: "ClientBucketFS"
 
@@ -30,7 +32,7 @@ class ClientBlobFS(ClientBlob["ClientBucketFS", pathlib.Path]):
 
 
 @dataclass
-class ClientBucketFS(ClientBucket):
+class ClientBucketFS(Bucket):
     name: str
     bucket: pathlib.Path
 
@@ -73,11 +75,14 @@ class ClientBucketFS(ClientBucket):
         for blob in blobs:
             blob.delete()
 
+    def exists(self) -> bool:
+        return self.bucket.exists()
+
 
 @dataclass
 class BucketClientFS(BucketClient):
     # Root to store file-system buckets as children of
-    root: pathlib.Path
+    root: pathlib.Path = field(default_factory=lambda: pathlib.Path("/tmp/"))
 
     def make_uri(self, path: PurePathy):
         uri = super().make_uri(path)
@@ -106,12 +111,12 @@ class BucketClientFS(BucketClient):
         self,
         path: PurePathy,
         *,
-        mode="r",
-        buffering=-1,
-        encoding=None,
-        errors=None,
-        newline=None,
-    ):
+        mode: str = "r",
+        buffering: int = DEFAULT_BUFFER_SIZE,
+        encoding: Optional[str] = None,
+        errors: Optional[str] = None,
+        newline: Optional[str] = None,
+    ) -> StreamableType:
         if self.lookup_bucket(path) is None:
             raise ClientError(message=f'bucket "{path.root}" does not exist', code=404)
 
@@ -135,7 +140,7 @@ class BucketClientFS(BucketClient):
         result = f"file://{self.root.absolute() / path.root / path.key}"
         return result
 
-    def create_bucket(self, path: PurePathy) -> ClientBucket:
+    def create_bucket(self, path: PurePathy) -> Bucket:
         if not path.root:
             raise ValueError(f"Invalid bucket name: {path.root}")
         bucket_path: pathlib.Path = self.root / path.root
@@ -192,7 +197,7 @@ class BucketClientFS(BucketClient):
                 stat = file_path.stat()
                 file_size = stat.st_size
                 updated = int(round(stat.st_mtime_ns * 1000))
-                blob: ClientBlob = ClientBlobFS(
+                blob: Blob = ClientBlobFS(
                     self.get_bucket(path),
                     name=dir_entry.name,
                     size=file_size,

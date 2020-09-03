@@ -1,17 +1,18 @@
 from dataclasses import dataclass
+from io import DEFAULT_BUFFER_SIZE
 from typing import Generator, Generic, List, Optional, TypeVar
 
 import smart_open
 
-from .base import PurePathy
+from .base import PurePathy, StreamableType
 
 __all__ = (
-    "BucketStat",
+    "BlobStat",
     "BucketEntry",
     "BucketClient",
     "ClientError",
-    "ClientBucket",
-    "ClientBlob",
+    "Bucket",
+    "Blob",
 )
 
 BucketType = TypeVar("BucketType")
@@ -23,7 +24,7 @@ _SUBCLASS_MUST_IMPLEMENT = "must be implemented in a subclass"
 @dataclass
 class ClientError(BaseException):
     message: str
-    code: int
+    code: Optional[int]
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -33,7 +34,7 @@ class ClientError(BaseException):
 
 
 @dataclass
-class BucketStat:
+class BlobStat:
     """Stat for a bucket item"""
 
     size: int
@@ -41,8 +42,8 @@ class BucketStat:
 
 
 @dataclass
-class ClientBlob(Generic[BucketType, BucketBlobType]):
-    bucket: "ClientBucket"
+class Blob(Generic[BucketType, BucketBlobType]):
+    bucket: "Bucket"
     name: str
     size: int
     updated: int
@@ -61,21 +62,21 @@ class BucketEntry(Generic[BucketType, BucketBlobType]):
 
     name: str
     _is_dir: bool
-    _stat: BucketStat
-    raw: Optional[ClientBlob[BucketType, BucketBlobType]]
+    _stat: BlobStat
+    raw: Optional[Blob[BucketType, BucketBlobType]]
 
     def __init__(
         self,
         name: str,
-        is_dir: bool,
-        size: int = None,
-        last_modified: int = None,
-        raw: Optional[ClientBlob[BucketType, BucketBlobType]] = None,
+        is_dir: bool = False,
+        size: int = -1,
+        last_modified: int = -1,
+        raw: Optional[Blob[BucketType, BucketBlobType]] = None,
     ):
         self.name = name
         self.raw = raw
         self._is_dir = is_dir
-        self._stat = BucketStat(size=size, last_modified=last_modified)
+        self._stat = BlobStat(size=size, last_modified=last_modified)
 
     def __repr__(self):
         return "{}(name={}, is_dir={}, stat={})".format(
@@ -99,24 +100,46 @@ class BucketEntry(Generic[BucketType, BucketBlobType]):
 
 
 @dataclass
-class ClientBucket:
-    def get_blob(self, blob_name: str) -> Optional[ClientBlob]:
+class Bucket:
+    def get_blob(self, blob_name: str) -> Optional[Blob]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def copy_blob(
-        self, blob: ClientBlob, target: "ClientBucket", name: str
-    ) -> Optional[ClientBlob]:
+    def copy_blob(self, blob: Blob, target: "Bucket", name: str) -> Optional[Blob]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def delete_blob(self, blob: ClientBlob) -> None:
+    def delete_blob(self, blob: Blob) -> None:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def delete_blobs(self, blobs: List[ClientBlob]) -> None:
+    def delete_blobs(self, blobs: List[Blob]) -> None:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+
+    def exists(self) -> bool:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
 
 class BucketClient:
     """Base class for a client that interacts with a bucket-based storage system."""
+
+    def open(
+        self,
+        path: PurePathy,
+        *,
+        mode: str = "r",
+        buffering: int = DEFAULT_BUFFER_SIZE,
+        encoding: Optional[str] = None,
+        errors: Optional[str] = None,
+        newline: Optional[str] = None,
+    ) -> StreamableType:
+        return smart_open.open(
+            self.make_uri(path),
+            mode=mode,
+            buffering=buffering,
+            encoding=encoding,
+            errors=errors,
+            newline=newline,
+            # Disable de/compression based on the file extension
+            ignore_ext=True,
+        )  # type:ignore
 
     def make_uri(self, path: PurePathy) -> str:
         return path.as_uri()
@@ -128,45 +151,15 @@ class BucketClient:
         return None
 
     def exists(self, path: PurePathy) -> bool:
-        # Because we want all the parents of a valid blob (e.g. "directory" in
-        # "directory/foo.file") to return True, we enumerate the blobs with a prefix
-        # and compare the object names to see if they match a substring of the path
-        key_name = str(path.key)
-        for obj in self.list_blobs(path):
-            if obj.name == key_name:
-                return True
-            if obj.name.startswith(key_name + path._flavour.sep):
-                return True
-        return False
-
-    def open(
-        self,
-        path: PurePathy,
-        *,
-        mode="r",
-        buffering=-1,
-        encoding=None,
-        errors=None,
-        newline=None,
-    ):
-        return smart_open.open(
-            self.make_uri(path),
-            mode=mode,
-            buffering=buffering,
-            encoding=encoding,
-            errors=errors,
-            newline=newline,
-            # Disable de/compression based on the file extension
-            ignore_ext=True,
-        )
-
-    def lookup_bucket(self, path: PurePathy) -> Optional[ClientBucket]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def get_bucket(self, path: PurePathy) -> ClientBucket:
+    def lookup_bucket(self, path: PurePathy) -> Optional[Bucket]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def list_buckets(self) -> Generator[ClientBucket, None, None]:
+    def get_bucket(self, path: PurePathy) -> Bucket:
+        raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
+
+    def list_buckets(self) -> Generator[Bucket, None, None]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def list_blobs(
@@ -175,7 +168,7 @@ class BucketClient:
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         include_dirs: bool = False,
-    ) -> Generator[ClientBlob, None, None]:
+    ) -> Generator[Blob, None, None]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def scandir(
@@ -186,7 +179,7 @@ class BucketClient:
     ) -> Generator[BucketEntry[BucketType, BucketBlobType], None, None]:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
-    def create_bucket(self, path: PurePathy) -> ClientBucket:
+    def create_bucket(self, path: PurePathy) -> Bucket:
         raise NotImplementedError(_SUBCLASS_MUST_IMPLEMENT)
 
     def delete_bucket(self, path: PurePathy) -> None:

@@ -1,109 +1,15 @@
-import io
 import os
-import shutil
-import tempfile
 from io import DEFAULT_BUFFER_SIZE
-from pathlib import Path, _Accessor  # type:ignore
+from pathlib import _Accessor  # type:ignore
+from pathlib import Path
 from typing import Generator, Optional, Union, cast
 
-from google.api_core import exceptions as gcs_errors
-from google.auth.exceptions import DefaultCredentialsError
+from .base import PathType, PurePathy, StreamableType
+from .client import Blob, BlobStat, Bucket, BucketClient, BucketEntry, ClientError
 
-from . import gcs
-from .base import PathType, PurePathy
-from .client import (
-    BucketClient,
-    BucketEntry,
-    BucketStat,
-    ClientBlob,
-    ClientBucket,
-    ClientError,
-)
-from .file import BucketClientFS
-
-__all__ = ("Pathy", "use_fs", "get_fs_client", "BucketsAccessor")
+__all__ = ()
 
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
-
-
-_fs_client: Optional[BucketClientFS] = None
-_fs_cache: Optional[Path] = None
-
-
-def use_fs(root: Optional[Union[str, Path, bool]] = None) -> Optional[BucketClientFS]:
-    """Use a path in the local file-system to store blobs and buckets.
-
-    This is useful for development and testing situations, and for embedded
-    applications."""
-    global _fs_client
-    # False - disable adapter
-    if root is False:
-        _fs_client = None
-        return None
-
-    # None or True - enable FS adapter with default root
-    if root is None or root is True:
-        # Look up "data" folder of pathy package similar to spaCy
-        client_root = Path(__file__).parent / "data"
-    else:
-        assert isinstance(root, (str, Path)), f"root is not a known type: {type(root)}"
-        client_root = Path(root)
-    if not client_root.exists():
-        client_root.mkdir(parents=True)
-    _fs_client = BucketClientFS(root=client_root)
-    return _fs_client
-
-
-def get_fs_client() -> Optional[BucketClientFS]:
-    """Get the file-system client (or None)"""
-    global _fs_client
-    assert _fs_client is None or isinstance(
-        _fs_client, BucketClientFS
-    ), "invalid root type"
-    return _fs_client
-
-
-def use_fs_cache(root: Optional[Union[str, Path, bool]] = None) -> Optional[Path]:
-    """Use a path in the local file-system to cache blobs and buckets.
-
-    This is useful for when you want to avoid fetching large blobs multiple
-    times, or need to pass a local file path to a third-party library."""
-    global _fs_cache
-    # False - disable adapter
-    if root is False:
-        _fs_cache = None
-        return None
-
-    # None or True - enable FS cache with default root
-    if root is None or root is True:
-        # Use a temporary folder. Cache will be removed according to OS policy
-        cache_root = Path(tempfile.mkdtemp())
-    else:
-        assert isinstance(root, (str, Path)), f"root is not a known type: {type(root)}"
-        cache_root = Path(root)
-    if not cache_root.exists():
-        cache_root.mkdir(parents=True)
-    _fs_cache = cache_root
-    return cache_root
-
-
-def get_fs_cache() -> Optional[Path]:
-    """Get the folder that holds file-system cached blobs and timestamps."""
-    global _fs_cache
-    assert _fs_cache is None or isinstance(_fs_cache, Path), "invalid root type"
-    return _fs_cache
-
-
-def clear_fs_cache(force: bool = False) -> None:
-    """Remove the existing file-system blob cache folder.
-
-    Raises AssertionError if the cache path is unset or points to the
-    root of the file-system."""
-    cache_path = get_fs_cache()
-    assert cache_path is not None, "no cache to clear"
-    resolved = cache_path.resolve()
-    assert str(resolved) != "/", f"refusing to remove a root path: {resolved}"
-    shutil.rmtree(str(resolved))
 
 
 FluidPath = Union["Pathy", Path]
@@ -172,6 +78,8 @@ class Pathy(Path, PurePathy):
 
         The cache is sensitive to the file updated time, and downloads new blobs
         as their updated timestamps change."""
+        from .clients import get_fs_cache
+
         cache_folder = get_fs_cache()
         if cache_folder is None:
             raise ValueError(
@@ -191,7 +99,7 @@ class Pathy(Path, PurePathy):
         #  - cached_stat.updated != latest_stat.updated
         if cache_blob.exists() and cache_time.exists():
             fs_time: str = cache_time.read_text()
-            gcs_stat: BucketStat = blob_path.stat()
+            gcs_stat: BlobStat = blob_path.stat()
             # If the times match, return the cached blob
             if fs_time == str(gcs_stat.last_modified):
                 return cache_blob
@@ -206,7 +114,7 @@ class Pathy(Path, PurePathy):
                 dest_folder = cache_blob.parent
                 dest_folder.mkdir(exist_ok=True, parents=True)
                 cache_blob.write_bytes(blob_path.read_bytes())
-                blob_stat: BucketStat = blob_path.stat()
+                blob_stat: BlobStat = blob_path.stat()
                 cache_time.write_text(str(blob_stat.last_modified))
             elif recurse:
                 # If not a specific blob, enumerate all the blobs under
@@ -215,12 +123,12 @@ class Pathy(Path, PurePathy):
                     Pathy.to_local(blob, recurse=False)
         return cache_blob
 
-    def stat(self: PathType) -> BucketStat:
+    def stat(self: PathType) -> BlobStat:
         """Returns information about this bucket path."""
         self._absolute_path_validation()
         if not self.key:
             raise ValueError("cannot stat a bucket without a key")
-        return cast(BucketStat, super().stat())
+        return cast(BlobStat, super().stat())
 
     def exists(self: PathType) -> bool:
         """Returns True if the path points to an existing bucket, blob, or prefix."""
@@ -253,7 +161,7 @@ class Pathy(Path, PurePathy):
             return False
         try:
             return bool(self.stat())
-        except (gcs_errors.ClientError, FileNotFoundError):
+        except (ClientError, FileNotFoundError):
             return False
 
     def iterdir(self: PathType) -> Generator[PathType, None, None]:
@@ -273,12 +181,12 @@ class Pathy(Path, PurePathy):
 
     def open(
         self: PathType,
-        mode="r",
-        buffering=DEFAULT_BUFFER_SIZE,
-        encoding=None,
-        errors=None,
-        newline=None,
-    ) -> io.IOBase:
+        mode: str = "r",
+        buffering: int = DEFAULT_BUFFER_SIZE,
+        encoding: Optional[str] = None,
+        errors: Optional[str] = None,
+        newline: Optional[str] = None,
+    ) -> StreamableType:
         """Open the given blob for streaming. This delegates to the `smart_open`
         library that handles large file streaming for a number of bucket API
         providers."""
@@ -360,6 +268,7 @@ class Pathy(Path, PurePathy):
         self._absolute_path_validation()
         if not isinstance(other_path, Path):
             other_path = type(self)(other_path)
+        assert isinstance(other_path, Pathy)
         return (
             self.bucket == other_path.bucket and self.key == self.key and self.is_file()
         )
@@ -393,7 +302,7 @@ class Pathy(Path, PurePathy):
         try:
             if self.bucket is None:
                 raise FileNotFoundError("No bucket in {} {}".format(type(self), self))
-            # If the whole path is just the bucket, respect the
+            # If the whole path is just the bucket, respect the result of "bucket.exists()"
             if self.key is None and not exist_ok and self.bucket.exists():
                 raise FileExistsError("Bucket {} already exists".format(self.bucket))
             return super().mkdir(mode, parents=parents, exist_ok=exist_ok)
@@ -471,25 +380,17 @@ class BucketsAccessor(_Accessor):
 
     _client: Optional[BucketClient]
 
-    @property
-    def client(self) -> BucketClient:
-        global _fs_client
-        if _fs_client is not None:
-            return _fs_client
-        assert self._client is not None, "neither GCS or FS clients are enabled"
-        return self._client
+    def client(self, path: PathType) -> BucketClient:
+        # lazily avoid circular imports
+        from .clients import get_client
 
-    def __init__(self, **kwargs) -> None:
-        try:
-            self._client = gcs.BucketClientGCS()
-        except DefaultCredentialsError:
-            self._client = None
+        return get_client(path.scheme)
 
-    def get_blob(self, path: PathType) -> Optional[ClientBlob]:
+    def get_blob(self, path: PathType) -> Optional[Blob]:
         """Get the blob associated with a path or return None"""
         if not path.root:
             return None
-        bucket = self.client.lookup_bucket(path)
+        bucket = self.client(path).lookup_bucket(path)
         if bucket is None:
             return None
         key_name = str(path.key)
@@ -497,46 +398,48 @@ class BucketsAccessor(_Accessor):
 
     def unlink(self, path: PathType) -> None:
         """Delete a link to a blob in a bucket."""
-        bucket = self.client.get_bucket(path)
-        blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
+        bucket = self.client(path).get_bucket(path)
+        blob: Optional[Blob] = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
         blob.delete()
 
-    def stat(self, path: PathType) -> BucketStat:
-        bucket = self.client.get_bucket(path)
-        blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
+    def stat(self, path: PathType) -> BlobStat:
+        bucket = self.client(path).get_bucket(path)
+        blob: Optional[Blob] = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
-        return BucketStat(size=blob.size, last_modified=blob.updated)
+        return BlobStat(size=blob.size, last_modified=blob.updated)
 
     def is_dir(self, path: PathType) -> bool:
         if str(path) == path.root:
             return True
         if self.get_blob(path) is not None:
             return False
-        return self.client.is_dir(path)
+        return self.client(path).is_dir(path)
 
     def exists(self, path: PathType) -> bool:
+        client = self.client(path)
         if not path.root:
-            return any(self.client.list_buckets())
+            return any(client.list_buckets())
         try:
-            bucket = self.client.lookup_bucket(path)
-        except gcs_errors.ClientError:
+            bucket = client.lookup_bucket(path)
+        except ClientError:
+            return False
+        if bucket is None or not bucket.exists():
             return False
         if not path.key:
-            return bucket is not None
-        if bucket is None:
-            return False
+            return True
+
         key_name = str(path.key)
         blob = bucket.get_blob(key_name)
         if blob is not None:
             return blob.exists()
         # Determine if the path exists according to the current adapter
-        return self.client.exists(path)
+        return client.exists(path)
 
     def scandir(self, path: PathType) -> Generator[BucketEntry, None, None]:
-        return self.client.scandir(path, prefix=path.prefix)
+        return self.client(path).scandir(path, prefix=path.prefix)
 
     def listdir(self, path: PathType) -> Generator[str, None, None]:
         for entry in self.scandir(path):
@@ -546,13 +449,13 @@ class BucketsAccessor(_Accessor):
         self: PathType,
         path: PathType,
         *,
-        mode="r",
-        buffering=-1,
-        encoding=None,
-        errors=None,
-        newline=None,
-    ):
-        return self.client.open(
+        mode: str = "r",
+        buffering: int = -1,
+        encoding: Optional[str] = None,
+        errors: Optional[str] = None,
+        newline: Optional[str] = None,
+    ) -> StreamableType:
+        return self.client(path).open(
             path,
             mode=mode,
             buffering=buffering,
@@ -562,7 +465,7 @@ class BucketsAccessor(_Accessor):
         )
 
     def owner(self, path: PathType) -> Optional[str]:
-        blob: Optional[ClientBlob] = self.get_blob(path)
+        blob: Optional[Blob] = self.get_blob(path)
         return blob.owner if blob is not None else None
 
     def resolve(self, path: PathType, strict: bool = False) -> PathType:
@@ -570,12 +473,13 @@ class BucketsAccessor(_Accessor):
         return Pathy(f"{path.drive}{os.path.abspath(path_parts)}")
 
     def rename(self, path: PathType, target: PathType) -> None:
-        bucket: ClientBucket = self.client.get_bucket(path)
-        target_bucket: ClientBucket = self.client.get_bucket(target)
+        client: BucketClient = self.client(path)
+        bucket: Bucket = client.get_bucket(path)
+        target_bucket: Bucket = client.get_bucket(target)
 
         # Single file
         if not self.is_dir(path):
-            from_blob: Optional[ClientBlob] = bucket.get_blob(str(path.key))
+            from_blob: Optional[Blob] = bucket.get_blob(str(path.key))
             if from_blob is None:
                 raise FileNotFoundError(f'source file "{path}" does not exist')
             target_bucket.copy_blob(from_blob, target_bucket, str(target.key))
@@ -584,7 +488,7 @@ class BucketsAccessor(_Accessor):
 
         # Folder with objects
         sep = path._flavour.sep
-        blobs = list(self.client.list_blobs(path, prefix=path.prefix, delimiter=sep))
+        blobs = list(client.list_blobs(path, prefix=path.prefix, delimiter=sep))
         # First rename
         for blob in blobs:
             target_key_name = blob.name.replace(str(path.key), str(target.key))
@@ -597,16 +501,24 @@ class BucketsAccessor(_Accessor):
         return self.rename(path, target)
 
     def rmdir(self, path: PathType) -> None:
+        client: BucketClient = self.client(path)
         key_name = str(path.key) if path.key is not None else None
-        bucket = self.client.get_bucket(path)
-        blobs = list(self.client.list_blobs(path, prefix=key_name))
+        bucket = client.get_bucket(path)
+        blobs = list(client.list_blobs(path, prefix=key_name))
         bucket.delete_blobs(blobs)
-        if self.client.is_dir(path):
-            self.client.rmdir(path)
+        if client.is_dir(path):
+            client.rmdir(path)
 
     def mkdir(self, path: PathType, mode) -> None:
-        if not self.client.lookup_bucket(path):
-            self.client.create_bucket(path)
+        client: BucketClient = self.client(path)
+        bucket: Optional[Bucket] = client.lookup_bucket(path)
+        if bucket is None or not bucket.exists():
+            client.create_bucket(path)
+        elif path.key is not None:
+            assert isinstance(path, Pathy)
+            blob: Optional[Blob] = bucket.get_blob(str(path.key))
+            if blob is not None and blob.exists():
+                raise OSError(f"Blob already exists: {path}")
 
 
 _gcs_accessor = BucketsAccessor()

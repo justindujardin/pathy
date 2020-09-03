@@ -162,12 +162,12 @@ Raises FileExistsError if exist_ok is false and the bucket already exists.
 ```python
 Pathy.open(
     self: ~PathType,
-    mode = 'r',
-    buffering = 8192,
-    encoding = None,
-    errors = None,
-    newline = None,
-) -> io.IOBase
+    mode: str = 'r',
+    buffering: int = 8192,
+    encoding: Optional[str] = None,
+    errors: Optional[str] = None,
+    newline: Optional[str] = None,
+) -> Union[_io.TextIOWrapper, _io.FileIO, _io.BytesIO]
 ```
 
 Open the given blob for streaming. This delegates to the `smart_open`
@@ -249,7 +249,7 @@ Determine if this path points to the same location as other_path.
 ## stat <kbd>method</kbd>
 
 ```python
-Pathy.stat(self: ~PathType) -> pathy.client.BucketStat
+Pathy.stat(self: ~PathType) -> pathy.client.BlobStat
 ```
 
 Returns information about this bucket path.
@@ -280,10 +280,10 @@ If the blob already exists, the function succeeds if exist_ok is true
 (and its modification time is updated to the current time), otherwise
 FileExistsError is raised.
 
-# BucketStat <kbd>dataclass</kbd>
+# BlobStat <kbd>dataclass</kbd>
 
 ```python
-BucketStat(self, size: int, last_modified: int) -> None
+BlobStat(self, size: int, last_modified: int) -> None
 ```
 
 Stat for a bucket item

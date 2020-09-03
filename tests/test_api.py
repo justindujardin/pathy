@@ -7,12 +7,10 @@ import pytest
 import spacy
 from google.auth.exceptions import DefaultCredentialsError
 
-from .conftest import TEST_ADAPTERS
-
 from pathy import (
+    BlobStat,
     BucketClientFS,
     BucketsAccessor,
-    BucketStat,
     FluidPath,
     Pathy,
     PurePathy,
@@ -21,6 +19,8 @@ from pathy import (
     use_fs,
     use_fs_cache,
 )
+
+from .conftest import TEST_ADAPTERS
 
 # todo: test samefile/touch/write_text/write_bytes method
 # todo: test security and boto config changes
@@ -127,7 +127,7 @@ def test_api_stat(with_adapter, bucket: str):
     path = Pathy(f"gs://{bucket}/foo.txt")
     path.write_text("a-a-a-a-a-a-a")
     stat = path.stat()
-    assert isinstance(stat, BucketStat)
+    assert isinstance(stat, BlobStat)
     assert stat.size > 0
     assert stat.last_modified > 0
     with pytest.raises(ValueError):
@@ -390,9 +390,7 @@ def test_api_rename_folders_across_buckets(
 def test_api_replace_files_in_bucket(with_adapter, bucket: str):
     # replace a single file
     Pathy(f"gs://{bucket}/replace/file.txt").write_text("---")
-    Pathy(f"gs://{bucket}/replace/file.txt").replace(
-        f"gs://{bucket}/replace/other.txt"
-    )
+    Pathy(f"gs://{bucket}/replace/file.txt").replace(f"gs://{bucket}/replace/other.txt")
     assert not Pathy(f"gs://{bucket}/replace/file.txt").exists()
     assert Pathy(f"gs://{bucket}/replace/other.txt").is_file()
 
@@ -453,26 +451,28 @@ def test_api_rmdir(with_adapter, bucket: str):
 def test_api_mkdir(with_adapter, bucket: str):
     bucket_name = f"pathy-e2e-test-{uuid4().hex}"
     # Create a bucket
-    Pathy(f"gs://{bucket_name}/").mkdir()
+    path = Pathy(f"gs://{bucket_name}/")
+    path.mkdir()
+    assert path.exists()
     # Does not assert if it already exists
-    Pathy(f"gs://{bucket_name}/").mkdir(exist_ok=True)
+    path.mkdir(exist_ok=True)
     with pytest.raises(FileExistsError):
-        Pathy(f"gs://{bucket_name}/").mkdir(exist_ok=False)
+        path.mkdir(exist_ok=False)
     # with pytest.raises(FileNotFoundError):
     #     Pathy("/test-second-bucket/test-directory/file.name").mkdir()
     # Pathy("/test-second-bucket/test-directory/file.name").mkdir(parents=True)
-    assert Pathy(f"gs://{bucket_name}/").exists()
+    assert path.exists()
     # remove the bucket
     # client = storage.Client()
     # bucket = client.lookup_bucket(bucket_name)
     # bucket.delete()
-    Pathy(f"gs://{bucket_name}/").rmdir()
+    path.rmdir()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_ignore_extension(with_adapter, bucket: str):
     """The smart_open library does automatic decompression based
-    on the filename. We disable that to avoid errors, e.g. if you 
+    on the filename. We disable that to avoid errors, e.g. if you
     have a .tar.gz file that isn't gzipped."""
     not_targz = Pathy.from_bucket(bucket) / "ignore_ext/one.tar.gz"
     fixture_tar = Path(__file__).parent / "fixtures" / "tar_but_not_gzipped.tar.gz"
@@ -512,13 +512,14 @@ def test_api_use_fs(with_fs: Path):
 @mock.patch("pathy.gcs.BucketClientGCS", side_effect=DefaultCredentialsError())
 def test_api_bucket_accessor_without_gcs(bucket_client_gcs_mock, temp_folder):
     accessor = BucketsAccessor()
-    # Accessing the client lazily throws with no GCS or FS adapters configured
-    with pytest.raises(AssertionError):
-        accessor.client
+    path = Pathy("foo://foo")
+    # Accessing the client throws with no GCS or FS adapters configured
+    with pytest.raises(ValueError):
+        accessor.client(path)
 
     # Setting a fallback FS adapter fixes the problem
     use_fs(str(temp_folder))
-    assert isinstance(accessor.client, BucketClientFS)
+    assert isinstance(accessor.client(path), BucketClientFS)
 
 
 def test_api_export_spacy_model(temp_folder):

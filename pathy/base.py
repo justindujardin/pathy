@@ -1,28 +1,23 @@
-from pathlib import PurePath, _PosixFlavour  # noqa
-from typing import TypeVar, List, Tuple
-import os
-
-try:
-    import google.cloud.storage  # noqa
-
-    has_gcs = True
-except ImportError:
-    has_gcs = False
-
+import io
+from pathlib import _PosixFlavour  # type:ignore
+from pathlib import PurePath
+from typing import List, TypeVar, Union
 
 PathType = TypeVar("PathType")
 
+StreamableType = Union[io.TextIOWrapper, io.FileIO, io.BytesIO]
+
 
 class _GCSFlavour(_PosixFlavour):
-    is_supported = bool(has_gcs)
+    is_supported = True
 
-    def parse_parts(self, parts):
+    def parse_parts(self, parts: List[str]):
         drv, root, parsed = super().parse_parts(parts)
-        if len(parsed) and parsed[0] == "gs:":
+        if len(parsed) and parsed[0].endswith(":"):
             if len(parsed) < 2:
                 raise ValueError("need atleast two parts")
             # Restore the
-            drv = parsed[0]  # gs:
+            drv = parsed[0]  # scheme:
             root = parsed[1]  # bucket_name
         for part in parsed[1:]:
             if part == "..":
@@ -46,13 +41,30 @@ class PurePathy(PurePath):
     __slots__ = ()
 
     @property
-    def bucket(self):
+    def scheme(self) -> str:
+        """Return the scheme portion of this path. A path's scheme is the leading
+        few characters. In a website you would see a scheme of "http" or "https".
+
+        Consider a few examples:
+
+        ```python
+        assert Pathy("gs://foo/bar").scheme == "gs"
+        assert Pathy("file:///tmp/foo/bar").scheme == "file"
+
+        """
+        # This is an assumption of mine. I think it's fine, but let's
+        # cause an error if it's not the case.
+        assert self.drive[-1] == ":", "drive should end with :"
+        return self.drive[:-1]
+
+    @property
+    def bucket(self: PathType) -> PathType:
         """Return a new instance of only the bucket path."""
         self._absolute_path_validation()
         return type(self)(f"{self.drive}//{self.root}")
 
     @property
-    def key(self):
+    def key(self: PathType) -> "PathType":
         """Return a new instance of only the key path."""
         self._absolute_path_validation()
         key = self._flavour.sep.join(self.parts[2:])
@@ -61,9 +73,9 @@ class PurePathy(PurePath):
         return type(self)(key)
 
     @property
-    def prefix(self) -> str:
+    def prefix(self: PathType) -> str:
         sep = self._flavour.sep
-        a = str(self)
+        str(self)
         key = self.key
         if not key:
             return ""
