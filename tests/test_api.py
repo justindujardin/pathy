@@ -507,13 +507,11 @@ def test_api_use_fs(with_fs: Path):
     use_fs(False)
 
 
-def test_api_bucket_accessor_without_gcs(temp_folder):
+def test_api_raises_with_no_known_bucket_clients_for_a_scheme(temp_folder):
     accessor = BucketsAccessor()
     path = Pathy("foo://foo")
-    # Accessing the client throws with no GCS or FS adapters configured
     with pytest.raises(ValueError):
         accessor.client(path)
-
     # Setting a fallback FS adapter fixes the problem
     use_fs(str(temp_folder))
     assert isinstance(accessor.client(path), BucketClientFS)
