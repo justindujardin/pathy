@@ -2,10 +2,8 @@ from pathlib import Path
 from time import sleep
 from uuid import uuid4
 
-import mock
 import pytest
 import spacy
-from google.auth.exceptions import DefaultCredentialsError
 
 from pathy import (
     BlobStat,
@@ -509,8 +507,7 @@ def test_api_use_fs(with_fs: Path):
     use_fs(False)
 
 
-@mock.patch("pathy.gcs.BucketClientGCS", side_effect=DefaultCredentialsError())
-def test_api_bucket_accessor_without_gcs(bucket_client_gcs_mock, temp_folder):
+def test_api_bucket_accessor_without_gcs(temp_folder):
     accessor = BucketsAccessor()
     path = Pathy("foo://foo")
     # Accessing the client throws with no GCS or FS adapters configured
