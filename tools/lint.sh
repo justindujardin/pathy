@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
-set -x
+. .env/bin/activate
 
 mypy pathy
 flake8 pathy tests
