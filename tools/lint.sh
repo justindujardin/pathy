@@ -3,7 +3,11 @@
 set -e
 . .env/bin/activate
 
+echo "========================= mypy"
 mypy pathy
+echo "========================= flake8"
 flake8 pathy tests
+echo "========================= black"
 black pathy tests --check
-npx pyright
+echo "========================= pyright"
+npx pyright pathy tests
