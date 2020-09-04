@@ -1,3 +1,28 @@
+# [0.3.0](https://github.com/justindujardin/pathy/compare/v0.2.0...v0.3.0) (2020-09-04)
+
+
+### Code Refactoring
+
+* add BasePathy class to bind PathType var to ([796dd40](https://github.com/justindujardin/pathy/commit/796dd407fca72c5297914e597f3221fdbcd9e95e))
+
+
+### Features
+
+* add get_client/register_client for supporting multiple services ([747815b](https://github.com/justindujardin/pathy/commit/747815b46e1e3cd61e6e69d04b52f5f5958ed373))
+* **ci:** add lint check before testing ([2633480](https://github.com/justindujardin/pathy/commit/263348028fe5c217163632d9fd002cd7f5b5c77c))
+* **GCS:** print install command when using GCS without deps installed ([d8dbcd4](https://github.com/justindujardin/pathy/commit/d8dbcd41d1e813090cad906c81df95880ae7289c))
+
+
+### BREAKING CHANGES
+
+* This renames the internal GCS/File adapter classes by removing the prefix Client.
+
+ClientBucketFS -> BucketFS
+ClientBlobFS -> BlobFS
+ClientBucketGCS -> BucketGCS
+ClientBlobGCS -> BlobGCS
+* use_fs, get_fs_client, use_fs_cache, get_fs_cache, and clear_fs_cache moved from pathy.api to pathy.clients
+
 # [0.2.0](https://github.com/justindujardin/pathy/compare/v0.1.3...v0.2.0) (2020-08-22)
 
 
