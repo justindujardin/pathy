@@ -1,5 +1,7 @@
 pytest
 mypy
+isort
+autoflake
 flake8
 black
 pytest-coverage

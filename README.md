@@ -1,8 +1,9 @@
-# Pathy: a python Path interface for bucket storage
+# Pathy: a Path interface for local and cloud bucket storage
 
 [![Build status](https://travis-ci.com/justindujardin/pathy.svg?branch=master)](https://travis-ci.com/justindujardin/pathy)
 [![codecov](https://codecov.io/gh/justindujardin/pathy/branch/master/graph/badge.svg)](https://codecov.io/gh/justindujardin/pathy)
 [![Pypi version](https://badgen.net/pypi/v/pathy)](https://pypi.org/project/pathy/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 Pathy is a python package (_with type annotations_) for working with Bucket storage providers. It provides a CLI app for basic file operations between local files and remote buckets. It enables a smooth developer experience by supporting local file-system backed buckets during development and testing. It makes converting bucket blobs into local files a snap with optional local file caching of blobs.
 
@@ -33,6 +34,27 @@ greeting.unlink()
 assert not greeting.exists()
 ```
 
+## Semantic Versioning
+
+Before Pathy reaches v1.0 the project is not guaranteed to have a consistent API, which means that types and classes may move around or be removed. That said, we try to be predictable when it comes to breaking changes, so the project uses semantic versioning to help users avoid breakage.
+
+Specifically, new releases increase the `patch` semver component for new features and fixes, and the `minor` component when there are breaking changes. If you don't know much about semver strings, they're usually formatted `{major}.{minor}.{patch}` so increasing the `patch` component means incrementing the last number.
+
+Consider a few examples:
+
+| From Version | To Version | Changes are Breaking |
+| :----------: | :--------: | :------------------: |
+|    0.2.0     |   0.2.1    |          No          |
+|    0.3.2     |   0.3.6    |          No          |
+|    0.3.1     |   0.3.17   |          No          |
+|    0.2.2     |   0.3.0    |         Yes          |
+
+If you are concerned about breaking changes, you can pin the version in your requirements so that it does not go beyond the current semver `minor` component, for example if the current version was `0.1.37`:
+
+```
+pathy>=0.1.37,<0.2.0
+```
+
 ## 🎛 API
 
 <!-- NOTE: The below code is auto-generated. Update source files to change API documentation. -->
@@ -49,7 +71,7 @@ Subclass of `pathlib.Path` that works with bucket APIs.
 ## exists <kbd>method</kbd>
 
 ```python
-Pathy.exists(self: ~PathType) -> bool
+Pathy.exists(self) -> bool
 ```
 
 Returns True if the path points to an existing bucket, blob, or prefix.
@@ -96,7 +118,10 @@ assert str(Pathy.from_bucket("two")) == "gs://two/"
 ## glob <kbd>method</kbd>
 
 ```python
-Pathy.glob(self: ~PathType, pattern) -> Generator[~PathType, NoneType, NoneType]
+Pathy.glob(
+    self: 'Pathy',
+    pattern: str,
+) -> Generator[Pathy, NoneType, NoneType]
 ```
 
 Perform a glob match relative to this Pathy instance, yielding all matched
@@ -105,7 +130,7 @@ blobs.
 ## is_dir <kbd>method</kbd>
 
 ```python
-Pathy.is_dir(self: ~PathType) -> bool
+Pathy.is_dir(self: 'Pathy') -> bool
 ```
 
 Determine if the path points to a bucket or a prefix of a given blob
@@ -117,7 +142,7 @@ Returns False if it points to a blob or the path doesn't exist.
 ## is_file <kbd>method</kbd>
 
 ```python
-Pathy.is_file(self: ~PathType) -> bool
+Pathy.is_file(self: 'Pathy') -> bool
 ```
 
 Determine if the path points to a blob in the bucket.
@@ -129,7 +154,9 @@ exist.
 ## iterdir <kbd>method</kbd>
 
 ```python
-Pathy.iterdir(self: ~PathType) -> Generator[~PathType, NoneType, NoneType]
+Pathy.iterdir(
+    self: 'Pathy',
+) -> Generator[Pathy, NoneType, NoneType]
 ```
 
 Iterate over the blobs found in the given bucket or blob prefix path.
@@ -138,7 +165,7 @@ Iterate over the blobs found in the given bucket or blob prefix path.
 
 ```python
 Pathy.mkdir(
-    self: ~PathType,
+    self,
     mode: int = 511,
     parents: bool = False,
     exist_ok: bool = False,
@@ -161,13 +188,13 @@ Raises FileExistsError if exist_ok is false and the bucket already exists.
 
 ```python
 Pathy.open(
-    self: ~PathType,
-    mode = 'r',
-    buffering = 8192,
-    encoding = None,
-    errors = None,
-    newline = None,
-) -> io.IOBase
+    self: 'Pathy',
+    mode: str = 'r',
+    buffering: int = 8192,
+    encoding: Optional[str] = None,
+    errors: Optional[str] = None,
+    newline: Optional[str] = None,
+) -> IO[Any]
 ```
 
 Open the given blob for streaming. This delegates to the `smart_open`
@@ -177,7 +204,7 @@ providers.
 ## owner <kbd>method</kbd>
 
 ```python
-Pathy.owner(self: ~PathType) -> Optional[str]
+Pathy.owner(self: 'Pathy') -> Optional[str]
 ```
 
 Returns the name of the user that owns the bucket or blob
@@ -187,7 +214,7 @@ not supported by the bucket API provider.
 ## rename <kbd>method</kbd>
 
 ```python
-Pathy.rename(self: ~PathType, target: Union[str, ~PathType]) -> None
+Pathy.rename(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> None
 ```
 
 Rename this path to the given target.
@@ -201,7 +228,7 @@ to match the target prefix.
 ## replace <kbd>method</kbd>
 
 ```python
-Pathy.replace(self: ~PathType, target: Union[str, ~PathType]) -> None
+Pathy.replace(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> None
 ```
 
 Renames this path to the given target.
@@ -211,7 +238,7 @@ If target points to an existing path, it will be replaced.
 ## resolve <kbd>method</kbd>
 
 ```python
-Pathy.resolve(self: ~PathType) -> ~PathType
+Pathy.resolve(self, strict: bool = False) -> 'Pathy'
 ```
 
 Resolve the given path to remove any relative path specifiers.
@@ -224,7 +251,10 @@ assert path.resolve() == Pathy("gs://my_bucket/blob")
 ## rglob <kbd>method</kbd>
 
 ```python
-Pathy.rglob(self: ~PathType, pattern) -> Generator[~PathType, NoneType, NoneType]
+Pathy.rglob(
+    self: 'Pathy',
+    pattern: str,
+) -> Generator[Pathy, NoneType, NoneType]
 ```
 
 Perform a recursive glob match relative to this Pathy instance, yielding
@@ -233,7 +263,7 @@ all matched blobs. Imagine adding "\*\*/" before a call to glob.
 ## rmdir <kbd>method</kbd>
 
 ```python
-Pathy.rmdir(self: ~PathType) -> None
+Pathy.rmdir(self: 'Pathy') -> None
 ```
 
 Removes this bucket or blob prefix. It must be empty.
@@ -241,7 +271,10 @@ Removes this bucket or blob prefix. It must be empty.
 ## samefile <kbd>method</kbd>
 
 ```python
-Pathy.samefile(self: ~PathType, other_path: ~PathType) -> bool
+Pathy.samefile(
+    self: 'Pathy',
+    other_path: Union[str, bytes, int, pathlib.Path],
+) -> bool
 ```
 
 Determine if this path points to the same location as other_path.
@@ -249,7 +282,7 @@ Determine if this path points to the same location as other_path.
 ## stat <kbd>method</kbd>
 
 ```python
-Pathy.stat(self: ~PathType) -> pathy.client.BucketStat
+Pathy.stat(self: 'Pathy') -> pathy.base.BlobStat
 ```
 
 Returns information about this bucket path.
@@ -271,7 +304,7 @@ as their updated timestamps change.
 ## touch <kbd>method</kbd>
 
 ```python
-Pathy.touch(self: ~PathType, mode: int = 438, exist_ok: bool = True)
+Pathy.touch(self: 'Pathy', mode: int = 438, exist_ok: bool = True) -> None
 ```
 
 Create a blob at this path.
@@ -280,10 +313,14 @@ If the blob already exists, the function succeeds if exist_ok is true
 (and its modification time is updated to the current time), otherwise
 FileExistsError is raised.
 
-# BucketStat <kbd>dataclass</kbd>
+# BlobStat <kbd>dataclass</kbd>
 
 ```python
-BucketStat(self, size: int, last_modified: int) -> None
+BlobStat(
+    self,
+    size: Optional[int],
+    last_modified: Optional[int],
+) -> None
 ```
 
 Stat for a bucket item

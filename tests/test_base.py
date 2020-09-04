@@ -23,6 +23,12 @@ def test_base_home():
         Pathy.home()
 
 
+def test_base_expanduser():
+    path = Pathy("/fake-bucket/fake-key")
+    with pytest.raises(NotImplementedError):
+        path.expanduser()
+
+
 def test_base_chmod():
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
@@ -127,9 +133,7 @@ def test_base_slashes_single_double_dots():
 
 
 def test_base_operators():
-    assert PurePathy("/etc") / "init.d" / "apache2" == PurePathy(
-        "/etc/init.d/apache2"
-    )
+    assert PurePathy("/etc") / "init.d" / "apache2" == PurePathy("/etc/init.d/apache2")
     assert "/var" / PurePathy("tests") / "fake" == PurePathy("/var/tests/fake")
 
 
@@ -238,9 +242,7 @@ def test_base_reserved():
 
 def test_base_joinpath():
     assert PurePathy("/etc").joinpath("passwd") == PurePathy("/etc/passwd")
-    assert PurePathy("/etc").joinpath(PurePathy("passwd")) == PurePathy(
-        "/etc/passwd"
-    )
+    assert PurePathy("/etc").joinpath(PurePathy("passwd")) == PurePathy("/etc/passwd")
     assert PurePathy("/etc").joinpath("init.d", "apache2") == PurePathy(
         "/etc/init.d/apache2"
     )
@@ -265,9 +267,7 @@ def test_base_relative_to():
 
 def test_base_with_name():
     gcs_path = PurePathy("/Downloads/pathlib.tar.gz")
-    assert gcs_path.with_name("fake_file.txt") == PurePathy(
-        "/Downloads/fake_file.txt"
-    )
+    assert gcs_path.with_name("fake_file.txt") == PurePathy("/Downloads/fake_file.txt")
     gcs_path = PurePathy("/")
     with pytest.raises(ValueError):
         gcs_path.with_name("fake_file.txt")

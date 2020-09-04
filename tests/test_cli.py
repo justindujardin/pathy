@@ -1,8 +1,8 @@
 import pytest
-from pathy import Pathy
-from pathy.cli import app
 from typer.testing import CliRunner
 
+from pathy import Pathy
+from pathy.cli import app
 
 from .conftest import TEST_ADAPTERS
 
@@ -104,10 +104,11 @@ def test_cli_mv_folder_across_buckets(with_adapter, bucket: str, other_bucket: s
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_file(with_adapter, bucket: str):
     source = f"gs://{bucket}/cli_rm_file/file.txt"
-    Pathy(source).write_text("---")
-    assert Pathy(source).exists()
+    path = Pathy(source)
+    path.write_text("---")
+    assert path.exists()
     assert runner.invoke(app, ["rm", source]).exit_code == 0
-    assert not Pathy(source).exists()
+    assert not path.exists()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -150,9 +151,9 @@ def test_cli_rm_folder(with_adapter, bucket: str):
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_ls(with_adapter, bucket: str):
     root = Pathy.from_bucket(bucket) / "cli_ls"
-    one = str(root / f"file.txt")
-    two = str(root / f"other.txt")
-    three = str(root / f"folder/file.txt")
+    one = str(root / "file.txt")
+    two = str(root / "other.txt")
+    three = str(root / "folder/file.txt")
     Pathy(one).write_text("---")
     Pathy(two).write_text("---")
     Pathy(three).write_text("---")

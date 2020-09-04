@@ -4,24 +4,25 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from pathy import Pathy, use_fs, use_fs_cache
 
+from pathy import Pathy, use_fs, use_fs_cache
+from pathy.gcs import has_gcs
 
 # TODO: set this up with a service account for the CI
 has_credentials = "CI" not in os.environ
 
 # Which adapters to use
-TEST_ADAPTERS = ["gcs", "fs"] if has_credentials else ["fs"]
+TEST_ADAPTERS = ["gcs", "fs"] if has_credentials and has_gcs else ["fs"]
 
 
 @pytest.fixture()
 def bucket() -> str:
-    return "pathy-tests-1"
+    return "pathy-tests-bucket"
 
 
 @pytest.fixture()
 def other_bucket() -> str:
-    return "pathy-tests-2"
+    return "pathy-tests-bucket-other"
 
 
 @pytest.fixture()

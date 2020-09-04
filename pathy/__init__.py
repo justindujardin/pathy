@@ -1,18 +1,23 @@
-from .api import (  # noqa
+from .base import (
+    Blob,
+    BlobStat,
+    Bucket,
     BucketClient,
+    BucketEntry,
     BucketsAccessor,
-    ClientBlob,
-    ClientBucket,
     ClientError,
+    FluidPath,
     Pathy,
     PurePathy,
-    FluidPath,
+)
+from .clients import (
     clear_fs_cache,
+    get_client,
     get_fs_cache,
     get_fs_client,
+    register_client,
     use_fs,
     use_fs_cache,
 )
-from .client import BucketEntry, BucketStat  # noqa
-from .file import BucketClientFS, BucketEntryFS, ClientBlobFS, ClientBucketFS  # noqa
-from .gcs import BucketClientGCS, BucketEntryGCS, ClientBlobGCS, ClientBucketGCS  # noqa
+from .file import BlobFS, BucketClientFS, BucketEntryFS, BucketFS
+from .gcs import BlobGCS, BucketClientGCS, BucketEntryGCS, BucketGCS

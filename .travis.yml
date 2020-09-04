@@ -9,6 +9,7 @@ matrix:
         - npm install && npx ts-node tools/ci-set-build-version.ts
         - sh tools/setup.sh
       script:
+        - sh tools/lint.sh
         - sh tools/test.sh
       after_success:
         - sh tools/codecov.sh
