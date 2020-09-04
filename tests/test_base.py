@@ -1,9 +1,3 @@
-from pathlib import Path
-
-import pytest
-
-from pathy import Blob, Bucket, BucketClient, BucketClientFS, Pathy, PurePathy
-
 import os
 import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -13,7 +7,10 @@ import pytest
 import spacy
 
 from pathy import (
+    Blob,
     BlobStat,
+    Bucket,
+    BucketClient,
     BucketClientFS,
     BucketsAccessor,
     FluidPath,
@@ -24,6 +21,7 @@ from pathy import (
     use_fs_cache,
 )
 from pathy.about import __version__
+
 from .conftest import TEST_ADAPTERS
 
 # todo: test samefile/touch method
