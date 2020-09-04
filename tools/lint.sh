@@ -6,3 +6,4 @@ set -e
 mypy pathy
 flake8 pathy tests
 black pathy tests --check
+pyright
