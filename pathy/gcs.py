@@ -4,15 +4,17 @@ from typing import Any, Dict, Generator, List, Optional
 from .base import Blob, Bucket, BucketClient, BucketEntry, ClientError, PurePathy
 
 try:
-    from google.api_core import exceptions as gcs_errors
-    from google.auth.exceptions import DefaultCredentialsError
-    from google.cloud.storage import Blob as GCSNativeBlob
-    from google.cloud.storage import Bucket as GCSNativeBucket
-    from google.cloud.storage import Client as GCSNativeClient
+    from google.api_core import exceptions as gcs_errors  # type:ignore
+    from google.auth.exceptions import DefaultCredentialsError  # type:ignore
+    from google.cloud.storage import Blob as GCSNativeBlob  # type:ignore
+    from google.cloud.storage import Bucket as GCSNativeBucket  # type:ignore
+    from google.cloud.storage import Client as GCSNativeClient  # type:ignore
 
     has_gcs = True
 except ImportError:
     GCSNativeBlob = Any
+    DefaultCredentialsError = Any
+    gcs_errors = Any
     GCSNativeBucket = Any
     GCSNativeClient = Any
     storage = None
