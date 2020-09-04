@@ -1,10 +1,9 @@
 import os
 from dataclasses import dataclass
 from io import DEFAULT_BUFFER_SIZE
-from pathlib import Path  # type:ignore
 from pathlib import _Accessor  # type:ignore
 from pathlib import _PosixFlavour  # type:ignore
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from typing import (
     IO,
     Any,

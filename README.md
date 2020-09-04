@@ -1,8 +1,9 @@
-# Pathy: a python Path interface for bucket storage
+# Pathy: a Path interface for local and cloud bucket storage
 
 [![Build status](https://travis-ci.com/justindujardin/pathy.svg?branch=master)](https://travis-ci.com/justindujardin/pathy)
 [![codecov](https://codecov.io/gh/justindujardin/pathy/branch/master/graph/badge.svg)](https://codecov.io/gh/justindujardin/pathy)
 [![Pypi version](https://badgen.net/pypi/v/pathy)](https://pypi.org/project/pathy/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 Pathy is a python package (_with type annotations_) for working with Bucket storage providers. It provides a CLI app for basic file operations between local files and remote buckets. It enables a smooth developer experience by supporting local file-system backed buckets during development and testing. It makes converting bucket blobs into local files a snap with optional local file caching of blobs.
 
@@ -31,6 +32,27 @@ assert greeting.exists()
 greeting.unlink()
 # Now it doesn't
 assert not greeting.exists()
+```
+
+## Semantic Versioning
+
+Before Pathy reaches v1.0 the project is not guaranteed to have a consistent API, which means that types and classes may move around or be removed. That said, we try to be predictable when it comes to breaking changes, so the project uses semantic versioning to help users avoid breakage.
+
+Specifically, new releases increase the `patch` semver component for new features and fixes, and the `minor` component when there are breaking changes. If you don't know much about semver strings, they're usually formatted `{major}.{minor}.{patch}` so increasing the `patch` component means incrementing the last number.
+
+Consider a few examples:
+
+| From Version | To Version | Changes are Breaking |
+| :----------: | :--------: | :------------------: |
+|    0.2.0     |   0.2.1    |          No          |
+|    0.3.2     |   0.3.6    |          No          |
+|    0.3.1     |   0.3.17   |          No          |
+|    0.2.2     |   0.3.0    |         Yes          |
+
+If you are concerned about breaking changes, you can pin the version in your requirements so that it does not go beyond the current semver `minor` component, for example if the current version was `0.1.37`:
+
+```
+pathy>=0.1.37,<0.2.0
 ```
 
 ## 🎛 API

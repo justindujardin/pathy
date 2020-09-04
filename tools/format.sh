@@ -1,5 +1,5 @@
 #!/bin/sh -e
-set -x
+. .env/bin/activate
 
 # Sort imports one per line, so autoflake can remove unused imports
 isort pathy tests --force-single-line-imports
