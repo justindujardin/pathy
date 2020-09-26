@@ -13,7 +13,7 @@ try:
     has_gcs = True
 except ImportError:
     GCSNativeBlob = Any
-    DefaultCredentialsError = Any
+    DefaultCredentialsError = BaseException
     gcs_errors = Any
     GCSNativeBucket = Any
     GCSNativeClient = Any
