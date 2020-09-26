@@ -1,3 +1,11 @@
+## [0.3.1](https://github.com/justindujardin/pathy/compare/v0.3.0...v0.3.1) (2020-09-26)
+
+
+### Features
+
+* update smart-open to 2.2.0 for minimal deps ([4b3e959](https://github.com/justindujardin/pathy/commit/4b3e959ce1c4c491cb291935e8d47ac537b72485))
+* **ci:** add pyright check to lint step ([10ce34d](https://github.com/justindujardin/pathy/commit/10ce34d13ddc99232b3ce7681db27f561d51c87b))
+
 # [0.3.0](https://github.com/justindujardin/pathy/compare/v0.2.0...v0.3.0) (2020-09-04)
 
 
