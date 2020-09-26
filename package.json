@@ -13,7 +13,7 @@
         "type": "git",
         "url": "https://github.com/justindujardin/pathy"
     },
-    "author": "",
+    "author": "Justin DuJardin",
     "license": "Apache-2.0",
     "bugs": {
         "url": "https://github.com/justindujardin/pathy/issues"
@@ -38,6 +38,7 @@
         "husky": "^4.2.5",
         "lint-staged": "^10.2.11",
         "minimist": "^1.2.5",
+        "pyright": "^1.1.66",
         "semantic-release": "^17.0.4",
         "stream-buffers": "^3.0.2",
         "ts-node": "^8.0.2",
@@ -99,5 +100,6 @@
             ],
             "@semantic-release/github"
         ]
-    }
+    },
+    "dependencies": {}
 }

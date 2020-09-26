@@ -4,13 +4,19 @@ from typing import Any, Dict, Generator, List, Optional
 from .base import Blob, Bucket, BucketClient, BucketEntry, ClientError, PurePathy
 
 try:
-    from google.api_core import exceptions as gcs_errors
-    from google.auth.exceptions import DefaultCredentialsError
-    from google.cloud import storage
+    from google.api_core import exceptions as gcs_errors  # type:ignore
+    from google.auth.exceptions import DefaultCredentialsError  # type:ignore
+    from google.cloud.storage import Blob as GCSNativeBlob  # type:ignore
+    from google.cloud.storage import Bucket as GCSNativeBucket  # type:ignore
+    from google.cloud.storage import Client as GCSNativeClient  # type:ignore
 
     has_gcs = True
 except ImportError:
-    storage = None
+    GCSNativeBlob = Any
+    DefaultCredentialsError = BaseException
+    gcs_errors = Any
+    GCSNativeBucket = Any
+    GCSNativeClient = Any
     has_gcs = False
 
 _MISSING_DEPS = """You are using the GCS functionality of Pathy without
@@ -23,12 +29,12 @@ Please try installing them:
 """
 
 
-class BucketEntryGCS(BucketEntry["BucketGCS", "storage.Blob"]):
+class BucketEntryGCS(BucketEntry["BucketGCS", GCSNativeBlob]):
     ...
 
 
 @dataclass
-class BlobGCS(Blob["storage.Bucket", "storage.Blob"]):
+class BlobGCS(Blob[GCSNativeBucket, GCSNativeBlob]):
     def delete(self) -> None:
         self.raw.delete()
 
@@ -39,7 +45,7 @@ class BlobGCS(Blob["storage.Bucket", "storage.Blob"]):
 @dataclass
 class BucketGCS(Bucket):
     name: str
-    bucket: "storage.Bucket"
+    bucket: GCSNativeBucket
 
     def get_blob(self, blob_name: str) -> Optional[BlobGCS]:
         assert isinstance(
@@ -91,11 +97,11 @@ class BucketGCS(Bucket):
 
 
 class BucketClientGCS(BucketClient):
-    client: Optional["storage.Client"]
+    client: Optional[GCSNativeClient]
 
-    def __init__(self, client: Optional["storage.Client"] = None):
+    def __init__(self, client: Optional[GCSNativeClient] = None):
         try:
-            self.client = storage.Client() if storage else None
+            self.client = GCSNativeClient() if GCSNativeClient else None
         except (BaseException, DefaultCredentialsError):
             self.client = None
 
@@ -149,7 +155,7 @@ class BucketClientGCS(BucketClient):
 
     def list_buckets(
         self, **kwargs: Dict[str, Any]
-    ) -> Generator["storage.Bucket", None, None]:
+    ) -> Generator[GCSNativeBucket, None, None]:
         assert self.client is not None, _MISSING_DEPS
         return self.client.list_buckets(**kwargs)  # type:ignore
 
@@ -162,7 +168,7 @@ class BucketClientGCS(BucketClient):
         assert self.client is not None, _MISSING_DEPS
         continuation_token = None
         if path is None or not path.root:
-            gcs_bucket: "storage.Bucket"
+            gcs_bucket: GCSNativeBucket
             for gcs_bucket in self.list_buckets():
                 yield BucketEntryGCS(gcs_bucket.name, is_dir=True, raw=None)
             return
