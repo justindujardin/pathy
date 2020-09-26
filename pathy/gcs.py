@@ -17,7 +17,6 @@ except ImportError:
     gcs_errors = Any
     GCSNativeBucket = Any
     GCSNativeClient = Any
-    storage = None
     has_gcs = False
 
 _MISSING_DEPS = """You are using the GCS functionality of Pathy without
@@ -102,7 +101,7 @@ class BucketClientGCS(BucketClient):
 
     def __init__(self, client: Optional[GCSNativeClient] = None):
         try:
-            self.client = GCSNativeClient() if storage else None
+            self.client = GCSNativeClient() if GCSNativeClient else None
         except (BaseException, DefaultCredentialsError):
             self.client = None
 

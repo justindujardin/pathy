@@ -400,10 +400,13 @@ Copy a blob or folder of blobs from one bucket to another.
 $ cp [OPTIONS] FROM_LOCATION TO_LOCATION
 ```
 
-**Options**:
+**Arguments**:
 
 - `FROM_LOCATION`: [required]
 - `TO_LOCATION`: [required]
+
+**Options**:
+
 - `--help`: Show this message and exit.
 
 ## `ls`
@@ -416,9 +419,12 @@ List the blobs that exist at a given location.
 $ ls [OPTIONS] LOCATION
 ```
 
-**Options**:
+**Arguments**:
 
 - `LOCATION`: [required]
+
+**Options**:
+
 - `--help`: Show this message and exit.
 
 ## `mv`
@@ -431,10 +437,13 @@ Move a blob or folder of blobs from one path to another.
 $ mv [OPTIONS] FROM_LOCATION TO_LOCATION
 ```
 
-**Options**:
+**Arguments**:
 
 - `FROM_LOCATION`: [required]
 - `TO_LOCATION`: [required]
+
+**Options**:
+
 - `--help`: Show this message and exit.
 
 ## `rm`
@@ -447,9 +456,12 @@ Remove a blob or folder of blobs from a given location.
 $ rm [OPTIONS] LOCATION
 ```
 
-**Options**:
+**Arguments**:
 
 - `LOCATION`: [required]
+
+**Options**:
+
 - `-r, --recursive`: Recursively remove files and folders. [default: False]
 - `-v, --verbose`: Print removed files and folders. [default: False]
 - `--help`: Show this message and exit.
