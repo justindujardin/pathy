@@ -697,6 +697,21 @@ def test_api_rmdir(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_rglob_unlink(with_adapter, bucket: str):
+    files = [f"gs://{bucket}/rglob_and_unlink/{i}.file.txt" for i in range(3)]
+    for file in files:
+        Pathy(file).write_text("---")
+    path = Pathy(f"gs://{bucket}/rglob_and_unlink/")
+    for blob in path.rglob("*"):
+        blob.unlink()
+    # All the files are gone
+    for file in files:
+        assert Pathy(file).exists() is False
+    # The folder is gone
+    assert not path.exists()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_mkdir(with_adapter, bucket: str):
     bucket_name = f"pathy-e2e-test-{uuid4().hex}"
     # Create a bucket
