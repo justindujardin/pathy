@@ -606,7 +606,7 @@ class Pathy(Path, PurePathy):
         all matched blobs. Imagine adding "**/" before a call to glob."""
         yield from super().rglob(pattern)  # type:ignore
 
-    def open(
+    def open(  # type:ignore
         self: "Pathy",
         mode: str = "r",
         buffering: int = DEFAULT_BUFFER_SIZE,
