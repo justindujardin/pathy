@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/justindujardin/pathy/compare/v0.3.1...v0.3.2) (2020-11-12)
+
+
+### Bug Fixes
+
+* upgrade smart-open to >=2.2.0,<4.0.0 ([#36](https://github.com/justindujardin/pathy/issues/36)) ([fdf083e](https://github.com/justindujardin/pathy/commit/fdf083eb711f225e577e9f6199a7a403b49bf2ea))
+
 ## [0.3.1](https://github.com/justindujardin/pathy/compare/v0.3.0...v0.3.1) (2020-09-26)
 
 
