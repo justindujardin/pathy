@@ -1,3 +1,10 @@
+## [0.3.3](https://github.com/justindujardin/pathy/compare/v0.3.2...v0.3.3) (2020-11-12)
+
+
+### Bug Fixes
+
+* path.scheme would error with schemeless paths ([#37](https://github.com/justindujardin/pathy/issues/37)) ([80f0036](https://github.com/justindujardin/pathy/commit/80f003670e9ce2515b23813fec9dfdf7a6696fb3))
+
 ## [0.3.2](https://github.com/justindujardin/pathy/compare/v0.3.1...v0.3.2) (2020-11-12)
 
 
