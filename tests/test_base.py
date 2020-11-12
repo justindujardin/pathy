@@ -129,6 +129,13 @@ def test_base_repr():
     assert bytes(PurePathy("fake_file.txt")) == b"fake_file.txt"
 
 
+def test_base_scheme_extraction():
+    assert PurePathy("gs://var/tests/fake").scheme == "gs"
+    assert PurePathy("s3://var/tests/fake").scheme == "s3"
+    assert PurePathy("file://var/tests/fake").scheme == "file"
+    assert PurePathy("/var/tests/fake").scheme == ""
+
+
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
 def test_base_fspath():
     assert os.fspath(PurePathy("/var/tests/fake")) == "/var/tests/fake"
