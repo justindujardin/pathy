@@ -32,10 +32,11 @@
 
 * This renames the internal GCS/File adapter classes by removing the prefix Client.
 
-ClientBucketFS -> BucketFS
-ClientBlobFS -> BlobFS
-ClientBucketGCS -> BucketGCS
-ClientBlobGCS -> BlobGCS
+- ClientBucketFS -> BucketFS
+- ClientBlobFS -> BlobFS
+- ClientBucketGCS -> BucketGCS
+- ClientBlobGCS -> BlobGCS
+- BucketStat -> BlobStat
 * use_fs, get_fs_client, use_fs_cache, get_fs_cache, and clear_fs_cache moved from pathy.api to pathy.clients
 
 # [0.2.0](https://github.com/justindujardin/pathy/compare/v0.1.3...v0.2.0) (2020-08-22)
