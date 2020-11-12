@@ -14,6 +14,7 @@ from .conftest import TEST_ADAPTERS
 def test_clients_get_client_works_with_builtin_schems():
     assert isinstance(get_client("gs"), BucketClientGCS)
     assert isinstance(get_client("file"), BucketClientFS)
+    assert isinstance(get_client(""), BucketClientFS)
 
 
 def test_clients_get_client_errors_with_unknown_scheme():

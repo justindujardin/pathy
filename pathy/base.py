@@ -235,8 +235,12 @@ class PurePathy(PurePath):
         ```python
         assert Pathy("gs://foo/bar").scheme == "gs"
         assert Pathy("file:///tmp/foo/bar").scheme == "file"
+        assert Pathy("/dev/null").scheme == ""
 
         """
+        # If there is no drive, return nothing
+        if self.drive == "":
+            return ""
         # This is an assumption of mine. I think it's fine, but let's
         # cause an error if it's not the case.
         assert self.drive[-1] == ":", "drive should end with :"

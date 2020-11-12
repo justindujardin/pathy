@@ -11,6 +11,7 @@ from .gcs import BucketClientGCS
 #       hardcode it (atleast the base schemes) to get nice types flowing
 #       in cases where they would otherwise be lost.
 _client_registry: Dict[str, Type[BucketClient]] = {
+    "": BucketClientFS,
     "file": BucketClientFS,
     "gs": BucketClientGCS,
 }
