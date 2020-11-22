@@ -1,3 +1,5 @@
+from pathy.base import BucketClient
+from pathy.clients import register_client, set_client_params
 import time
 from pathlib import Path
 
@@ -15,6 +17,11 @@ def test_clients_get_client_works_with_builtin_schems():
     assert isinstance(get_client("gs"), BucketClientGCS)
     assert isinstance(get_client("file"), BucketClientFS)
     assert isinstance(get_client(""), BucketClientFS)
+
+
+def test_clients_get_client_respects_use_fs_override():
+    use_fs(True)
+    assert isinstance(get_client("gs"), BucketClientFS)
 
 
 def test_clients_get_client_errors_with_unknown_scheme():
@@ -78,3 +85,18 @@ def test_api_use_fs_cache(with_adapter, with_fs: str, bucket: str):
     Pathy.to_local(path)
     updated_cache_time = foo_timestamp.read_text()
     assert updated_cache_time != orig_cache_time, "cached timestamp did not change"
+
+
+class BucketClientTest(BucketClient):
+    def __init__(self, required_arg: bool) -> None:
+        self.required_arg = required_arg
+
+
+def test_clients_set_client_params():
+    register_client("test", BucketClientTest)
+    with pytest.raises(TypeError):
+        get_client("test")
+
+    set_client_params("test", required_arg=True)
+    client = get_client("test")
+    assert isinstance(client, BucketClientTest)

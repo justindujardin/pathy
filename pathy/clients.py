@@ -23,9 +23,10 @@ _fs_client: Optional[BucketClientFS] = None
 _fs_cache: Optional[pathlib.Path] = None
 
 
-def register_client() -> None:
+def register_client(scheme: str, type: Type[BucketClient]) -> None:
     """Register a bucket client for use with certain scheme Pathy objects"""
     global _client_registry
+    _client_registry[scheme] = type
 
 
 def get_client(scheme: str) -> BucketClientType:
