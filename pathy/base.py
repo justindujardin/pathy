@@ -483,11 +483,13 @@ class Pathy(Path, PurePathy):
         return of this function to the desired type, e.g.
 
         ```python
-        fluid_path = FluidPath("gs://my_bucket/foo.txt")
+        from pathy import FluidPath, Pathy
+
+        fluid_path: FluidPath = Pathy.fluid("gs://my_bucket/foo.txt")
         # Narrow the type to a specific class
         assert isinstance(fluid_path, Pathy), "must be Pathy"
         # Use a member specific to that class
-        print(fluid_path.prefix)
+        assert fluid_path.prefix == "foo.txt/"
         ```
         """
         from_path: FluidPath = Pathy(path_candidate)
@@ -501,6 +503,8 @@ class Pathy(Path, PurePathy):
         the appropriate prefix.
 
         ```python
+        from pathy import Pathy
+
         assert str(Pathy.from_bucket("one")) == "gs://one/"
         assert str(Pathy.from_bucket("two")) == "gs://two/"
         ```
@@ -666,6 +670,8 @@ class Pathy(Path, PurePathy):
         """Resolve the given path to remove any relative path specifiers.
 
         ```python
+        from pathy import Pathy
+
         path = Pathy("gs://my_bucket/folder/../blob")
         assert path.resolve() == Pathy("gs://my_bucket/blob")
         ```
