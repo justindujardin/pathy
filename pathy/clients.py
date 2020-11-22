@@ -44,7 +44,7 @@ def get_client(scheme: str) -> BucketClientType:
     raise ValueError(f'There is no client registered to handle "{scheme}" paths')
 
 
-def set_client_params(scheme: str, **kwargs) -> None:
+def set_client_params(scheme: str, **kwargs: Any) -> None:
     """Specify args to pass when instantiating a service-specific Client
     object. This allows for passing credentials in whatever way your underlying
     client library prefers."""

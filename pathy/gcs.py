@@ -103,10 +103,10 @@ class BucketClientGCS(BucketClient):
     def client_params(self) -> Any:
         return dict(client=self.client)
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self.recreate(**kwargs)
 
-    def recreate(self, **kwargs) -> None:
+    def recreate(self, **kwargs: Any) -> None:
         try:
             creds = kwargs["credentials"] if "credentials" in kwargs else None
             if creds is not None:

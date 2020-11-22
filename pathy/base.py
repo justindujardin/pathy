@@ -130,9 +130,8 @@ class Bucket:
 class BucketClient:
     """Base class for a client that interacts with a bucket-based storage system."""
 
-    def recreate(self, **kwargs) -> None:
+    def recreate(self, **kwargs: Any) -> None:
         """Recreate any underlying bucket client adapter with the given kwargs"""
-        pass
 
     def open(
         self,
