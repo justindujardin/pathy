@@ -130,6 +130,10 @@ class Bucket:
 class BucketClient:
     """Base class for a client that interacts with a bucket-based storage system."""
 
+    def recreate(self, **kwargs) -> None:
+        """Recreate any underlying bucket client adapter with the given kwargs"""
+        pass
+
     def open(
         self,
         path: "Pathy",
@@ -140,6 +144,10 @@ class BucketClient:
         errors: Optional[str] = None,
         newline: Optional[str] = None,
     ) -> StreamableType:
+        client_params = {}
+        if hasattr(self, "client_params"):
+            client_params = getattr(self, "client_params")
+
         return smart_open.open(
             self.make_uri(path),
             mode=mode,
@@ -147,6 +155,7 @@ class BucketClient:
             encoding=encoding,
             errors=errors,
             newline=newline,
+            transport_params=client_params,
             # Disable de/compression based on the file extension
             ignore_ext=True,
         )  # type:ignore

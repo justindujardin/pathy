@@ -99,9 +99,19 @@ class BucketGCS(Bucket):
 class BucketClientGCS(BucketClient):
     client: Optional[GCSNativeClient]
 
-    def __init__(self, client: Optional[GCSNativeClient] = None):
+    @property
+    def client_params(self) -> Any:
+        return dict(client=self.client)
+
+    def __init__(self, **kwargs):
+        self.recreate(**kwargs)
+
+    def recreate(self, **kwargs) -> None:
         try:
-            self.client = GCSNativeClient() if GCSNativeClient else None
+            creds = kwargs["credentials"] if "credentials" in kwargs else None
+            if creds is not None:
+                kwargs["project"] = creds.project_id
+            self.client = GCSNativeClient(**kwargs) if GCSNativeClient else None
         except (BaseException, DefaultCredentialsError):
             self.client = None
 
