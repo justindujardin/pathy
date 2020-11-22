@@ -84,7 +84,7 @@ def test_api_use_fs_cache(with_adapter, with_fs: str, bucket: str):
     assert orig_cache_time == cached_cache_time, "cached blob timestamps should match"
 
     # Update the blob
-    time.sleep(0.1)
+    time.sleep(1.0)
     path.write_text('{ "cool" : true }')
 
     # Fetch the updated blob
