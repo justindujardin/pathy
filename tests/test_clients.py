@@ -1,12 +1,17 @@
-from pathy.base import BucketClient
-from pathy.clients import register_client, set_client_params
 import time
 from pathlib import Path
 
 import pytest
 
 from pathy import Pathy, get_client
-from pathy.clients import get_fs_client, use_fs, use_fs_cache
+from pathy.base import BucketClient
+from pathy.clients import (
+    get_fs_client,
+    register_client,
+    set_client_params,
+    use_fs,
+    use_fs_cache,
+)
 from pathy.file import BucketClientFS
 from pathy.gcs import BucketClientGCS
 
