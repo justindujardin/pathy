@@ -65,7 +65,7 @@ pathy>=0.1.37,<0.2.0
 
 # Pathy <kbd>class</kbd>
 
-```python
+```python (doc)
 Pathy(self, args, kwargs)
 ```
 
@@ -73,7 +73,7 @@ Subclass of `pathlib.Path` that works with bucket APIs.
 
 ## exists <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.exists(self) -> bool
 ```
 
@@ -81,7 +81,7 @@ Returns True if the path points to an existing bucket, blob, or prefix.
 
 ## fluid <kbd>classmethod</kbd>
 
-```python
+```python (doc)
 Pathy.fluid(
     path_candidate: Union[str, Pathy, pathlib.Path],
 ) -> Union[Pathy, pathlib.Path]
@@ -108,7 +108,7 @@ assert fluid_path.prefix == "foo.txt/"
 
 ## from_bucket <kbd>classmethod</kbd>
 
-```python
+```python (doc)
 Pathy.from_bucket(bucket_name: str) -> 'Pathy'
 ```
 
@@ -124,7 +124,7 @@ assert str(Pathy.from_bucket("two")) == "gs://two/"
 
 ## glob <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.glob(
     self: 'Pathy',
     pattern: str,
@@ -136,7 +136,7 @@ blobs.
 
 ## is_dir <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.is_dir(self: 'Pathy') -> bool
 ```
 
@@ -148,7 +148,7 @@ Returns False if it points to a blob or the path doesn't exist.
 
 ## is_file <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.is_file(self: 'Pathy') -> bool
 ```
 
@@ -160,7 +160,7 @@ exist.
 
 ## iterdir <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.iterdir(
     self: 'Pathy',
 ) -> Generator[Pathy, NoneType, NoneType]
@@ -170,7 +170,7 @@ Iterate over the blobs found in the given bucket or blob prefix path.
 
 ## mkdir <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.mkdir(
     self,
     mode: int = 511,
@@ -193,7 +193,7 @@ Raises FileExistsError if exist_ok is false and the bucket already exists.
 
 ## open <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.open(
     self: 'Pathy',
     mode: str = 'r',
@@ -210,7 +210,7 @@ providers.
 
 ## owner <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.owner(self: 'Pathy') -> Optional[str]
 ```
 
@@ -220,7 +220,7 @@ not supported by the bucket API provider.
 
 ## rename <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.rename(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> None
 ```
 
@@ -234,7 +234,7 @@ to match the target prefix.
 
 ## replace <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.replace(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> None
 ```
 
@@ -244,7 +244,7 @@ If target points to an existing path, it will be replaced.
 
 ## resolve <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.resolve(self, strict: bool = False) -> 'Pathy'
 ```
 
@@ -259,7 +259,7 @@ assert path.resolve() == Pathy("gs://my_bucket/blob")
 
 ## rglob <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.rglob(
     self: 'Pathy',
     pattern: str,
@@ -271,7 +271,7 @@ all matched blobs. Imagine adding "\*\*/" before a call to glob.
 
 ## rmdir <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.rmdir(self: 'Pathy') -> None
 ```
 
@@ -279,7 +279,7 @@ Removes this bucket or blob prefix. It must be empty.
 
 ## samefile <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.samefile(
     self: 'Pathy',
     other_path: Union[str, bytes, int, pathlib.Path],
@@ -290,7 +290,7 @@ Determine if this path points to the same location as other_path.
 
 ## stat <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.stat(self: 'Pathy') -> pathy.base.BlobStat
 ```
 
@@ -298,7 +298,7 @@ Returns information about this bucket path.
 
 ## to_local <kbd>classmethod</kbd>
 
-```python
+```python (doc)
 Pathy.to_local(
     blob_path: Union[Pathy, str],
     recurse: bool = True,
@@ -312,7 +312,7 @@ as their updated timestamps change.
 
 ## touch <kbd>method</kbd>
 
-```python
+```python (doc)
 Pathy.touch(self: 'Pathy', mode: int = 438, exist_ok: bool = True) -> None
 ```
 
@@ -324,7 +324,7 @@ FileExistsError is raised.
 
 # BlobStat <kbd>dataclass</kbd>
 
-```python
+```python (doc)
 BlobStat(
     self,
     size: Optional[int],
@@ -336,7 +336,7 @@ Stat for a bucket item
 
 # use_fs <kbd>function</kbd>
 
-```python
+```python (doc)
 use_fs(
     root: Optional[str, pathlib.Path, bool] = None,
 ) -> Optional[pathy.file.BucketClientFS]
@@ -349,7 +349,7 @@ applications.
 
 # get_fs_client <kbd>function</kbd>
 
-```python
+```python (doc)
 get_fs_client() -> Optional[pathy.file.BucketClientFS]
 ```
 
@@ -357,7 +357,7 @@ Get the file-system client (or None)
 
 # use_fs_cache <kbd>function</kbd>
 
-```python
+```python (doc)
 use_fs_cache(
     root: Optional[str, pathlib.Path, bool] = None,
 ) -> Optional[pathlib.Path]
@@ -370,7 +370,7 @@ times, or need to pass a local file path to a third-party library.
 
 # get_fs_cache <kbd>function</kbd>
 
-```python
+```python (doc)
 get_fs_cache() -> Optional[pathlib.Path]
 ```
 
