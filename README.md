@@ -18,11 +18,14 @@ pip install pathy
 The package exports the `Pathy` class and utilities for configuring the bucket storage provider to use. By default Pathy prefers GoogleCloudStorage paths of the form `gs://bucket_name/folder/blob_name.txt`. Internally Pathy can convert GCS paths to local files, allowing for a nice developer experience.
 
 ```python
-from pathy import Pathy
-
-# Any bucket you have access to will work
+from pathy import Pathy, use_fs
+# Use the local file-system for quicker development
+use_fs()
+# Create a bucket
+Pathy("gs://my_bucket").mkdir(exist_ok=True)
+# An excellent blob
 greeting = Pathy(f"gs://my_bucket/greeting.txt")
-# The blob doesn't exist yet
+# But it doesn't exist yet
 assert not greeting.exists()
 # Create it by writing some text
 greeting.write_text("Hello World!")
@@ -94,11 +97,13 @@ If you need to use specific implementation details of a type, "narrow" the
 return of this function to the desired type, e.g.
 
 ```python
-fluid_path = FluidPath("gs://my_bucket/foo.txt")
+from pathy import FluidPath, Pathy
+
+fluid_path: FluidPath = Pathy.fluid("gs://my_bucket/foo.txt")
 # Narrow the type to a specific class
 assert isinstance(fluid_path, Pathy), "must be Pathy"
 # Use a member specific to that class
-print(fluid_path.prefix)
+assert fluid_path.prefix == "foo.txt/"
 ```
 
 ## from_bucket <kbd>classmethod</kbd>
@@ -111,6 +116,8 @@ Initialize a Pathy from a bucket name. This helper adds a trailing slash and
 the appropriate prefix.
 
 ```python
+from pathy import Pathy
+
 assert str(Pathy.from_bucket("one")) == "gs://one/"
 assert str(Pathy.from_bucket("two")) == "gs://two/"
 ```
@@ -244,6 +251,8 @@ Pathy.resolve(self, strict: bool = False) -> 'Pathy'
 Resolve the given path to remove any relative path specifiers.
 
 ```python
+from pathy import Pathy
+
 path = Pathy("gs://my_bucket/folder/../blob")
 assert path.resolve() == Pathy("gs://my_bucket/blob")
 ```
@@ -366,6 +375,16 @@ get_fs_cache() -> Optional[pathlib.Path]
 ```
 
 Get the folder that holds file-system cached blobs and timestamps.
+
+# set_client_params <kbd>function</kbd>
+
+```python
+set_client_params(scheme: str, kwargs: Any) -> None
+```
+
+Specify args to pass when instantiating a service-specific Client
+object. This allows for passing credentials in whatever way your underlying
+client library prefers.
 
 # CLI
 

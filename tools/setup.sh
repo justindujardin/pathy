@@ -12,5 +12,5 @@ echo "Installing/updating requirements..."
 pip install -r requirements.txt
 echo "Installing/updating  dev requirements..."
 pip install -r requirements-dev.txt
-pip install -e .
+pip install -e ".[all]"
 

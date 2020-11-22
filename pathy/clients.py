@@ -16,27 +16,44 @@ _client_registry: Dict[str, Type[BucketClient]] = {
     "gs": BucketClientGCS,
 }
 
+# Hold given client args for a scheme
+_client_args_registry: Dict[str, Any] = {}
 _instance_cache: Dict[str, Any] = {}
 _fs_client: Optional[BucketClientFS] = None
 _fs_cache: Optional[pathlib.Path] = None
 
 
-def register_client() -> None:
+def register_client(scheme: str, type: Type[BucketClient]) -> None:
     """Register a bucket client for use with certain scheme Pathy objects"""
     global _client_registry
+    _client_registry[scheme] = type
 
 
 def get_client(scheme: str) -> BucketClientType:
     """Retrieve the bucket client for use with a given scheme"""
-    global _client_registry, _instance_cache, _fs_client
+    global _client_registry, _instance_cache, _fs_client, _client_args_registry
     if _fs_client is not None:
         return _fs_client  # type: ignore
     if scheme in _instance_cache:
         return _instance_cache[scheme]
     elif scheme in _client_registry:
-        _instance_cache[scheme] = _client_registry[scheme]()
+        kwargs = (
+            _client_args_registry[scheme] if scheme in _client_args_registry else {}
+        )
+        _instance_cache[scheme] = _client_registry[scheme](**kwargs)  # type:ignore
         return _instance_cache[scheme]
     raise ValueError(f'There is no client registered to handle "{scheme}" paths')
+
+
+def set_client_params(scheme: str, **kwargs: Any) -> None:
+    """Specify args to pass when instantiating a service-specific Client
+    object. This allows for passing credentials in whatever way your underlying
+    client library prefers."""
+    global _client_registry, _instance_cache, _client_args_registry
+    _client_args_registry[scheme] = kwargs
+    if scheme in _instance_cache:
+        _instance_cache[scheme].recreate(**_client_args_registry[scheme])
+    return None
 
 
 def use_fs(
