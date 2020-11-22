@@ -95,6 +95,9 @@ def test_api_use_fs_cache(with_adapter, with_fs: str, bucket: str):
 
 class BucketClientTest(BucketClient):
     def __init__(self, required_arg: bool) -> None:
+        self.recreate(required_arg=required_arg)
+
+    def recreate(self, required_arg: bool) -> None:
         self.required_arg = required_arg
 
 
@@ -105,4 +108,14 @@ def test_clients_set_client_params():
 
     set_client_params("test", required_arg=True)
     client = get_client("test")
+    assert isinstance(client, BucketClientTest)
+
+
+def test_clients_set_client_params_recreates_client():
+    register_client("test", BucketClientTest)
+    set_client_params("test", required_arg=False)
+    client: BucketClientTest = get_client("test")
+    assert client.required_arg is False
+    set_client_params("test", required_arg=True)
+    assert client.required_arg is True
     assert isinstance(client, BucketClientTest)
