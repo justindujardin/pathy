@@ -7,7 +7,7 @@ black
 pytest-coverage
 tox
 mock
-mathy_pydoc
+mathy_pydoc>=0.7.22,<0.8.0
 typer-cli
 
 # test serializing spacy models using Pathy in place of Path
