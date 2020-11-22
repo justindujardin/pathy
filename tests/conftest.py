@@ -56,15 +56,20 @@ def credentials_from_env():
         return None
     from google.oauth2 import service_account
 
+    json_creds = None
+    try:
+        json_creds = json.loads(creds)
+    except json.decoder.JSONDecodeError:
+        pass
+
     # If not a file path, assume it's JSON content
-    if Path(creds).is_file():
+    if json_creds is None:
         credentials = service_account.Credentials.from_service_account_file(creds)
     else:
-        assert json.loads(creds) is not None, "expected a file or JSON blob"
         fd, path = tempfile.mkstemp()
         try:
             with os.fdopen(fd, "w") as tmp:
-                tmp.write(creds)
+                tmp.write(json.dumps(json_creds))
             credentials = service_account.Credentials.from_service_account_file(path)
         finally:
             os.remove(path)
