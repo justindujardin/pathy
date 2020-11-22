@@ -16,6 +16,7 @@ from .clients import (
     get_fs_cache,
     get_fs_client,
     register_client,
+    set_client_params,
     use_fs,
     use_fs_cache,
 )

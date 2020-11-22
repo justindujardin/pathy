@@ -367,6 +367,16 @@ get_fs_cache() -> Optional[pathlib.Path]
 
 Get the folder that holds file-system cached blobs and timestamps.
 
+# set_client_params <kbd>function</kbd>
+
+```python
+set_client_params(scheme: str, kwargs: Any) -> None
+```
+
+Specify args to pass when instantiating a service-specific Client
+object. This allows for passing credentials in whatever way your underlying
+client library prefers.
+
 # CLI
 
 Pathy command line interface.
