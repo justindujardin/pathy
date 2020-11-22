@@ -22,6 +22,7 @@ def test_clients_get_client_works_with_builtin_schems():
 def test_clients_get_client_respects_use_fs_override():
     use_fs(True)
     assert isinstance(get_client("gs"), BucketClientFS)
+    use_fs(False)
 
 
 def test_clients_get_client_errors_with_unknown_scheme():
