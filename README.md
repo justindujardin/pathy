@@ -378,7 +378,7 @@ Get the folder that holds file-system cached blobs and timestamps.
 
 # set_client_params <kbd>function</kbd>
 
-```python
+```python (doc)
 set_client_params(scheme: str, kwargs: Any) -> None
 ```
 
