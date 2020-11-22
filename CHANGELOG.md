@@ -1,3 +1,10 @@
+## [0.3.4](https://github.com/justindujardin/pathy/compare/v0.3.3...v0.3.4) (2020-11-22)
+
+
+### Features
+
+* **clients:** add set_client_params for specifying client-specific args ([#39](https://github.com/justindujardin/pathy/issues/39)) ([84b9987](https://github.com/justindujardin/pathy/commit/84b9987d4a7819ed6b9c8475523036d5809b1b2a))
+
 ## [0.3.3](https://github.com/justindujardin/pathy/compare/v0.3.2...v0.3.3) (2020-11-12)
 
 
