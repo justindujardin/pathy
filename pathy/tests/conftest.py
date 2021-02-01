@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any, Generator, Optional
 
 import pytest
 
@@ -27,20 +28,20 @@ def other_bucket() -> str:
 
 
 @pytest.fixture()
-def temp_folder():
+def temp_folder() -> Generator[Path, None, None]:
     tmp_dir = tempfile.mkdtemp()
     yield Path(tmp_dir)
     shutil.rmtree(tmp_dir)
 
 
 @pytest.fixture()
-def with_fs(temp_folder):
+def with_fs(temp_folder: Path) -> Generator[Path, None, None]:
     yield temp_folder
     # Turn off FS adapter
     use_fs(False)
 
 
-def credentials_from_env():
+def gcs_credentials_from_env() -> Optional[Any]:
     """Extract a credentials instance from the GCS_CREDENTIALS env variable.
 
     You can specify the contents of a credentials JSON file or a file path
@@ -77,13 +78,15 @@ def credentials_from_env():
 
 
 @pytest.fixture()
-def with_adapter(adapter: str, bucket: str, other_bucket: str):
+def with_adapter(
+    adapter: str, bucket: str, other_bucket: str
+) -> Generator[str, None, None]:
     tmp_dir = None
     scheme = "gs"
     if adapter == "gcs":
         # Use GCS
         use_fs(False)
-        credentials = credentials_from_env()
+        credentials = gcs_credentials_from_env()
         if credentials is not None:
             set_client_params("gs", credentials=credentials)
     elif adapter == "fs":

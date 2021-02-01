@@ -13,7 +13,7 @@ runner = CliRunner()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_cp_file(with_adapter, bucket: str):
+def test_cli_cp_file(with_adapter: str, bucket: str) -> None:
     source = f"gs://{bucket}/cli_cp_file/file.txt"
     destination = f"gs://{bucket}/cli_cp_file/other.txt"
     Pathy(source).write_text("---")
@@ -23,7 +23,7 @@ def test_cli_cp_file(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_cp_folder(with_adapter, bucket: str):
+def test_cli_cp_folder(with_adapter: str, bucket: str) -> None:
     root = Pathy.from_bucket(bucket)
     source = root / "cli_cp_folder"
     destination = root / "cli_cp_folder_other"
@@ -39,7 +39,7 @@ def test_cli_cp_folder(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_mv_folder(with_adapter, bucket: str):
+def test_cli_mv_folder(with_adapter: str, bucket: str) -> None:
     root = Pathy.from_bucket(bucket)
     source = root / "cli_mv_folder"
     destination = root / "cli_mv_folder_other"
@@ -60,7 +60,7 @@ def test_cli_mv_folder(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_mv_file(with_adapter, bucket: str):
+def test_cli_mv_file(with_adapter: str, bucket: str) -> None:
     source = f"gs://{bucket}/cli_mv_file/file.txt"
     destination = f"gs://{bucket}/cli_mv_file/other.txt"
     Pathy(source).write_text("---")
@@ -71,7 +71,9 @@ def test_cli_mv_file(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_mv_file_across_buckets(with_adapter, bucket: str, other_bucket: str):
+def test_cli_mv_file_across_buckets(
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
     source = f"gs://{bucket}/cli_mv_file_across_buckets/file.txt"
     destination = f"gs://{other_bucket}/cli_mv_file_across_buckets/other.txt"
     Pathy(source).write_text("---")
@@ -82,7 +84,9 @@ def test_cli_mv_file_across_buckets(with_adapter, bucket: str, other_bucket: str
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_mv_folder_across_buckets(with_adapter, bucket: str, other_bucket: str):
+def test_cli_mv_folder_across_buckets(
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
     source = Pathy.from_bucket(bucket) / "cli_mv_folder_across_buckets"
     destination = Pathy.from_bucket(other_bucket) / "cli_mv_folder_across_buckets"
     for i in range(2):
@@ -102,7 +106,7 @@ def test_cli_mv_folder_across_buckets(with_adapter, bucket: str, other_bucket: s
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_rm_file(with_adapter, bucket: str):
+def test_cli_rm_file(with_adapter: str, bucket: str) -> None:
     source = f"gs://{bucket}/cli_rm_file/file.txt"
     path = Pathy(source)
     path.write_text("---")
@@ -112,7 +116,7 @@ def test_cli_rm_file(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_rm_verbose(with_adapter, bucket: str):
+def test_cli_rm_verbose(with_adapter: str, bucket: str) -> None:
     root = Pathy.from_bucket(bucket) / "cli_rm_folder"
     source = str(root / "file.txt")
     other = str(root / "folder/other")
@@ -131,7 +135,7 @@ def test_cli_rm_verbose(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_rm_folder(with_adapter, bucket: str):
+def test_cli_rm_folder(with_adapter: str, bucket: str) -> None:
     root = Pathy.from_bucket(bucket)
     source = root / "cli_rm_folder"
     for i in range(2):
@@ -149,7 +153,7 @@ def test_cli_rm_folder(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_ls(with_adapter, bucket: str):
+def test_cli_ls(with_adapter: str, bucket: str) -> None:
     root = Pathy.from_bucket(bucket) / "cli_ls"
     one = str(root / "file.txt")
     two = str(root / "other.txt")

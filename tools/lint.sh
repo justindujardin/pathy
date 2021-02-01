@@ -6,8 +6,8 @@ set -e
 echo "========================= mypy"
 mypy pathy
 echo "========================= flake8"
-flake8 pathy tests
+flake8 pathy
 echo "========================= black"
-black pathy tests --check
+black pathy --check
 echo "========================= pyright"
-npx pyright pathy tests
+npx pyright pathy
