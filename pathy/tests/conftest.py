@@ -18,12 +18,12 @@ TEST_ADAPTERS = ["gcs", "fs"] if has_credentials and has_gcs else ["fs"]
 
 @pytest.fixture()
 def bucket() -> str:
-    return "pathy-tests-bucket"
+    return os.environ.get("PATHY_TEST_BUCKET", "pathy-tests-bucket")
 
 
 @pytest.fixture()
 def other_bucket() -> str:
-    return "pathy-tests-bucket-other"
+    return os.environ.get("PATHY_TEST_BUCKET_OTHER", "pathy-tests-bucket-other")
 
 
 @pytest.fixture()
@@ -62,10 +62,7 @@ def credentials_from_env():
     except json.decoder.JSONDecodeError:
         pass
 
-    # If not a file path, assume it's JSON content
-    if json_creds is None:
-        credentials = service_account.Credentials.from_service_account_file(creds)
-    else:
+    if json_creds is not None:
         fd, path = tempfile.mkstemp()
         try:
             with os.fdopen(fd, "w") as tmp:
@@ -73,6 +70,9 @@ def credentials_from_env():
             credentials = service_account.Credentials.from_service_account_file(path)
         finally:
             os.remove(path)
+    else:
+        # If not a JSON string, assume it's a JSON file path
+        credentials = service_account.Credentials.from_service_account_file(creds)
     return credentials
 
 
