@@ -1,3 +1,11 @@
+## [0.3.5](https://github.com/justindujardin/pathy/compare/v0.3.4...v0.3.5) (2021-02-02)
+
+
+### Bug Fixes
+
+* **pypi:** add requirements.txt to distribution ([#45](https://github.com/justindujardin/pathy/issues/45)) ([759cd86](https://github.com/justindujardin/pathy/commit/759cd862be15dd1683248cdbdc0873e64f2712da))
+* python 3.9 compatibility ([#46](https://github.com/justindujardin/pathy/issues/46)) ([a965f40](https://github.com/justindujardin/pathy/commit/a965f40a086ccb305e58936813a30c35f95d5212))
+
 ## [0.3.4](https://github.com/justindujardin/pathy/compare/v0.3.3...v0.3.4) (2020-11-22)
 
 
