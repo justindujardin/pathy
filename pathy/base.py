@@ -849,9 +849,6 @@ class PathyScanDir(Iterator[Any], ContextManager[Any]):
         self._delimiter = delimiter
         self._generator = self.scandir()
 
-    def scandir(self) -> Generator[BucketEntry, None, None]:
-        raise NotImplementedError("must be implemented in a subclass")
-
     def __enter__(self) -> Generator[BucketEntry, None, None]:
         return self._generator
 
@@ -864,5 +861,5 @@ class PathyScanDir(Iterator[Any], ContextManager[Any]):
     def __iter__(self) -> Generator[BucketEntry, None, None]:
         yield from self._generator
 
-    def close(self) -> None:
-        pass
+    def scandir(self) -> Generator[BucketEntry, None, None]:
+        raise NotImplementedError("must be implemented in a subclass")
