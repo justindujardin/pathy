@@ -4,7 +4,7 @@ matrix:
       python: 3.7
       before_install:
         - nvm install 12
-        - nvm use 12     
+        - nvm use 12
       before_script:
         - npm install && npx ts-node tools/ci-set-build-version.ts
         - sh tools/setup.sh
@@ -21,5 +21,5 @@ cache:
 notifications:
   email: false
 branches:
-  except:
-    - /^v\d+\.\d+\.\d+$/
+  only:
+    - master
