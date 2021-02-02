@@ -221,7 +221,7 @@ not supported by the bucket API provider.
 ## rename <kbd>method</kbd>
 
 ```python (doc)
-Pathy.rename(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> None
+Pathy.rename(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> 'Pathy'
 ```
 
 Rename this path to the given target.
@@ -235,7 +235,7 @@ to match the target prefix.
 ## replace <kbd>method</kbd>
 
 ```python (doc)
-Pathy.replace(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> None
+Pathy.replace(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> 'Pathy'
 ```
 
 Renames this path to the given target.
@@ -325,11 +325,7 @@ FileExistsError is raised.
 # BlobStat <kbd>dataclass</kbd>
 
 ```python (doc)
-BlobStat(
-    self,
-    size: Optional[int],
-    last_modified: Optional[int],
-) -> None
+BlobStat(self, size: Optional[int], last_modified: Optional[int]) -> None
 ```
 
 Stat for a bucket item

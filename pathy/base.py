@@ -7,9 +7,11 @@ from pathlib import Path, PurePath
 from typing import (
     IO,
     Any,
+    ContextManager,
     Dict,
     Generator,
     Generic,
+    Iterator,
     List,
     Optional,
     Tuple,
@@ -194,7 +196,7 @@ class BucketClient:
         path: "Pathy" = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-    ) -> Generator[BucketEntry[BucketType, BucketBlobType], None, None]:
+    ) -> "PathyScanDir":
         raise NotImplementedError(SUBCLASS_ERROR)
 
     def create_bucket(self, path: "Pathy") -> Bucket:
@@ -364,12 +366,13 @@ class BucketsAccessor(_Accessor):
         # Determine if the path exists according to the current adapter
         return client.exists(path)
 
-    def scandir(self, path: "Pathy") -> Generator[BucketEntry, None, None]:
+    def scandir(self, path: "Pathy") -> "PathyScanDir":
         return self.client(path).scandir(path, prefix=path.prefix)
 
     def listdir(self, path: "Pathy") -> Generator[str, None, None]:
-        for entry in self.scandir(path):
-            yield entry.name
+        with self.scandir(path) as entries:
+            for entry in entries:
+                yield entry.name
 
     def open(
         self,
@@ -646,7 +649,7 @@ class Pathy(Path, PurePathy):
             raise ValueError("binary mode doesn't take an encoding argument")
 
         # Leftover pathlib internals stuff
-        if self._closed:  # type:ignore
+        if hasattr(self, "_closed") and self._closed:  # type:ignore
             self._raise_closed()  # type:ignore
         return self._accessor.open(
             self,
@@ -679,7 +682,7 @@ class Pathy(Path, PurePathy):
         self._absolute_path_validation()
         return self._accessor.resolve(self, strict=strict)
 
-    def rename(self: "Pathy", target: Union[str, PurePath]) -> None:
+    def rename(self: "Pathy", target: Union[str, PurePath]) -> "Pathy":  # type:ignore
         """Rename this path to the given target.
 
         If the target exists and is a file, it will be replaced silently if the user
@@ -689,16 +692,16 @@ class Pathy(Path, PurePathy):
         to match the target prefix."""
         self._absolute_path_validation()
         self_type = type(self)
-        if not isinstance(target, self_type):
-            target = self_type(target)
-        target._absolute_path_validation()  # type:ignore
-        super().rename(target)
+        result = target if isinstance(target, self_type) else self_type(target)
+        result._absolute_path_validation()  # type:ignore
+        super().rename(result)
+        return result
 
-    def replace(self: "Pathy", target: Union[str, PurePath]) -> None:
+    def replace(self: "Pathy", target: Union[str, PurePath]) -> "Pathy":  # type:ignore
         """Renames this path to the given target.
 
         If target points to an existing path, it will be replaced."""
-        self.rename(target)
+        return self.rename(target)
 
     def rmdir(self: "Pathy") -> None:
         """Removes this bucket or blob prefix. It must be empty."""
@@ -821,3 +824,34 @@ class Pathy(Path, PurePathy):
             method=self.symlink_to.__qualname__
         )
         raise NotImplementedError(message)
+
+
+class PathyScanDir(Iterator[Any], ContextManager[Any]):
+    def __init__(
+        self,
+        client: BucketClient,
+        path: Optional[PurePathy] = None,
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+    ) -> None:
+        super().__init__()
+        self._client = client
+        self._path = path
+        self._prefix = prefix
+        self._delimiter = delimiter
+        self._generator = self.scandir()
+
+    def scandir(self) -> Generator[BucketEntry, None, None]:
+        raise NotImplementedError("must be implemented in a subclass")
+
+    def __enter__(self) -> Generator[BucketEntry, None, None]:
+        return self._generator
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        pass
+
+    def __next__(self) -> Generator[BucketEntry, None, None]:
+        yield from self._generator
+
+    def close(self) -> None:
+        pass

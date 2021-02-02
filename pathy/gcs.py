@@ -1,7 +1,15 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional
 
-from .base import Blob, Bucket, BucketClient, BucketEntry, ClientError, PurePathy
+from .base import (
+    Blob,
+    Bucket,
+    BucketClient,
+    BucketEntry,
+    ClientError,
+    PathyScanDir,
+    PurePathy,
+)
 
 try:
     from google.api_core import exceptions as gcs_errors  # type:ignore
@@ -174,49 +182,8 @@ class BucketClientGCS(BucketClient):
         path: Optional[PurePathy] = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-    ) -> Generator[BucketEntryGCS, None, None]:  # type:ignore[override]
-        assert self.client is not None, _MISSING_DEPS
-        continuation_token = None
-        if path is None or not path.root:
-            gcs_bucket: GCSNativeBucket
-            for gcs_bucket in self.list_buckets():
-                yield BucketEntryGCS(gcs_bucket.name, is_dir=True, raw=None)
-            return
-        sep = path._flavour.sep
-        bucket = self.lookup_bucket(path)
-        if bucket is None:
-            return
-        while True:
-            if continuation_token:
-                response = self.client.list_blobs(
-                    bucket.name,
-                    prefix=prefix,
-                    delimiter=sep,
-                    page_token=continuation_token,
-                )
-            else:
-                response = self.client.list_blobs(
-                    bucket.name, prefix=prefix, delimiter=sep
-                )
-            for page in response.pages:
-                for folder in list(page.prefixes):
-                    full_name = folder[:-1] if folder.endswith(sep) else folder
-                    name = full_name.split(sep)[-1]
-                    if name:
-                        yield BucketEntryGCS(name, is_dir=True, raw=None)
-                for item in page:
-                    name = item.name.split(sep)[-1]
-                    if name:
-                        yield BucketEntryGCS(
-                            name=name,
-                            is_dir=False,
-                            size=item.size,
-                            last_modified=item.updated.timestamp(),
-                            raw=item,
-                        )
-            if response.next_page_token is None:
-                break
-            continuation_token = response.next_page_token
+    ) -> PathyScanDir:
+        return _GCSScanDir(client=self, path=path, prefix=prefix, delimiter=delimiter)
 
     def list_blobs(
         self,
@@ -252,6 +219,54 @@ class BucketClientGCS(BucketClient):
                         size=item.size,
                         updated=item.updated.timestamp(),
                     )
+            if response.next_page_token is None:
+                break
+            continuation_token = response.next_page_token
+
+
+class _GCSScanDir(PathyScanDir):
+    _client: BucketClientGCS
+
+    def scandir(self) -> Generator[BucketEntryGCS, None, None]:
+        assert self._client.client is not None, _MISSING_DEPS
+        continuation_token = None
+        if self._path is None or not self._path.root:
+            gcs_bucket: GCSNativeBucket
+            for gcs_bucket in self._client.client.list_buckets():
+                yield BucketEntryGCS(gcs_bucket.name, is_dir=True, raw=None)
+            return
+        sep = self._path._flavour.sep
+        bucket = self._client.lookup_bucket(self._path)
+        if bucket is None:
+            return
+        while True:
+            if continuation_token:
+                response = self._client.client.list_blobs(
+                    bucket.name,
+                    prefix=self._prefix,
+                    delimiter=sep,
+                    page_token=continuation_token,
+                )
+            else:
+                response = self._client.client.list_blobs(
+                    bucket.name, prefix=self._prefix, delimiter=sep
+                )
+            for page in response.pages:
+                for folder in list(page.prefixes):
+                    full_name = folder[:-1] if folder.endswith(sep) else folder
+                    name = full_name.split(sep)[-1]
+                    if name:
+                        yield BucketEntryGCS(name, is_dir=True, raw=None)
+                for item in page:
+                    name = item.name.split(sep)[-1]
+                    if name:
+                        yield BucketEntryGCS(
+                            name=name,
+                            is_dir=False,
+                            size=item.size,
+                            last_modified=item.updated.timestamp(),
+                            raw=item,
+                        )
             if response.next_page_token is None:
                 break
             continuation_token = response.next_page_token

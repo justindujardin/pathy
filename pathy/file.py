@@ -12,6 +12,7 @@ from .base import (
     BucketEntry,
     ClientError,
     Pathy,
+    PathyScanDir,
     PurePathy,
     StreamableType,
 )
@@ -182,44 +183,13 @@ class BucketClientFS(BucketClient):
             if f.is_dir():
                 yield BucketFS(f.name, f)
 
-    def scandir(  # type:ignore[override]
+    def scandir(
         self,
         path: Pathy = None,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-    ) -> Generator[BucketEntry[BucketFS, pathlib.Path], None, None]:
-        if path is None or not path.root:
-            for bucket in self.list_buckets():
-                yield BucketEntryFS(bucket.name, is_dir=True, raw=None)
-            return
-        assert path is not None
-        assert path.root is not None
-        scan_path = self.root / path.root
-        if prefix is not None:
-            scan_path = scan_path / prefix
-        for dir_entry in scan_path.glob("*"):
-            if dir_entry.is_dir():
-                yield BucketEntryFS(dir_entry.name, is_dir=True, raw=None)
-            else:
-                file_path = pathlib.Path(dir_entry)
-                stat = file_path.stat()
-                file_size = stat.st_size
-                updated = int(round(stat.st_mtime_ns * 1000))
-                blob: Blob = BlobFS(
-                    self.get_bucket(path),
-                    name=dir_entry.name,
-                    size=file_size,
-                    updated=updated,
-                    owner=None,
-                    raw=file_path,
-                )
-                yield BucketEntryFS(
-                    name=dir_entry.name,
-                    is_dir=False,
-                    size=file_size,
-                    last_modified=updated,
-                    raw=blob,
-                )
+    ) -> PathyScanDir:
+        return _FSScanDir(client=self, path=path, prefix=prefix, delimiter=delimiter)
 
     def list_blobs(
         self,
@@ -233,7 +203,7 @@ class BucketClientFS(BucketClient):
         scan_path = self.root / path.root
         if prefix is not None:
             scan_path = scan_path / prefix
-        elif prefix is not None:
+        elif prefix is not None and path.key is not None:
             scan_path = scan_path / path.key
 
         # Path to a file
@@ -265,3 +235,41 @@ class BucketClientFS(BucketClient):
                 owner=None,
                 raw=file_path,
             )
+
+
+class _FSScanDir(PathyScanDir):
+    _client: BucketClientFS
+
+    def scandir(self) -> Generator[BucketEntry[BucketFS, pathlib.Path], None, None]:
+        if self._path is None or not self._path.root:
+            for bucket in self._client.list_buckets():
+                yield BucketEntryFS(bucket.name, is_dir=True, raw=None)
+            return
+        assert self._path is not None
+        assert self._path.root is not None
+        scan_path = self._client.root / self._path.root
+        if self._prefix is not None:
+            scan_path = scan_path / self._prefix
+        for dir_entry in scan_path.glob("*"):
+            if dir_entry.is_dir():
+                yield BucketEntryFS(dir_entry.name, is_dir=True, raw=None)
+            else:
+                file_path = pathlib.Path(dir_entry)
+                stat = file_path.stat()
+                file_size = stat.st_size
+                updated = int(round(stat.st_mtime_ns * 1000))
+                blob: Blob = BlobFS(
+                    self._client.get_bucket(self._path),
+                    name=dir_entry.name,
+                    size=file_size,
+                    updated=updated,
+                    owner=None,
+                    raw=file_path,
+                )
+                yield BucketEntryFS(
+                    name=dir_entry.name,
+                    is_dir=False,
+                    size=file_size,
+                    last_modified=updated,
+                    raw=blob,
+                )
