@@ -763,6 +763,7 @@ def test_api_raises_with_no_known_bucket_clients_for_a_scheme(temp_folder):
     assert isinstance(accessor.client(path), BucketClientFS)
 
 
+@pytest.mark.skip("requires: https://github.com/explosion/thinc/pull/465")
 def test_api_export_spacy_model(temp_folder):
     """spaCy model loading is one of the things we need to support"""
     use_fs(temp_folder)
