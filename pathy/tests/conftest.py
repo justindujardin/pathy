@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any, Generator, Optional
 
 import pytest
 
@@ -18,29 +19,29 @@ TEST_ADAPTERS = ["gcs", "fs"] if has_credentials and has_gcs else ["fs"]
 
 @pytest.fixture()
 def bucket() -> str:
-    return "pathy-tests-bucket"
+    return os.environ.get("PATHY_TEST_BUCKET", "pathy-tests-bucket")
 
 
 @pytest.fixture()
 def other_bucket() -> str:
-    return "pathy-tests-bucket-other"
+    return os.environ.get("PATHY_TEST_BUCKET_OTHER", "pathy-tests-bucket-other")
 
 
 @pytest.fixture()
-def temp_folder():
+def temp_folder() -> Generator[Path, None, None]:
     tmp_dir = tempfile.mkdtemp()
     yield Path(tmp_dir)
     shutil.rmtree(tmp_dir)
 
 
 @pytest.fixture()
-def with_fs(temp_folder):
+def with_fs(temp_folder: Path) -> Generator[Path, None, None]:
     yield temp_folder
     # Turn off FS adapter
     use_fs(False)
 
 
-def credentials_from_env():
+def gcs_credentials_from_env() -> Optional[Any]:
     """Extract a credentials instance from the GCS_CREDENTIALS env variable.
 
     You can specify the contents of a credentials JSON file or a file path
@@ -62,10 +63,7 @@ def credentials_from_env():
     except json.decoder.JSONDecodeError:
         pass
 
-    # If not a file path, assume it's JSON content
-    if json_creds is None:
-        credentials = service_account.Credentials.from_service_account_file(creds)
-    else:
+    if json_creds is not None:
         fd, path = tempfile.mkstemp()
         try:
             with os.fdopen(fd, "w") as tmp:
@@ -73,17 +71,22 @@ def credentials_from_env():
             credentials = service_account.Credentials.from_service_account_file(path)
         finally:
             os.remove(path)
+    else:
+        # If not a JSON string, assume it's a JSON file path
+        credentials = service_account.Credentials.from_service_account_file(creds)
     return credentials
 
 
 @pytest.fixture()
-def with_adapter(adapter: str, bucket: str, other_bucket: str):
+def with_adapter(
+    adapter: str, bucket: str, other_bucket: str
+) -> Generator[str, None, None]:
     tmp_dir = None
     scheme = "gs"
     if adapter == "gcs":
         # Use GCS
         use_fs(False)
-        credentials = credentials_from_env()
+        credentials = gcs_credentials_from_env()
         if credentials is not None:
             set_client_params("gs", credentials=credentials)
     elif adapter == "fs":

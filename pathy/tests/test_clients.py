@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -18,24 +19,24 @@ from pathy.gcs import BucketClientGCS
 from .conftest import TEST_ADAPTERS
 
 
-def test_clients_get_client_works_with_builtin_schems():
+def test_clients_get_client_works_with_builtin_schems() -> None:
     assert isinstance(get_client("gs"), BucketClientGCS)
     assert isinstance(get_client("file"), BucketClientFS)
     assert isinstance(get_client(""), BucketClientFS)
 
 
-def test_clients_get_client_respects_use_fs_override():
+def test_clients_get_client_respects_use_fs_override() -> None:
     use_fs(True)
     assert isinstance(get_client("gs"), BucketClientFS)
     use_fs(False)
 
 
-def test_clients_get_client_errors_with_unknown_scheme():
+def test_clients_get_client_errors_with_unknown_scheme() -> None:
     with pytest.raises(ValueError):
         get_client("foo")
 
 
-def test_clients_use_fs(with_fs: Path):
+def test_clients_use_fs(with_fs: Path) -> None:
     assert get_fs_client() is None
     # Use the default path
     use_fs()
@@ -64,7 +65,7 @@ def test_clients_use_fs(with_fs: Path):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_use_fs_cache(with_adapter, with_fs: str, bucket: str):
+def test_api_use_fs_cache(with_adapter: str, with_fs: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/directory/foo.txt")
     path.write_text("---")
     assert isinstance(path, Pathy)
@@ -97,21 +98,21 @@ class BucketClientTest(BucketClient):
     def __init__(self, required_arg: bool) -> None:
         self.recreate(required_arg=required_arg)
 
-    def recreate(self, required_arg: bool) -> None:
-        self.required_arg = required_arg
+    def recreate(self, **kwargs: Any) -> None:
+        self.required_arg = kwargs["required_arg"]
 
 
-def test_clients_set_client_params():
+def test_clients_set_client_params() -> None:
     register_client("test", BucketClientTest)
     with pytest.raises(TypeError):
         get_client("test")
 
     set_client_params("test", required_arg=True)
-    client = get_client("test")
+    client: BucketClientTest = get_client("test")
     assert isinstance(client, BucketClientTest)
 
 
-def test_clients_set_client_params_recreates_client():
+def test_clients_set_client_params_recreates_client() -> None:
     register_client("test", BucketClientTest)
     set_client_params("test", required_arg=False)
     client: BucketClientTest = get_client("test")
