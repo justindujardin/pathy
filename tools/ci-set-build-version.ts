@@ -12,7 +12,7 @@ function getBuildVersion() {
       // Core options
       dryRun: true,
       branch: "master",
-      repositoryUrl: "https://github.com/justindujardin/gcspath.git"
+      repositoryUrl: "https://github.com/justindujardin/pathy.git"
     },
     {
       cwd: "./",
@@ -31,9 +31,9 @@ function getBuildVersion() {
 getBuildVersion()
   .then((version: any) => {
     console.log("--- UPDATING build version in python modules to : " + version);
-    const filePath = path.join(__dirname, "../gcspath/about.py");
+    const filePath = path.join(__dirname, "../pathy/about.py");
     if (!fs.existsSync(filePath)) {
-      console.error("gcspath.py is missing!");
+      console.error("pathy.py is missing!");
       process.exit(1);
     }
     const contents = fs.readFileSync(filePath, "utf8");
@@ -42,7 +42,7 @@ getBuildVersion()
     );
     const match = contents.match(regexp);
     if (!match || match.length !== 3) {
-      console.error('__version__="x.x.x" string in gcspath.py was not found.');
+      console.error('__version__="x.x.x" string in pathy.py was not found.');
     }
     const replaceVersion = `${match[1]}${version}${match[2]}`;
     const newContents = contents.replace(regexp, replaceVersion);

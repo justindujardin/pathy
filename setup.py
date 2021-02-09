@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 
 def setup_package():
-    package_name = "gcspath"
+    package_name = "pathy"
     root = pathlib.Path(__file__).parent.resolve()
 
     about_path = root / package_name / "about.py"
@@ -18,7 +18,8 @@ def setup_package():
     readme_path = root / "README.md"
     with readme_path.open("r", encoding="utf8") as f:
         long_description = f.read()
-
+    extras = {"gcs": ["google-cloud-storage>=1.26.0,<2.0.0"]}
+    extras["all"] = [item for group in extras.values() for item in group]
     setup(
         name=about["__title__"],
         description=about["__summary__"],
@@ -33,9 +34,10 @@ def setup_package():
         packages=find_packages(),
         python_requires=">= 3.6",
         install_requires=requirements,
+        extras_require=extras,
         entry_points="""
             [console_scripts]
-            prodigyteams=gcspath.cli:main
+            pathy=pathy.cli:app
         """,
         classifiers=[
             "Development Status :: 4 - Beta",
