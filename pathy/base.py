@@ -25,7 +25,7 @@ import smart_open
 SUBCLASS_ERROR = "must be implemented in a subclass"
 
 StreamableType = IO[Any]
-FluidPath = Union["Pathy", Path]
+FluidPath = Union["Pathy", "BasePath"]
 BucketClientType = TypeVar("BucketClientType", bound="BucketClient")
 BucketType = TypeVar("BucketType")
 BucketBlobType = TypeVar("BucketBlobType")
@@ -47,6 +47,7 @@ class ClientError(BaseException):
 class BlobStat:
     """Stat for a bucket item"""
 
+    name: str
     size: Optional[int]
     last_modified: Optional[int]
 
@@ -86,7 +87,7 @@ class BucketEntry(Generic[BucketType, BucketBlobType]):
         self.name = name
         self.raw = raw
         self._is_dir = is_dir
-        self._stat = BlobStat(size=size, last_modified=last_modified)
+        self._stat = BlobStat(name=name, size=size, last_modified=last_modified)
 
     def __repr__(self) -> str:
         return "{}(name={}, is_dir={}, stat={})".format(
@@ -303,6 +304,24 @@ class PurePathy(PurePath):
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
 
+class _PathyExtensions:
+    def ls(self) -> Generator["BlobStat", None, None]:
+        blobs: "PathyScanDir" = self._accessor.scandir(self)  # type:ignore
+        for blob in blobs:
+            if hasattr(blob, "_stat"):
+                yield blob._stat
+            elif isinstance(blob, os.DirEntry):
+                os_blob = cast(os.DirEntry, blob)
+                stat = os_blob.stat()
+                file_size = stat.st_size
+                updated = int(round(stat.st_mtime))
+                yield BlobStat(name=os_blob.name, size=file_size, last_modified=updated)
+
+
+class BasePath(Path, _PathyExtensions):
+    _flavour = _PosixFlavour()
+
+
 class BucketsAccessor(_Accessor):
     """Access data from blob buckets"""
 
@@ -337,7 +356,7 @@ class BucketsAccessor(_Accessor):
         blob: Optional[Blob] = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
-        return BlobStat(size=blob.size, last_modified=blob.updated)
+        return BlobStat(name=str(blob), size=blob.size, last_modified=blob.updated)
 
     def is_dir(self, path: "Pathy") -> bool:
         if str(path) == path.root:
@@ -453,7 +472,7 @@ class BucketsAccessor(_Accessor):
                 raise OSError(f"Blob already exists: {path}")
 
 
-class Pathy(Path, PurePathy):
+class Pathy(Path, PurePathy, _PathyExtensions):
     """Subclass of `pathlib.Path` that works with bucket APIs."""
 
     __slots__ = ()
@@ -497,7 +516,7 @@ class Pathy(Path, PurePathy):
         """
         from_path: FluidPath = Pathy(path_candidate)
         if from_path.root in ["/", ""]:
-            from_path = Path(path_candidate)
+            from_path = BasePath(path_candidate)
         return from_path
 
     @classmethod
@@ -570,6 +589,16 @@ class Pathy(Path, PurePathy):
                 for blob in in_path.rglob("*"):
                     Pathy.to_local(blob, recurse=False)
         return cache_blob
+
+    def ls(self: "Pathy") -> Generator["BlobStat", None, None]:
+        """List blob names with stat information under the given path.
+
+        This is considerably faster than using iterdir if you also need
+        the stat information for the enumerated blobs.
+
+        Yields BlobStat objects for each found blob.
+        """
+        yield from super(Pathy, self).ls()
 
     def stat(self: "Pathy") -> BlobStat:  # type: ignore[override]
         """Returns information about this bucket path."""

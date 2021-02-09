@@ -64,7 +64,7 @@ class BucketFS(Bucket):
             name=blob_name,
             raw=native_blob,
             size=stat.st_size,
-            updated=int(round(stat.st_mtime_ns * 1000)),
+            updated=int(round(stat.st_mtime)),
         )
 
     def copy_blob(  # type:ignore[override]
@@ -257,7 +257,7 @@ class _FSScanDir(PathyScanDir):
                 file_path = pathlib.Path(dir_entry)
                 stat = file_path.stat()
                 file_size = stat.st_size
-                updated = int(round(stat.st_mtime_ns * 1000))
+                updated = int(round(stat.st_mtime))
                 blob: Blob = BlobFS(
                     self._client.get_bucket(self._path),
                     name=dir_entry.name,

@@ -83,8 +83,8 @@ Returns True if the path points to an existing bucket, blob, or prefix.
 
 ```python (doc)
 Pathy.fluid(
-    path_candidate: Union[str, Pathy, pathlib.Path],
-) -> Union[Pathy, pathlib.Path]
+    path_candidate: Union[str, Pathy, BasePath],
+) -> Union[Pathy, BasePath]
 ```
 
 Infer either a Pathy or pathlib.Path from an input path or string.
@@ -167,6 +167,19 @@ Pathy.iterdir(
 ```
 
 Iterate over the blobs found in the given bucket or blob prefix path.
+
+## ls <kbd>method</kbd>
+
+```python (doc)
+Pathy.ls(self: 'Pathy') -> Generator[BlobStat, NoneType, NoneType]
+```
+
+List blob names with stat information under the given path.
+
+This is considerably faster than using iterdir if you also need
+the stat information for the enumerated blobs.
+
+Yields BlobStat objects for each found blob.
 
 ## mkdir <kbd>method</kbd>
 
@@ -327,6 +340,7 @@ FileExistsError is raised.
 ```python (doc)
 BlobStat(
     self,
+    name: str,
     size: Optional[int],
     last_modified: Optional[int],
 ) -> None

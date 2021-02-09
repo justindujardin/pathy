@@ -576,6 +576,19 @@ def test_api_readwrite_lines(with_adapter: str, bucket: str) -> None:
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_ls_blobs_with_stat(with_adapter: str, bucket: str) -> None:
+    root = Pathy(f"gs://{bucket}/ls")
+    for i in range(3):
+        (root / f"file_{i}").write_text("NICE")
+    files = list(root.ls())
+    assert len(files) == 3
+    for i, blob_stat in enumerate(files):
+        assert blob_stat.name == f"file_{i}"
+        assert blob_stat.size == 4
+        assert blob_stat.last_modified is not None
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_owner(with_adapter: str, bucket: str) -> None:
     # Raises for invalid file
     with pytest.raises(FileNotFoundError):
