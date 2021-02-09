@@ -161,7 +161,14 @@ def test_cli_ls(with_adapter: str, bucket: str) -> None:
     Pathy(one).write_text("---")
     Pathy(two).write_text("---")
     Pathy(three).write_text("---")
+
     result = runner.invoke(app, ["ls", str(root)])
+    assert result.exit_code == 0
+    assert one in result.output
+    assert two in result.output
+    assert str(root / "folder") in result.output
+
+    result = runner.invoke(app, ["ls", "-l", str(root)])
     assert result.exit_code == 0
     assert one in result.output
     assert two in result.output
