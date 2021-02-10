@@ -1,3 +1,12 @@
+## [0.3.6](https://github.com/justindujardin/pathy/compare/v0.3.5...v0.3.6) (2021-02-10)
+
+
+### Features
+
+* **cli:** add "-l" flag to ls command ([e47fb02](https://github.com/justindujardin/pathy/commit/e47fb02db95b62d1060bd48d505706bcbcbbc22b))
+* **Pathy:** add "ls" method for quickly querying blobs with stats ([bf452e7](https://github.com/justindujardin/pathy/commit/bf452e7b658cdc4b391155264c91ddeeaed09220))
+* **tests:** include tests in pypi package ([#44](https://github.com/justindujardin/pathy/issues/44)) ([d6ad724](https://github.com/justindujardin/pathy/commit/d6ad7244452e874e97246f38d29d0fe8e77c5b76))
+
 ## [0.3.5](https://github.com/justindujardin/pathy/compare/v0.3.4...v0.3.5) (2021-02-02)
 
 
