@@ -1,12 +1,14 @@
 import os
 import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Any
 from uuid import uuid4
 
 import pytest
 import spacy
 
 from pathy import (
+    BasePath,
     Blob,
     BlobStat,
     Bucket,
@@ -29,91 +31,91 @@ from .conftest import TEST_ADAPTERS
 # todo(jd): replace global test-bucket with mock or generate buckets and call these e2e tests
 
 
-def test_base_package_declares_version():
+def test_base_package_declares_version() -> None:
     assert __version__ is not None
 
 
-def test_base_not_supported(monkeypatch):
+def test_base_not_supported(monkeypatch: Any) -> None:
     monkeypatch.setattr(Pathy._flavour, "is_supported", False)
     with pytest.raises(NotImplementedError):
         Pathy()
 
 
-def test_base_cwd():
+def test_base_cwd() -> None:
     with pytest.raises(NotImplementedError):
         Pathy.cwd()
 
 
-def test_base_home():
+def test_base_home() -> None:
     with pytest.raises(NotImplementedError):
         Pathy.home()
 
 
-def test_base_expanduser():
+def test_base_expanduser() -> None:
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.expanduser()
 
 
-def test_base_chmod():
+def test_base_chmod() -> None:
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.chmod(0o666)
 
 
-def test_base_lchmod():
+def test_base_lchmod() -> None:
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.lchmod(0o666)
 
 
-def test_base_group():
+def test_base_group() -> None:
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.group()
 
 
-def test_base_is_mount():
+def test_base_is_mount() -> None:
     assert not Pathy("/fake-bucket/fake-key").is_mount()
 
 
-def test_base_is_symlink():
+def test_base_is_symlink() -> None:
     assert not Pathy("/fake-bucket/fake-key").is_symlink()
 
 
-def test_base_is_socket():
+def test_base_is_socket() -> None:
     assert not Pathy("/fake-bucket/fake-key").is_socket()
 
 
-def test_base_is_fifo():
+def test_base_is_fifo() -> None:
     assert not Pathy("/fake-bucket/fake-key").is_fifo()
 
 
-def test_base_is_block_device():
+def test_base_is_block_device() -> None:
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.is_block_device()
 
 
-def test_base_is_char_device():
+def test_base_is_char_device() -> None:
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.is_char_device()
 
 
-def test_base_lstat():
+def test_base_lstat() -> None:
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.lstat()
 
 
-def test_base_symlink_to():
+def test_base_symlink_to() -> None:
     path = Pathy("/fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.symlink_to("file_name")
 
 
-def test_base_paths_of_a_different_flavour():
+def test_base_paths_of_a_different_flavour() -> None:
     with pytest.raises(TypeError):
         PurePathy("/bucket/key") < PurePosixPath("/bucket/key")
 
@@ -121,7 +123,7 @@ def test_base_paths_of_a_different_flavour():
         PureWindowsPath("/bucket/key") > PurePathy("/bucket/key")
 
 
-def test_base_repr():
+def test_base_repr() -> None:
     a = PurePathy("/var/tests/fake")
     assert a.as_posix() == "/var/tests/fake"
     assert repr(PurePathy("fake_file.txt")) == "PurePathy('fake_file.txt')"
@@ -129,7 +131,7 @@ def test_base_repr():
     assert bytes(PurePathy("fake_file.txt")) == b"fake_file.txt"
 
 
-def test_base_scheme_extraction():
+def test_base_scheme_extraction() -> None:
     assert PurePathy("gs://var/tests/fake").scheme == "gs"
     assert PurePathy("s3://var/tests/fake").scheme == "s3"
     assert PurePathy("file://var/tests/fake").scheme == "file"
@@ -137,27 +139,27 @@ def test_base_scheme_extraction():
 
 
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
-def test_base_fspath():
+def test_base_fspath() -> None:
     assert os.fspath(PurePathy("/var/tests/fake")) == "/var/tests/fake"
 
 
-def test_base_join_strs():
+def test_base_join_strs() -> None:
     assert PurePathy("foo", "some/path", "bar") == PurePathy("foo/some/path/bar")
 
 
-def test_base_join_paths():
+def test_base_join_paths() -> None:
     assert PurePathy(Path("foo"), Path("bar")) == PurePathy("foo/bar")
 
 
-def test_base_empty():
+def test_base_empty() -> None:
     assert PurePathy() == PurePathy(".")
 
 
-def test_base_absolute_paths():
+def test_base_absolute_paths() -> None:
     assert PurePathy("/etc", "/usr", "lib64") == PurePathy("/usr/lib64")
 
 
-def test_base_slashes_single_double_dots():
+def test_base_slashes_single_double_dots() -> None:
     assert PurePathy("foo//bar") == PurePathy("foo/bar")
     assert PurePathy("foo/./bar") == PurePathy("foo/bar")
     assert PurePathy("foo/../bar") == PurePathy("bar")
@@ -165,12 +167,12 @@ def test_base_slashes_single_double_dots():
     assert PurePathy("foo", "../bar") == PurePathy("bar")
 
 
-def test_base_operators():
+def test_base_operators() -> None:
     assert PurePathy("/etc") / "init.d" / "apache2" == PurePathy("/etc/init.d/apache2")
     assert "/var" / PurePathy("tests") / "fake" == PurePathy("/var/tests/fake")
 
 
-def test_base_parts():
+def test_base_parts() -> None:
     assert PurePathy("../bar").parts == ("..", "bar")
     assert PurePathy("foo//bar").parts == ("foo", "bar")
     assert PurePathy("foo/./bar").parts == ("foo", "bar")
@@ -179,7 +181,7 @@ def test_base_parts():
     assert PurePathy("/foo/bar").parts == ("/", "foo", "bar")
 
 
-def test_base_drive():
+def test_base_drive() -> None:
     assert PurePathy("foo//bar").drive == ""
     assert PurePathy("foo/./bar").drive == ""
     assert PurePathy("foo/../bar").drive == ""
@@ -188,7 +190,7 @@ def test_base_drive():
     assert PurePathy("/foo/bar").drive == ""
 
 
-def test_base_root():
+def test_base_root() -> None:
     assert PurePathy("foo//bar").root == ""
     assert PurePathy("foo/./bar").root == ""
     assert PurePathy("foo/../bar").root == ""
@@ -197,7 +199,7 @@ def test_base_root():
     assert PurePathy("/foo/bar").root == "/"
 
 
-def test_base_anchor():
+def test_base_anchor() -> None:
     assert PurePathy("foo//bar").anchor == ""
     assert PurePathy("foo/./bar").anchor == ""
     assert PurePathy("foo/../bar").anchor == ""
@@ -206,7 +208,7 @@ def test_base_anchor():
     assert PurePathy("/foo/bar").anchor == "/"
 
 
-def test_base_parents():
+def test_base_parents() -> None:
     assert tuple(PurePathy("foo//bar").parents) == (
         PurePathy("foo"),
         PurePathy("."),
@@ -224,7 +226,7 @@ def test_base_parents():
     )
 
 
-def test_base_parent():
+def test_base_parent() -> None:
     assert PurePathy("foo//bar").parent == PurePathy("foo")
     assert PurePathy("foo/./bar").parent == PurePathy("foo")
     assert PurePathy("foo/../bar").parent == PurePathy(".")
@@ -235,45 +237,45 @@ def test_base_parent():
     assert PurePathy("/").parent == PurePathy("/")
 
 
-def test_base_name():
+def test_base_name() -> None:
     assert PurePathy("my/library/fake_file.txt").name == "fake_file.txt"
 
 
-def test_base_suffix():
+def test_base_suffix() -> None:
     assert PurePathy("my/library/fake_file.txt").suffix == ".txt"
     assert PurePathy("my/library.tar.gz").suffix == ".gz"
     assert PurePathy("my/library").suffix == ""
 
 
-def test_base_suffixes():
+def test_base_suffixes() -> None:
     assert PurePathy("my/library.tar.gar").suffixes == [".tar", ".gar"]
     assert PurePathy("my/library.tar.gz").suffixes == [".tar", ".gz"]
     assert PurePathy("my/library").suffixes == []
 
 
-def test_base_stem():
+def test_base_stem() -> None:
     assert PurePathy("my/library.tar.gar").stem == "library.tar"
     assert PurePathy("my/library.tar").stem == "library"
     assert PurePathy("my/library").stem == "library"
 
 
-def test_base_uri():
+def test_base_uri() -> None:
     assert PurePathy("/etc/passwd").as_uri() == "gs://etc/passwd"
     assert PurePathy("/etc/init.d/apache2").as_uri() == "gs://etc/init.d/apache2"
     assert PurePathy("/bucket/key").as_uri() == "gs://bucket/key"
 
 
-def test_base_absolute():
+def test_base_absolute() -> None:
     assert PurePathy("/a/b").is_absolute()
     assert not PurePathy("a/b").is_absolute()
 
 
-def test_base_reserved():
+def test_base_reserved() -> None:
     assert not PurePathy("/a/b").is_reserved()
     assert not PurePathy("a/b").is_reserved()
 
 
-def test_base_joinpath():
+def test_base_joinpath() -> None:
     assert PurePathy("/etc").joinpath("passwd") == PurePathy("/etc/passwd")
     assert PurePathy("/etc").joinpath(PurePathy("passwd")) == PurePathy("/etc/passwd")
     assert PurePathy("/etc").joinpath("init.d", "apache2") == PurePathy(
@@ -281,7 +283,7 @@ def test_base_joinpath():
     )
 
 
-def test_base_match():
+def test_base_match() -> None:
     assert PurePathy("a/b.py").match("*.py")
     assert PurePathy("/a/b/c.py").match("b/*.py")
     assert not PurePathy("/a/b/c.py").match("a/*.py")
@@ -290,7 +292,7 @@ def test_base_match():
     assert not PurePathy("a/b.py").match("*.Py")
 
 
-def test_base_relative_to():
+def test_base_relative_to() -> None:
     gcs_path = PurePathy("/etc/passwd")
     assert gcs_path.relative_to("/") == PurePathy("etc/passwd")
     assert gcs_path.relative_to("/etc") == PurePathy("passwd")
@@ -298,7 +300,7 @@ def test_base_relative_to():
         gcs_path.relative_to("/usr")
 
 
-def test_base_with_name():
+def test_base_with_name() -> None:
     gcs_path = PurePathy("/Downloads/pathlib.tar.gz")
     assert gcs_path.with_name("fake_file.txt") == PurePathy("/Downloads/fake_file.txt")
     gcs_path = PurePathy("/")
@@ -306,7 +308,7 @@ def test_base_with_name():
         gcs_path.with_name("fake_file.txt")
 
 
-def test_base_with_suffix():
+def test_base_with_suffix() -> None:
     gcs_path = PurePathy("/Downloads/pathlib.tar.gz")
     assert gcs_path.with_suffix(".bz2") == PurePathy("/Downloads/pathlib.tar.bz2")
     gcs_path = PurePathy("README")
@@ -315,29 +317,29 @@ def test_base_with_suffix():
     assert gcs_path.with_suffix("") == PurePathy("README")
 
 
-def test_api_path_support():
+def test_api_path_support() -> None:
     assert PurePathy in Pathy.mro()  # type: ignore
     assert Path in Pathy.mro()  # type: ignore
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_is_path_instance(with_adapter):
+def test_api_is_path_instance(with_adapter: str) -> None:
     blob = Pathy("gs://fake/blob")
     assert isinstance(blob, Path)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_fluid(with_adapter, bucket: str):
+def test_api_fluid(with_adapter: str, bucket: str) -> None:
     path: FluidPath = Pathy.fluid(f"gs://{bucket}/fake-key")
     assert isinstance(path, Pathy)
-    path: FluidPath = Pathy.fluid("foo/bar.txt")
-    assert isinstance(path, Path)
-    path: FluidPath = Pathy.fluid("/dev/null")
-    assert isinstance(path, Path)
+    path = Pathy.fluid("foo/bar.txt")
+    assert isinstance(path, BasePath)
+    path = Pathy.fluid("/dev/null")
+    assert isinstance(path, BasePath)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_path_to_local(with_adapter, bucket: str):
+def test_api_path_to_local(with_adapter: str, bucket: str) -> None:
     root: Pathy = Pathy.from_bucket(bucket) / "to_local"
     foo_blob: Pathy = root / "foo"
     foo_blob.write_text("---")
@@ -377,7 +379,7 @@ def test_api_path_to_local(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_stat(with_adapter, bucket: str):
+def test_api_stat(with_adapter: str, bucket: str) -> None:
     path = Pathy("fake-bucket-1234-0987/fake-key")
     with pytest.raises(ValueError):
         path.stat()
@@ -385,8 +387,8 @@ def test_api_stat(with_adapter, bucket: str):
     path.write_text("a-a-a-a-a-a-a")
     stat = path.stat()
     assert isinstance(stat, BlobStat)
-    assert stat.size > 0
-    assert stat.last_modified > 0
+    assert stat.size is not None and stat.size > 0
+    assert stat.last_modified is not None and stat.last_modified > 0
     with pytest.raises(ValueError):
         assert Pathy(f"gs://{bucket}").stat()
     with pytest.raises(FileNotFoundError):
@@ -394,7 +396,7 @@ def test_api_stat(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_resolve(with_adapter, bucket: str):
+def test_api_resolve(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/fake-key")
     assert path.resolve() == path
     path = Pathy(f"gs://{bucket}/dir/../fake-key")
@@ -402,7 +404,7 @@ def test_api_resolve(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_exists(with_adapter, bucket: str):
+def test_api_exists(with_adapter: str, bucket: str) -> None:
     path = Pathy("./fake-key")
     with pytest.raises(ValueError):
         path.exists()
@@ -423,7 +425,7 @@ def test_api_exists(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_glob(with_adapter, bucket: str):
+def test_api_glob(with_adapter: str, bucket: str) -> None:
     for i in range(3):
         path = Pathy(f"gs://{bucket}/glob/{i}.file")
         path.write_text("---")
@@ -456,7 +458,7 @@ def test_api_glob(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_unlink_path(with_adapter, bucket: str):
+def test_api_unlink_path(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/unlink/404.txt")
     with pytest.raises(FileNotFoundError):
         path.unlink()
@@ -468,7 +470,7 @@ def test_api_unlink_path(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_is_dir(with_adapter, bucket: str):
+def test_api_is_dir(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/is_dir/subfolder/another/my.file")
     path.write_text("---")
     assert path.is_dir() is False
@@ -477,7 +479,7 @@ def test_api_is_dir(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_is_file(with_adapter, bucket: str):
+def test_api_is_file(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/is_file/subfolder/another/my.file")
     path.write_text("---")
     # The full file is a file
@@ -488,7 +490,7 @@ def test_api_is_file(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_iterdir(with_adapter, bucket: str):
+def test_api_iterdir(with_adapter: str, bucket: str) -> None:
     # (n) files in a folder
     for i in range(2):
         path = Pathy(f"gs://{bucket}/iterdir/{i}.file")
@@ -508,7 +510,7 @@ def test_api_iterdir(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_iterdir_pipstore(with_adapter, bucket: str):
+def test_api_iterdir_pipstore(with_adapter: str, bucket: str) -> None:
     path = Pathy.from_bucket(bucket) / "iterdir_pipstore/prodigy/prodigy.whl"
     path.write_bytes(b"---")
     path = Pathy.from_bucket(bucket) / "iterdir_pipstore"
@@ -517,7 +519,7 @@ def test_api_iterdir_pipstore(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_open_for_read(with_adapter, bucket: str):
+def test_api_open_for_read(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/read/file.txt")
     path.write_text("---")
     with path.open() as file_obj:
@@ -526,7 +528,7 @@ def test_api_open_for_read(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_open_for_write(with_adapter, bucket: str):
+def test_api_open_for_write(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/write/file.txt")
     with path.open(mode="w") as file_obj:
         file_obj.write("---")
@@ -537,7 +539,7 @@ def test_api_open_for_write(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_open_binary_read(with_adapter, bucket: str):
+def test_api_open_binary_read(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/read_binary/file.txt")
     path.write_bytes(b"---")
     with path.open(mode="rb") as file_obj:
@@ -548,7 +550,7 @@ def test_api_open_binary_read(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_readwrite_text(with_adapter, bucket: str):
+def test_api_readwrite_text(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/write_text/file.txt")
     path.write_text("---")
     with path.open() as file_obj:
@@ -557,14 +559,14 @@ def test_api_readwrite_text(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_readwrite_bytes(with_adapter, bucket: str):
+def test_api_readwrite_bytes(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/write_bytes/file.txt")
     path.write_bytes(b"---")
     assert path.read_bytes() == b"---"
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_readwrite_lines(with_adapter, bucket: str):
+def test_api_readwrite_lines(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/write_text/file.txt")
     with path.open("w") as file_obj:
         file_obj.writelines(["---"])
@@ -575,7 +577,20 @@ def test_api_readwrite_lines(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_owner(with_adapter, bucket: str):
+def test_api_ls_blobs_with_stat(with_adapter: str, bucket: str) -> None:
+    root = Pathy(f"gs://{bucket}/ls")
+    for i in range(3):
+        (root / f"file_{i}").write_text("NICE")
+    files = list(root.ls())
+    assert len(files) == 3
+    for i, blob_stat in enumerate(files):
+        assert blob_stat.name == f"file_{i}"
+        assert blob_stat.size == 4
+        assert blob_stat.last_modified is not None
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_owner(with_adapter: str, bucket: str) -> None:
     # Raises for invalid file
     with pytest.raises(FileNotFoundError):
         Pathy(f"gs://{bucket}/write_text/not_a_valid_blob").owner()
@@ -593,7 +608,7 @@ def test_api_owner(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_rename_files_in_bucket(with_adapter, bucket: str):
+def test_api_rename_files_in_bucket(with_adapter: str, bucket: str) -> None:
     # Rename a single file
     Pathy(f"gs://{bucket}/rename/file.txt").write_text("---")
     Pathy(f"gs://{bucket}/rename/file.txt").rename(f"gs://{bucket}/rename/other.txt")
@@ -602,7 +617,9 @@ def test_api_rename_files_in_bucket(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_rename_files_across_buckets(with_adapter, bucket: str, other_bucket: str):
+def test_api_rename_files_across_buckets(
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
     # Rename a single file across buckets
     Pathy(f"gs://{bucket}/rename/file.txt").write_text("---")
     Pathy(f"gs://{bucket}/rename/file.txt").rename(
@@ -613,7 +630,7 @@ def test_api_rename_files_across_buckets(with_adapter, bucket: str, other_bucket
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_rename_folders_in_bucket(with_adapter, bucket: str):
+def test_api_rename_folders_in_bucket(with_adapter: str, bucket: str) -> None:
     # Rename a folder in the same bucket
     Pathy(f"gs://{bucket}/rename/folder/one.txt").write_text("---")
     Pathy(f"gs://{bucket}/rename/folder/two.txt").write_text("---")
@@ -628,8 +645,8 @@ def test_api_rename_folders_in_bucket(with_adapter, bucket: str):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_rename_folders_across_buckets(
-    with_adapter, bucket: str, other_bucket: str
-):
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
     # Rename a folder across buckets
     Pathy(f"gs://{bucket}/rename/folder/one.txt").write_text("---")
     Pathy(f"gs://{bucket}/rename/folder/two.txt").write_text("---")
@@ -643,7 +660,7 @@ def test_api_rename_folders_across_buckets(
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_replace_files_in_bucket(with_adapter, bucket: str):
+def test_api_replace_files_in_bucket(with_adapter: str, bucket: str) -> None:
     # replace a single file
     Pathy(f"gs://{bucket}/replace/file.txt").write_text("---")
     Pathy(f"gs://{bucket}/replace/file.txt").replace(f"gs://{bucket}/replace/other.txt")
@@ -652,7 +669,9 @@ def test_api_replace_files_in_bucket(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_replace_files_across_buckets(with_adapter, bucket: str, other_bucket: str):
+def test_api_replace_files_across_buckets(
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
     # Rename a single file across buckets
     Pathy(f"gs://{bucket}/replace/file.txt").write_text("---")
     Pathy(f"gs://{bucket}/replace/file.txt").replace(
@@ -663,7 +682,7 @@ def test_api_replace_files_across_buckets(with_adapter, bucket: str, other_bucke
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_replace_folders_in_bucket(with_adapter, bucket: str):
+def test_api_replace_folders_in_bucket(with_adapter: str, bucket: str) -> None:
     # Rename a folder in the same bucket
     Pathy(f"gs://{bucket}/replace/folder/one.txt").write_text("---")
     Pathy(f"gs://{bucket}/replace/folder/two.txt").write_text("---")
@@ -678,8 +697,8 @@ def test_api_replace_folders_in_bucket(with_adapter, bucket: str):
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_replace_folders_across_buckets(
-    with_adapter, bucket: str, other_bucket: str
-):
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
     # Rename a folder across buckets
     Pathy(f"gs://{bucket}/replace/folder/one.txt").write_text("---")
     Pathy(f"gs://{bucket}/replace/folder/two.txt").write_text("---")
@@ -693,7 +712,7 @@ def test_api_replace_folders_across_buckets(
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_rmdir(with_adapter, bucket: str):
+def test_api_rmdir(with_adapter: str, bucket: str) -> None:
     Pathy(f"gs://{bucket}/rmdir/one.txt").write_text("---")
     Pathy(f"gs://{bucket}/rmdir/folder/two.txt").write_text("---")
     path = Pathy(f"gs://{bucket}/rmdir/")
@@ -704,7 +723,7 @@ def test_api_rmdir(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_rglob_unlink(with_adapter, bucket: str):
+def test_api_rglob_unlink(with_adapter: str, bucket: str) -> None:
     files = [f"gs://{bucket}/rglob_and_unlink/{i}.file.txt" for i in range(3)]
     for file in files:
         Pathy(file).write_text("---")
@@ -719,7 +738,7 @@ def test_api_rglob_unlink(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_mkdir(with_adapter, bucket: str):
+def test_api_mkdir(with_adapter: str, bucket: str) -> None:
     bucket_name = f"pathy-e2e-test-{uuid4().hex}"
     # Create a bucket
     path = Pathy(f"gs://{bucket_name}/")
@@ -742,7 +761,7 @@ def test_api_mkdir(with_adapter, bucket: str):
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_api_ignore_extension(with_adapter, bucket: str):
+def test_api_ignore_extension(with_adapter: str, bucket: str) -> None:
     """The smart_open library does automatic decompression based
     on the filename. We disable that to avoid errors, e.g. if you
     have a .tar.gz file that isn't gzipped."""
@@ -753,7 +772,9 @@ def test_api_ignore_extension(with_adapter, bucket: str):
     assert again is not None
 
 
-def test_api_raises_with_no_known_bucket_clients_for_a_scheme(temp_folder):
+def test_api_raises_with_no_known_bucket_clients_for_a_scheme(
+    temp_folder: Path,
+) -> None:
     accessor = BucketsAccessor()
     path = Pathy("foo://foo")
     with pytest.raises(ValueError):
@@ -764,7 +785,7 @@ def test_api_raises_with_no_known_bucket_clients_for_a_scheme(temp_folder):
 
 
 @pytest.mark.skip("requires: https://github.com/explosion/thinc/pull/465")
-def test_api_export_spacy_model(temp_folder):
+def test_api_export_spacy_model(temp_folder: Path) -> None:
     """spaCy model loading is one of the things we need to support"""
     use_fs(temp_folder)
     bucket = Pathy("gs://my-bucket/")
@@ -781,7 +802,7 @@ def test_api_export_spacy_model(temp_folder):
     assert sorted_entries == expected_entries
 
 
-def test_client_create_bucket(temp_folder: Path):
+def test_client_create_bucket(temp_folder: Path) -> None:
     bucket_target = temp_folder / "foo"
     assert bucket_target.exists() is False
     cl = BucketClientFS(temp_folder)
@@ -789,9 +810,9 @@ def test_client_create_bucket(temp_folder: Path):
     assert bucket_target.exists() is True
 
 
-def test_client_base_bucket_raises_not_implemented():
+def test_client_base_bucket_raises_not_implemented() -> None:
     bucket = Bucket()
-    blob = Blob(bucket, "foo", -1, -1, None, None)
+    blob: Blob = Blob(bucket, "foo", -1, -1, None, None)
     with pytest.raises(NotImplementedError):
         bucket.copy_blob(blob, bucket, "baz")
     with pytest.raises(NotImplementedError):
@@ -804,15 +825,15 @@ def test_client_base_bucket_raises_not_implemented():
         bucket.exists()
 
 
-def test_client_base_blob_raises_not_implemented():
-    blob = Blob(Bucket(), "foo", -1, -1, None, None)
+def test_client_base_blob_raises_not_implemented() -> None:
+    blob: Blob = Blob(Bucket(), "foo", -1, -1, None, None)
     with pytest.raises(NotImplementedError):
         blob.delete()
     with pytest.raises(NotImplementedError):
         blob.exists()
 
 
-def test_client_base_bucket_client_raises_not_implemented():
+def test_client_base_bucket_client_raises_not_implemented() -> None:
     client = BucketClient()
     with pytest.raises(NotImplementedError):
         client.lookup_bucket(Pathy("gs://foo"))
