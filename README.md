@@ -458,6 +458,7 @@ $ ls [OPTIONS] LOCATION
 
 **Options**:
 
+- `-l, --long`: Print long style entries with updated time and size shown. [default: False]
 - `--help`: Show this message and exit.
 
 ## `mv`

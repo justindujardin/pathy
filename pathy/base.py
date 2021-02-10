@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from io import DEFAULT_BUFFER_SIZE
 from pathlib import _Accessor  # type:ignore
 from pathlib import _PosixFlavour  # type:ignore
+from pathlib import _WindowsFlavour  # type:ignore
 from pathlib import Path, PurePath
 from typing import (
     IO,
@@ -29,6 +30,9 @@ FluidPath = Union["Pathy", "BasePath"]
 BucketClientType = TypeVar("BucketClientType", bound="BucketClient")
 BucketType = TypeVar("BucketType")
 BucketBlobType = TypeVar("BucketBlobType")
+
+_windows_flavour = _WindowsFlavour()
+_posix_flavour = _PosixFlavour()
 
 
 @dataclass
@@ -318,8 +322,11 @@ class _PathyExtensions:
                 yield BlobStat(name=os_blob.name, size=file_size, last_modified=updated)
 
 
-class BasePath(Path, _PathyExtensions):
-    _flavour = _PosixFlavour()
+class BasePath(_PathyExtensions, Path):
+    # NOTE: pathlib normally takes care of this, but the logic checks
+    #       for specifically "Path" type class in __new__ so we need to
+    #       set the flavour manually based on the OS.
+    _flavour = _windows_flavour if os.name == "nt" else _posix_flavour  # type:ignore
 
 
 class BucketsAccessor(_Accessor):

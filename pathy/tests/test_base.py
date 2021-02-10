@@ -8,6 +8,7 @@ import pytest
 import spacy
 
 from pathy import (
+    BasePath,
     Blob,
     BlobStat,
     Bucket,
@@ -332,9 +333,9 @@ def test_api_fluid(with_adapter: str, bucket: str) -> None:
     path: FluidPath = Pathy.fluid(f"gs://{bucket}/fake-key")
     assert isinstance(path, Pathy)
     path = Pathy.fluid("foo/bar.txt")
-    assert isinstance(path, Path)
+    assert isinstance(path, BasePath)
     path = Pathy.fluid("/dev/null")
-    assert isinstance(path, Path)
+    assert isinstance(path, BasePath)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
