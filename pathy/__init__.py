@@ -21,4 +21,4 @@ from .clients import (
     use_fs_cache,
 )
 from .file import BlobFS, BucketClientFS, BucketEntryFS, BucketFS
-from .gcs import BlobGCS, BucketClientGCS, BucketEntryGCS, BucketGCS
+from .gcs import BlobGCS, BucketClientGCS, BucketEntryGCS, BucketGCS, has_gcs
