@@ -1,3 +1,5 @@
+import tempfile
+
 import pytest
 from typer.testing import CliRunner
 
@@ -154,6 +156,40 @@ def test_cli_rm_folder(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_ls(with_adapter: str, bucket: str) -> None:
+    root = Pathy.from_bucket(bucket) / "cli_ls"
+    one = str(root / "file.txt")
+    two = str(root / "other.txt")
+    three = str(root / "folder/file.txt")
+    Pathy(one).write_text("---")
+    Pathy(two).write_text("---")
+    Pathy(three).write_text("---")
+
+    result = runner.invoke(app, ["ls", str(root)])
+    assert result.exit_code == 0
+    assert one in result.output
+    assert two in result.output
+    assert str(root / "folder") in result.output
+
+    result = runner.invoke(app, ["ls", "-l", str(root)])
+    assert result.exit_code == 0
+    assert one in result.output
+    assert two in result.output
+    assert str(root / "folder") in result.output
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
+    root = Pathy.fluid(tempfile.mkdtemp()) / "ls"
+    root.mkdir(parents=True, exist_ok=True)
+    for i in range(3):
+        (root / f"file_{i}").write_text("NICE")
+    files = list(root.ls())
+    assert len(files) == 3
+    for i, blob_stat in enumerate(files):
+        assert blob_stat.name == f"file_{i}"
+        assert blob_stat.size == 4
+        assert blob_stat.last_modified is not None
+
     root = Pathy.from_bucket(bucket) / "cli_ls"
     one = str(root / "file.txt")
     two = str(root / "other.txt")
