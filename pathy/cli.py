@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import typer
 
 from .base import FluidPath, Pathy
@@ -105,7 +107,15 @@ def rm(
 
 
 @app.command()
-def ls(location: str) -> None:
+def ls(
+    location: str,
+    long: bool = typer.Option(
+        False,
+        "--long",
+        "-l",
+        help="Print long style entries with updated time and size shown.",
+    ),
+) -> None:
     """
     List the blobs that exist at a given location.
     """
@@ -113,8 +123,21 @@ def ls(location: str) -> None:
     if not path.exists() or path.is_file():
         typer.echo(f"ls: {path}: No such file or directory")
         return
-    for file in path.iterdir():
-        typer.echo(file)
+    now = datetime.now()
+    for blob_stat in path.ls():
+        print_name = str(path / blob_stat.name)
+        if not long:
+            typer.echo(print_name)
+            continue
+        time_str = ""
+        if blob_stat.last_modified is not None:
+            then = datetime.fromtimestamp(blob_stat.last_modified)
+            if now.year != then.year:
+                time_str = "%d %b, %Y"
+            else:
+                time_str = "%d %b, %H:%M"
+            time_str = then.strftime(time_str)
+        typer.echo("{0:10}{1:15}{2:10}".format(blob_stat.size, time_str, print_name))
 
 
 if __name__ == "__main__":
