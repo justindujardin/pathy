@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/justindujardin/pathy/compare/v0.3.6...v0.4.0) (2021-02-15)
+
+
+### Bug Fixes
+
+* **gcs:** stop handling DefaultCredentialsError ([d4754ff](https://github.com/justindujardin/pathy/commit/d4754ff9be5fc5ecce35ba8658097a1dd29ce5d0)), closes [#43](https://github.com/justindujardin/pathy/issues/43)
+
 ## [0.3.6](https://github.com/justindujardin/pathy/compare/v0.3.5...v0.3.6) (2021-02-10)
 
 
