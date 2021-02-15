@@ -115,12 +115,14 @@ class BucketClientGCS(BucketClient):
         self.recreate(**kwargs)
 
     def recreate(self, **kwargs: Any) -> None:
+        creds = kwargs["credentials"] if "credentials" in kwargs else None
+        if creds is not None:
+            kwargs["project"] = creds.project_id
         try:
-            creds = kwargs["credentials"] if "credentials" in kwargs else None
-            if creds is not None:
-                kwargs["project"] = creds.project_id
-            self.client = GCSNativeClient(**kwargs) if GCSNativeClient else None
-        except (BaseException, DefaultCredentialsError):
+            self.client = GCSNativeClient(**kwargs)
+        except TypeError:
+            # TypeError is raised if the imports for GCSNativeClient fail and are
+            #  assigned to Any, which is not callable.
             self.client = None
 
     def make_uri(self, path: PurePathy) -> str:
