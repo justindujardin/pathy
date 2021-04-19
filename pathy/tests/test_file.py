@@ -5,7 +5,7 @@ import mock
 import pytest
 
 from pathy import Pathy, get_client
-from pathy.file import BlobFS, BucketClientFS, BucketFS
+from pathy import BlobFS, BucketClientFS, BucketFS
 
 
 def raise_owner(self: Any) -> None:

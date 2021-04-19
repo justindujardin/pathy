@@ -353,7 +353,7 @@ Stat for a bucket item
 ```python (doc)
 use_fs(
     root: Optional[str, pathlib.Path, bool] = None,
-) -> Optional[pathy.file.BucketClientFS]
+) -> Optional[pathy.base.BucketClientFS]
 ```
 
 Use a path in the local file-system to store blobs and buckets.
@@ -364,7 +364,7 @@ applications.
 # get_fs_client <kbd>function</kbd>
 
 ```python (doc)
-get_fs_client() -> Optional[pathy.file.BucketClientFS]
+get_fs_client() -> Optional[pathy.base.BucketClientFS]
 ```
 
 Get the file-system client (or None)

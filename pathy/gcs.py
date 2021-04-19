@@ -9,6 +9,7 @@ from .base import (
     ClientError,
     PathyScanDir,
     PurePathy,
+    register_client,
 )
 
 try:
@@ -272,3 +273,6 @@ class _GCSScanDir(PathyScanDir):
             if response.next_page_token is None:
                 break
             continuation_token = response.next_page_token
+
+
+register_client("gs", BucketClientGCS)

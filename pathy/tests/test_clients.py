@@ -6,14 +6,14 @@ import pytest
 
 from pathy import Pathy, get_client
 from pathy.base import BucketClient
-from pathy.clients import (
+from pathy import (
     get_fs_client,
     register_client,
     set_client_params,
     use_fs,
     use_fs_cache,
 )
-from pathy.file import BucketClientFS
+from pathy import BucketClientFS
 from pathy.gcs import BucketClientGCS
 
 from .conftest import TEST_ADAPTERS

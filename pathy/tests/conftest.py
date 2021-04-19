@@ -7,8 +7,7 @@ from typing import Any, Generator, Optional
 
 import pytest
 
-from pathy import Pathy, use_fs, use_fs_cache
-from pathy.clients import set_client_params
+from pathy import Pathy, use_fs, use_fs_cache, set_client_params
 from pathy.gcs import has_gcs
 
 has_credentials = "GCS_CREDENTIALS" in os.environ

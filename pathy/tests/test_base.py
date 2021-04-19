@@ -6,8 +6,7 @@ from uuid import uuid4
 
 import pytest
 import spacy
-
-from pathy import (
+from .. import (
     BasePath,
     Blob,
     BlobStat,
@@ -22,8 +21,8 @@ from pathy import (
     use_fs,
     use_fs_cache,
 )
-from pathy.about import __version__
 
+from ..about import __version__
 from .conftest import TEST_ADAPTERS
 
 # todo: test samefile/touch method
@@ -784,7 +783,6 @@ def test_api_raises_with_no_known_bucket_clients_for_a_scheme(
     assert isinstance(accessor.client(path), BucketClientFS)
 
 
-@pytest.mark.skip("requires: https://github.com/explosion/thinc/pull/465")
 def test_api_export_spacy_model(temp_folder: Path) -> None:
     """spaCy model loading is one of the things we need to support"""
     use_fs(temp_folder)
@@ -795,6 +793,7 @@ def test_api_export_spacy_model(temp_folder: Path) -> None:
     model.to_disk(output_path)
     sorted_entries = sorted([str(p) for p in output_path.glob("*")])
     expected_entries = [
+        "gs://my-bucket/models/my_model/config.cfg",
         "gs://my-bucket/models/my_model/meta.json",
         "gs://my-bucket/models/my_model/tokenizer",
         "gs://my-bucket/models/my_model/vocab",
