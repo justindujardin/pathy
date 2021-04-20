@@ -6,6 +6,9 @@ import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from io import DEFAULT_BUFFER_SIZE
+from pathlib import _Accessor  # type:ignore
+from pathlib import _PosixFlavour  # type:ignore
+from pathlib import _WindowsFlavour  # type:ignore
 from pathlib import Path, PurePath
 from typing import (
     IO,
@@ -25,8 +28,6 @@ from typing import (
 )
 
 import smart_open
-
-from ._types import _Accessor, _PosixFlavour, _WindowsFlavour
 
 SUBCLASS_ERROR = "must be implemented in a subclass"
 

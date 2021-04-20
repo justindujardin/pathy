@@ -15,9 +15,9 @@ from pathy import (
     use_fs,
     use_fs_cache,
 )
-from pathy._gcs import BucketClientGCS
-from pathy.gcs import has_gcs
+from pathy.gcs import BucketClientGCS
 
+from . import has_gcs
 from .conftest import TEST_ADAPTERS
 
 
