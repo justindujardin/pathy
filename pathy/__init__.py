@@ -761,7 +761,9 @@ class Pathy(Path, PurePathy, _PathyExtensions):
             other_path = type(self)(other_path)  # type:ignore
         assert isinstance(other_path, Pathy)
         return (
-            self.bucket == other_path.bucket and self.key == self.key and self.is_file()
+            self.bucket == other_path.bucket
+            and self.key == other_path.key
+            and self.is_file()
         )
 
     def touch(self: "Pathy", mode: int = 0o666, exist_ok: bool = True) -> None:
