@@ -4,23 +4,29 @@ from typing import Any
 
 import pytest
 
-from pathy import Pathy, get_client
-from pathy.base import BucketClient
 from pathy import (
+    BucketClient,
+    BucketClientFS,
+    Pathy,
+    get_client,
     get_fs_client,
     register_client,
     set_client_params,
     use_fs,
     use_fs_cache,
 )
-from pathy import BucketClientFS
-from pathy.gcs import BucketClientGCS
+from pathy._gcs import BucketClientGCS
+from pathy.gcs import has_gcs
 
 from .conftest import TEST_ADAPTERS
 
 
-def test_clients_get_client_works_with_builtin_schems() -> None:
+@pytest.mark.skipif(not has_gcs, reason="requires gcs")
+def test_clients_get_client_works_with_optional_builtin_schems() -> None:
     assert isinstance(get_client("gs"), BucketClientGCS)
+
+
+def test_clients_get_client_works_with_builtin_schems() -> None:
     assert isinstance(get_client("file"), BucketClientFS)
     assert isinstance(get_client(""), BucketClientFS)
 

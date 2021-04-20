@@ -4,8 +4,7 @@ from typing import Any, Optional
 import mock
 import pytest
 
-from pathy import Pathy, get_client
-from pathy import BlobFS, BucketClientFS, BucketFS
+from pathy import BlobFS, BucketClientFS, BucketFS, Pathy, get_client
 
 
 def raise_owner(self: Any) -> None:

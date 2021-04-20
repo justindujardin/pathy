@@ -304,7 +304,7 @@ Determine if this path points to the same location as other_path.
 ## stat <kbd>method</kbd>
 
 ```python (doc)
-Pathy.stat(self: 'Pathy') -> pathy.base.BlobStat
+Pathy.stat(self: 'Pathy') -> pathy.BlobStat
 ```
 
 Returns information about this bucket path.
@@ -353,7 +353,7 @@ Stat for a bucket item
 ```python (doc)
 use_fs(
     root: Optional[str, pathlib.Path, bool] = None,
-) -> Optional[pathy.base.BucketClientFS]
+) -> Optional[pathy.BucketClientFS]
 ```
 
 Use a path in the local file-system to store blobs and buckets.
@@ -364,7 +364,7 @@ applications.
 # get_fs_client <kbd>function</kbd>
 
 ```python (doc)
-get_fs_client() -> Optional[pathy.base.BucketClientFS]
+get_fs_client() -> Optional[pathy.BucketClientFS]
 ```
 
 Get the file-system client (or None)

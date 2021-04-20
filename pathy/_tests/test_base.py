@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 import spacy
+
 from .. import (
     BasePath,
     Blob,
@@ -21,7 +22,6 @@ from .. import (
     use_fs,
     use_fs_cache,
 )
-
 from ..about import __version__
 from .conftest import TEST_ADAPTERS
 
@@ -317,8 +317,8 @@ def test_base_with_suffix() -> None:
 
 
 def test_api_path_support() -> None:
-    assert PurePathy in Pathy.mro()  # type: ignore
-    assert Path in Pathy.mro()  # type: ignore
+    assert PurePathy in Pathy.mro()
+    assert Path in Pathy.mro()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -810,7 +810,7 @@ def test_client_create_bucket(temp_folder: Path) -> None:
 
 
 def test_client_base_bucket_raises_not_implemented() -> None:
-    bucket = Bucket()
+    bucket: Bucket = Bucket()
     blob: Blob = Blob(bucket, "foo", -1, -1, None, None)
     with pytest.raises(NotImplementedError):
         bucket.copy_blob(blob, bucket, "baz")
@@ -833,7 +833,7 @@ def test_client_base_blob_raises_not_implemented() -> None:
 
 
 def test_client_base_bucket_client_raises_not_implemented() -> None:
-    client = BucketClient()
+    client: BucketClient = BucketClient()
     with pytest.raises(NotImplementedError):
         client.lookup_bucket(Pathy("gs://foo"))
     with pytest.raises(NotImplementedError):

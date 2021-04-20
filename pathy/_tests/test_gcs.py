@@ -2,7 +2,8 @@ from unittest.mock import patch
 
 import pytest
 
-from pathy import has_gcs, set_client_params
+from pathy import set_client_params
+from pathy.gcs import has_gcs
 
 
 def raise_default_creds_error() -> None:

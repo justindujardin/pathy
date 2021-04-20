@@ -2,7 +2,7 @@ from datetime import datetime
 
 import typer
 
-from .base import FluidPath, Pathy
+from . import FluidPath, Pathy
 
 app = typer.Typer(help="Pathy command line interface.")
 
