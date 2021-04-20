@@ -971,7 +971,7 @@ def test_client_base_bucket_client_raises_not_implemented() -> None:
 
 def test_bucket_client_rmdir() -> None:
     client: BucketClient = BucketClient()
-    assert client.rmdir(Pathy("gs://foo/bar")) is None
+    client.rmdir(Pathy("gs://foo/bar"))
 
 
 def test_bucket_client_make_uri() -> None:
@@ -989,7 +989,7 @@ def test_bucket_entry_defaults() -> None:
     entry: BucketEntry = BucketEntry("name")
     assert entry.is_dir() is False
     assert entry.is_file() is True
-    assert entry.inode() is None
+    entry.inode()
     assert "BucketEntry" in repr(entry)
     assert "last_modified" in repr(entry)
     assert "size" in repr(entry)
