@@ -4,6 +4,7 @@ set -e
 # Make the virtualenv only if the folder doesn't exist
 DIR=.env
 if [ ! -d "${DIR}" ]; then
+  pip install virtualenv
   python -m virtualenv .env -p python3
 fi
 
