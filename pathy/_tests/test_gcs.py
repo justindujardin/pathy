@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+
 from pathy import Pathy, set_client_params
 
 from . import has_gcs

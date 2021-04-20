@@ -25,7 +25,7 @@ from .. import (
     use_fs_cache,
 )
 from ..about import __version__
-from .conftest import TEST_ADAPTERS, ENV_ID
+from .conftest import ENV_ID, TEST_ADAPTERS
 
 
 def test_base_package_declares_version() -> None:

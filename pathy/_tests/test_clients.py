@@ -18,7 +18,7 @@ from pathy import (
 from pathy.gcs import BucketClientGCS
 
 from . import has_gcs
-from .conftest import TEST_ADAPTERS
+from .conftest import ENV_ID, TEST_ADAPTERS
 
 
 @pytest.mark.skipif(not has_gcs, reason="requires gcs")
@@ -72,7 +72,7 @@ def test_clients_use_fs(with_fs: Path) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_use_fs_cache(with_adapter: str, with_fs: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/directory/foo.txt")
+    path = Pathy(f"gs://{bucket}/{ENV_ID}directory/foo.txt")
     path.write_text("---")
     assert isinstance(path, Pathy)
     with pytest.raises(ValueError):
