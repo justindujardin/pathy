@@ -85,7 +85,7 @@ def test_api_use_fs_cache(with_adapter: str, with_fs: str, bucket: str) -> None:
     orig_cache_time = foo_timestamp.read_text()
 
     # fetch from the local cache
-    cached_file: Path = Pathy.to_local(path)
+    cached_file: Path = Pathy.to_local(f"{path}")
     assert cached_file == source_file
     cached_cache_time = foo_timestamp.read_text()
     assert orig_cache_time == cached_cache_time, "cached blob timestamps should match"

@@ -14,7 +14,9 @@ from .. import (
     Bucket,
     BucketClient,
     BucketClientFS,
+    BucketEntry,
     BucketsAccessor,
+    ClientError,
     FluidPath,
     Pathy,
     PurePathy,
@@ -146,6 +148,14 @@ def test_base_join_strs() -> None:
     assert PurePathy("foo", "some/path", "bar") == PurePathy("foo/some/path/bar")
 
 
+def test_base_parse_parts() -> None:
+    # Needs two parts to extract scheme/bucket
+    with pytest.raises(ValueError):
+        PurePathy("foo:")
+
+    assert PurePathy("foo://bar") is not None
+
+
 def test_base_join_paths() -> None:
     assert PurePathy(Path("foo"), Path("bar")) == PurePathy("foo/bar")
 
@@ -259,9 +269,9 @@ def test_base_stem() -> None:
 
 
 def test_base_uri() -> None:
-    assert PurePathy("/etc/passwd").as_uri() == "gs://etc/passwd"
-    assert PurePathy("/etc/init.d/apache2").as_uri() == "gs://etc/init.d/apache2"
-    assert PurePathy("/bucket/key").as_uri() == "gs://bucket/key"
+    assert PurePathy("/etc/passwd").as_uri() == "/etc/passwd"
+    assert PurePathy("/etc/init.d/apache2").as_uri() == "/etc/init.d/apache2"
+    assert PurePathy("/bucket/key").as_uri() == "/bucket/key"
 
 
 def test_base_absolute() -> None:
@@ -518,6 +528,38 @@ def test_api_iterdir_pipstore(with_adapter: str, bucket: str) -> None:
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_open_errors(with_adapter: str, bucket: str) -> None:
+    path = Pathy(f"gs://{bucket}/read/file.txt")
+    # Invalid open mode
+    with pytest.raises(ValueError):
+        path.open(mode="t")
+
+    # Invalid buffering value
+    with pytest.raises(ValueError):
+        path.open(buffering=0)
+
+    # Binary mode with encoding value
+    with pytest.raises(ValueError):
+        path.open(mode="rb", encoding="utf8")
+
+
+@pytest.mark.parametrize("adapter", ["fs"])
+def test_api_open_client_params(with_adapter: str, bucket: str) -> None:
+    path = Pathy(f"gs://{bucket}/read/file.txt")
+    # Invalid open mode
+    with pytest.raises(ValueError):
+        path.open(mode="t")
+
+    # Invalid buffering value
+    with pytest.raises(ValueError):
+        path.open(buffering=0)
+
+    # Binary mode with encoding value
+    with pytest.raises(ValueError):
+        path.open(mode="b", encoding="utf8")
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_open_for_read(with_adapter: str, bucket: str) -> None:
     path = Pathy(f"gs://{bucket}/read/file.txt")
     path.write_text("---")
@@ -712,13 +754,58 @@ def test_api_replace_folders_across_buckets(
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_rmdir(with_adapter: str, bucket: str) -> None:
-    Pathy(f"gs://{bucket}/rmdir/one.txt").write_text("---")
+    blob = Pathy(f"gs://{bucket}/rmdir/one.txt")
+    blob.write_text("---")
+
+    # Cannot rmdir a blob
+    with pytest.raises(NotADirectoryError):
+        blob.rmdir()
+
     Pathy(f"gs://{bucket}/rmdir/folder/two.txt").write_text("---")
     path = Pathy(f"gs://{bucket}/rmdir/")
     path.rmdir()
     assert not Pathy(f"gs://{bucket}/rmdir/one.txt").is_file()
     assert not Pathy(f"gs://{bucket}/rmdir/other/two.txt").is_file()
     assert not path.exists()
+
+    # Cannot rmdir a non-existant folder
+    with pytest.raises(FileNotFoundError):
+        path.rmdir()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_samefile(with_adapter: str, bucket: str) -> None:
+    blob_str = f"gs://{bucket}/samefile/one.txt"
+    blob_one = Pathy(blob_str)
+    blob_two = Pathy(f"gs://{bucket}/samefile/two.txt")
+    blob_one.touch()
+    blob_two.touch()
+    assert blob_one.samefile(blob_two) is False
+
+    # accepts a Path-like object
+    assert blob_one.samefile(blob_one) is True
+    # accepts a str
+    assert blob_one.samefile(blob_str) is True
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_api_touch(with_adapter: str, bucket: str) -> None:
+    blob = Pathy(f"gs://{bucket}/touch/one.txt")
+    if blob.is_file():
+        blob.unlink()
+    # The blob doesn't exist
+    assert blob.is_file() is False
+    # Touch creates an empty text blob
+    blob.touch()
+    # Now it exists
+    assert blob.is_file() is True
+
+    # Can't touch an existing blob if exist_ok=False
+    with pytest.raises(FileExistsError):
+        blob.touch(exist_ok=False)
+
+    # Can touch an existing blob by default (no-op)
+    blob.touch()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -747,14 +834,7 @@ def test_api_mkdir(with_adapter: str, bucket: str) -> None:
     path.mkdir(exist_ok=True)
     with pytest.raises(FileExistsError):
         path.mkdir(exist_ok=False)
-    # with pytest.raises(FileNotFoundError):
-    #     Pathy("/test-second-bucket/test-directory/file.name").mkdir()
-    # Pathy("/test-second-bucket/test-directory/file.name").mkdir(parents=True)
     assert path.exists()
-    # remove the bucket
-    # client = storage.Client()
-    # bucket = client.lookup_bucket(bucket_name)
-    # bucket.delete()
     path.rmdir()
     assert not path.exists()
 
@@ -781,6 +861,41 @@ def test_api_raises_with_no_known_bucket_clients_for_a_scheme(
     # Setting a fallback FS adapter fixes the problem
     use_fs(str(temp_folder))
     assert isinstance(accessor.client(path), BucketClientFS)
+
+
+def test_buckets_accessor_get_blob(temp_folder: Path) -> None:
+    accessor = BucketsAccessor()
+    use_fs(temp_folder)
+    # no scheme/bucket prefix
+    assert accessor.get_blob(Pathy("foo")) is None
+    # a valid bucket that does not exist
+    assert accessor.get_blob(Pathy("gs://invalid_bucket_134515h15h15j1h")) is None
+
+
+def test_buckets_accessor_rename_replace(temp_folder: Path) -> None:
+    use_fs(temp_folder)
+    Pathy.from_bucket("foo").mkdir()
+    accessor = Pathy("")._accessor  # type:ignore
+    from_path = Pathy("gs://foo/bar")
+    to_path = Pathy("gs://foo/baz")
+    # Source foo/bar does not exist
+    with pytest.raises(FileNotFoundError):
+        accessor.rename(from_path, to_path)
+    with pytest.raises(FileNotFoundError):
+        accessor.replace(from_path, to_path)
+
+
+def test_buckets_accessor_exists(temp_folder: Path) -> None:
+    accessor = BucketsAccessor()
+    use_fs(temp_folder)
+    # enumerates buckets, but there are none
+    assert accessor.exists(Pathy("")) is False
+
+    # Create a bucket
+    Pathy("gs://bucket_name").mkdir()
+
+    # There is a bucket, so now exists returns true
+    assert accessor.exists(Pathy("")) is True
 
 
 def test_api_export_spacy_model(temp_folder: Path) -> None:
@@ -835,6 +950,10 @@ def test_client_base_blob_raises_not_implemented() -> None:
 def test_client_base_bucket_client_raises_not_implemented() -> None:
     client: BucketClient = BucketClient()
     with pytest.raises(NotImplementedError):
+        client.exists(Pathy("gs://foo"))
+    with pytest.raises(NotImplementedError):
+        client.is_dir(Pathy("gs://foo"))
+    with pytest.raises(NotImplementedError):
         client.lookup_bucket(Pathy("gs://foo"))
     with pytest.raises(NotImplementedError):
         client.get_bucket(Pathy("gs://foo"))
@@ -848,3 +967,33 @@ def test_client_base_bucket_client_raises_not_implemented() -> None:
         client.create_bucket(Pathy("gs://foo"))
     with pytest.raises(NotImplementedError):
         client.delete_bucket(Pathy("gs://foo"))
+
+
+def test_bucket_client_rmdir() -> None:
+    client: BucketClient = BucketClient()
+    assert client.rmdir(Pathy("gs://foo/bar")) is None
+
+
+def test_bucket_client_make_uri() -> None:
+    client: BucketClient = BucketClient()
+    assert client.make_uri(Pathy("gs://foo/bar")) == "gs://foo/bar"
+
+
+def test_client_error_repr() -> None:
+    error = ClientError("test_message", 1337)
+    assert repr(error) == "(1337) test_message"
+    assert f"{error}" == "(1337) test_message"
+
+
+def test_bucket_entry_defaults() -> None:
+    entry: BucketEntry = BucketEntry("name")
+    assert entry.is_dir() is False
+    assert entry.is_file() is True
+    assert entry.inode() is None
+    assert "BucketEntry" in repr(entry)
+    assert "last_modified" in repr(entry)
+    assert "size" in repr(entry)
+    stat = entry.stat()
+    assert isinstance(stat, BlobStat)
+    assert stat.last_modified == -1
+    assert stat.size == -1

@@ -237,8 +237,7 @@ class _PathyFlavour(_PosixFlavour):  # type:ignore
         return drv, root, parsed
 
     def make_uri(self, path: "Pathy") -> str:
-        uri: str = super().make_uri(path)  # type:ignore
-        return uri.replace("file:///", "gs://")
+        return str(path)
 
 
 class PurePathy(PurePath):
@@ -297,7 +296,7 @@ class PurePathy(PurePath):
 
     def _absolute_path_validation(self) -> None:
         if not self.is_absolute():
-            raise ValueError("relative paths has no bucket/key specification")
+            raise ValueError("relative paths are unsupported")
 
     @classmethod
     def _format_parsed_parts(cls, drv: str, root: str, parts: List[str]) -> str:
@@ -374,8 +373,6 @@ class BucketsAccessor(_Accessor):  # type:ignore
         return BlobStat(name=str(blob), size=blob.size, last_modified=blob.updated)
 
     def is_dir(self, path: "Pathy") -> bool:
-        if str(path) == path.root:
-            return True
         if self.get_blob(path) is not None:
             return False
         return self.client(path).is_dir(path)
@@ -384,10 +381,7 @@ class BucketsAccessor(_Accessor):  # type:ignore
         client = self.client(path)
         if not path.root:
             return any(client.list_buckets())
-        try:
-            bucket = client.lookup_bucket(path)
-        except ClientError:
-            return False
+        bucket = client.lookup_bucket(path)
         if bucket is None or not bucket.exists():
             return False
         if not path.key:
@@ -475,16 +469,11 @@ class BucketsAccessor(_Accessor):  # type:ignore
         elif client.is_dir(path):
             client.rmdir(path)
 
-    def mkdir(self, path: "Pathy", mode: int) -> None:
+    def mkdir(self, path: "Pathy", mode: int = 0) -> None:
         client: BucketClient = self.client(path)
         bucket: Optional[Bucket] = client.lookup_bucket(path)
         if bucket is None or not bucket.exists():
             client.create_bucket(path)
-        elif path.key is not None:
-            assert isinstance(path, Pathy)
-            blob: Optional[Blob] = bucket.get_blob(str(path.key))
-            if blob is not None and blob.exists():
-                raise OSError(f"Blob already exists: {path}")
 
 
 class Pathy(Path, PurePathy, _PathyExtensions):
@@ -793,8 +782,6 @@ class Pathy(Path, PurePathy, _PathyExtensions):
         Raises FileExistsError if exist_ok is false and the bucket already exists.
         """
         try:
-            if self.bucket is None:
-                raise FileNotFoundError("No bucket in {} {}".format(type(self), self))
             # If the whole path is just the bucket, respect the result of "bucket.exists()"
             if self.key is None and not exist_ok and self.bucket.exists():
                 raise FileExistsError("Bucket {} already exists".format(self.bucket))
