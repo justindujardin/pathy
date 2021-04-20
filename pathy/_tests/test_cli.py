@@ -185,8 +185,9 @@ def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
         (root / f"file_{i}").write_text("NICE")
     files = list(root.ls())
     assert len(files) == 3
+    valid_names = [f"file_{i}" for i in range(len(files))]
     for i, blob_stat in enumerate(files):
-        assert blob_stat.name == f"file_{i}"
+        assert blob_stat.name in valid_names
         assert blob_stat.size == 4
         assert blob_stat.last_modified is not None
 
