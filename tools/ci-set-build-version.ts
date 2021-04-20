@@ -38,7 +38,7 @@ getBuildVersion()
     }
     const contents = fs.readFileSync(filePath, "utf8");
     const regexp = new RegExp(
-      /(__version__\s?=\s?["\'])\d+\.\d+(?:\.\d+)?(["\'])/
+      /(__version__:?\s?s?t?r?\s?=\s?["\'])\d+\.\d+(?:\.\d+)?(["\'])/
     );
     const match = contents.match(regexp);
     if (!match || match.length !== 3) {
