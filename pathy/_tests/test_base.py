@@ -27,10 +27,6 @@ from .. import (
 from ..about import __version__
 from .conftest import TEST_ADAPTERS
 
-# todo: test samefile/touch method
-# todo: test open method check R/W bytes/unicode
-# todo(jd): replace global test-bucket with mock or generate buckets and call these e2e tests
-
 
 def test_base_package_declares_version() -> None:
     assert __version__ is not None
@@ -529,7 +525,7 @@ def test_api_iterdir_pipstore(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_open_errors(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/read/file.txt")
+    path = Pathy(f"gs://{bucket}/open_errors/file.txt")
     # Invalid open mode
     with pytest.raises(ValueError):
         path.open(mode="t")
@@ -541,22 +537,6 @@ def test_api_open_errors(with_adapter: str, bucket: str) -> None:
     # Binary mode with encoding value
     with pytest.raises(ValueError):
         path.open(mode="rb", encoding="utf8")
-
-
-@pytest.mark.parametrize("adapter", ["fs"])
-def test_api_open_client_params(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/read/file.txt")
-    # Invalid open mode
-    with pytest.raises(ValueError):
-        path.open(mode="t")
-
-    # Invalid buffering value
-    with pytest.raises(ValueError):
-        path.open(buffering=0)
-
-    # Binary mode with encoding value
-    with pytest.raises(ValueError):
-        path.open(mode="b", encoding="utf8")
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
