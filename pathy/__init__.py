@@ -976,8 +976,6 @@ class BucketClientFS(BucketClient):
     root: pathlib.Path = field(default_factory=lambda: pathlib.Path("/tmp/"))
 
     def full_path(self, path: Pathy) -> pathlib.Path:
-        if path.root is None:
-            raise ValueError(f"Invalid bucket name for path: {path}")
         full_path = self.root.absolute() / path.root
         if path.key is not None:
             full_path = full_path / path.key
@@ -1084,8 +1082,6 @@ class BucketClientFS(BucketClient):
         scan_path = self.root / path.root
         if prefix is not None:
             scan_path = scan_path / prefix
-        elif prefix is not None and path.key is not None:
-            scan_path = scan_path / path.key
 
         # Path to a file
         if scan_path.exists() and not scan_path.is_dir():
@@ -1094,7 +1090,7 @@ class BucketClientFS(BucketClient):
             updated = int(round(stat.st_mtime_ns * 1000))
             yield BlobFS(
                 bucket,
-                name=scan_path.name,
+                name=str(scan_path),
                 size=file_size,
                 updated=updated,
                 owner=None,
@@ -1108,6 +1104,9 @@ class BucketClientFS(BucketClient):
             stat = file_path.stat()
             file_size = stat.st_size
             updated = int(round(stat.st_mtime_ns * 1000))
+            name = file_path.name
+            if prefix is not None:
+                name = prefix + name
             yield BlobFS(
                 bucket,
                 name=f"{prefix if prefix is not None else ''}{file_path.name}",
@@ -1161,9 +1160,7 @@ class _FSScanDir(PathyScanDir):
 #
 
 
-# TODO: Maybe this should be dynamic, but I'm trying to see if we can
-#       hardcode it (atleast the base schemes) to get nice types flowing
-#       in cases where they would otherwise be lost.
+# The only built-in client is the file-system one
 _client_registry: Dict[str, Type[BucketClient]] = {
     "": BucketClientFS,
     "file": BucketClientFS,

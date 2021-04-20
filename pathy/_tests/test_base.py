@@ -748,7 +748,7 @@ def test_api_rmdir(with_adapter: str, bucket: str) -> None:
     assert not Pathy(f"gs://{bucket}/rmdir/other/two.txt").is_file()
     assert not path.exists()
 
-    # Cannot rmdir a non-existant folder
+    # Cannot rmdir an invalid folder
     with pytest.raises(FileNotFoundError):
         path.rmdir()
 
