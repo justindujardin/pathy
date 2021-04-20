@@ -29,4 +29,6 @@ jobs:
       - name: Build Package
         run: sh tools/build.sh
       - name: Run Tests
+        env:
+          GCS_CREDENTIALS: ${{ secrets.GCS_CREDENTIALS }}
         run: sh tools/test.sh
