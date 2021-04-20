@@ -24,7 +24,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: sh tools/setup.sh
-      - name: Lint with flake8
+      - name: Lint Codebase
         run: sh tools/lint.sh
-      - name: Test with pytest
+      - name: Build Package
+        run: sh tools/build.sh
+      - name: Run Tests
         run: sh tools/test.sh
