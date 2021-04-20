@@ -100,5 +100,5 @@ def test_file_bucket_client_fs_list_blobs(with_adapter: str) -> None:
     blobs = [b.name for b in client.list_blobs(root, prefix="foo/bar/")]
     assert blobs == ["foo/bar/baz"]
 
-    blobs = list(client.list_blobs(root, prefix="foo/bar/baz"))
+    blobs = [b.name for b in client.list_blobs(root, prefix="foo/bar/baz")]
     assert len(blobs) == 1
