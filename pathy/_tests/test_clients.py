@@ -63,10 +63,10 @@ def test_clients_use_fs(with_fs: Path) -> None:
     assert client.root == with_fs
 
     # Can use a pathlib.Path
-    use_fs(with_fs)
+    use_fs(with_fs / "sub_folder")
     client = get_fs_client()
     assert isinstance(client, BucketClientFS)
-    assert client.root == with_fs
+    assert client.root == with_fs / "sub_folder"
 
     use_fs(False)
 
@@ -79,7 +79,7 @@ def test_api_use_fs_cache(with_adapter: str, with_fs: str, bucket: str) -> None:
     with pytest.raises(ValueError):
         Pathy.to_local(path)
 
-    use_fs_cache(with_fs)
+    use_fs_cache(Path(with_fs) / "sub_folder")
     source_file: Path = Pathy.to_local(path)
     foo_timestamp = Path(f"{source_file}.time")
     assert foo_timestamp.exists()
