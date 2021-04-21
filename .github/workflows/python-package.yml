@@ -13,8 +13,8 @@ jobs:
   build:
     strategy:
       matrix:
-        python-version: [3.6, 3.9]
         os: [ubuntu-latest, macos-latest]
+        python-version: [3.6, 3.9]
 
     runs-on: ${{ matrix.os }}
     steps:
