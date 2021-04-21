@@ -26,10 +26,13 @@ jobs:
         run: sh tools/setup.sh
       - name: Lint Codebase
         run: sh tools/lint.sh
-      - name: Build and Test Package
+      - name: Build Wheel
+        run: sh tools/build.sh
+      - name: Test Wheel
         env:
           GCS_CREDENTIALS: ${{ secrets.GCS_CREDENTIALS }}
-        run: |
-          sh tools/build.sh
-          sh tools/test_package.sh
-          sh tools/codecov.sh
+        run: sh tools/test_package.sh
+      - name: Report Code Coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: sh tools/codecov.sh
