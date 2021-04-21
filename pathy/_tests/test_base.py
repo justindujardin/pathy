@@ -339,6 +339,19 @@ def test_api_path_support() -> None:
     assert Path in Pathy.mro()
 
 
+def test_path_truediv_operator_overload_with_subclass() -> None:
+    class MyPathy(Pathy):
+        pass
+
+    custom_pathy = MyPathy("gs://foo/bar")
+    base_pathy = Pathy("gs://bar/baz")
+
+    out_pathy: Pathy = base_pathy / custom_pathy
+    other_pathy: Pathy = custom_pathy / base_pathy
+    assert isinstance(out_pathy, Pathy)
+    assert isinstance(other_pathy, Pathy)
+
+
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_is_path_instance(with_adapter: str) -> None:
     blob = Pathy("gs://fake/blob")

@@ -483,9 +483,6 @@ class Pathy(Path, PurePathy, _PathyExtensions):
     def __truediv__(self, key: Union[str, Path, "Pathy", PurePathy]) -> "Pathy":  # type: ignore[override]
         return super().__truediv__(key)  # type:ignore
 
-    def __rtruediv__(self, key: Union[str, Path, "Pathy", PurePathy]) -> "Pathy":  # type: ignore[override]
-        return super().__rtruediv__(key)  # type:ignore
-
     def _init(self: "Pathy", template: Optional[Any] = None) -> None:
         super()._init(template)  # type:ignore
         if template is None:
