@@ -26,9 +26,10 @@ jobs:
         run: sh tools/setup.sh
       - name: Lint Codebase
         run: sh tools/lint.sh
-      - name: Build Package
-        run: sh tools/build.sh
-      - name: Run Tests
+      - name: Build and Test Package
         env:
           GCS_CREDENTIALS: ${{ secrets.GCS_CREDENTIALS }}
-        run: sh tools/test.sh
+        run: |
+          sh tools/build.sh
+          sh tools/test_package.sh
+          sh tools/codecov.sh

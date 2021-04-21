@@ -6,8 +6,8 @@ try:
     from google.cloud.storage import Blob as GCSNativeBlob  # type:ignore
     from google.cloud.storage import Bucket as GCSNativeBucket  # type:ignore
     from google.cloud.storage import Client as GCSNativeClient  # type:ignore
-except ImportError:
-    raise AssertionError(
+except (ImportError, ModuleNotFoundError):
+    raise ImportError(
         """You are using the GCS functionality of Pathy without
     having the required dependencies installed.
 

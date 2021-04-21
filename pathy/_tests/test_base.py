@@ -5,7 +5,13 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-import spacy
+
+try:
+    pass
+
+    has_spacy = True
+except ModuleNotFoundError:
+    has_spacy = False
 
 from .. import (
     BasePath,
@@ -883,8 +889,11 @@ def test_buckets_accessor_exists(temp_folder: Path) -> None:
     assert accessor.exists(Pathy("")) is True
 
 
+@pytest.mark.skipif(not has_spacy, reason="requires spacy and en_core_web_sm model")
 def test_api_export_spacy_model(temp_folder: Path) -> None:
     """spaCy model loading is one of the things we need to support"""
+    import spacy
+
     use_fs(temp_folder)
     bucket = Pathy("gs://my-bucket/")
     bucket.mkdir(exist_ok=True)
