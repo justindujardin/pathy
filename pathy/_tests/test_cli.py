@@ -1,3 +1,4 @@
+import pathlib
 import tempfile
 
 import pytest
@@ -15,6 +16,15 @@ runner = CliRunner()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_cp_invalid_from_path(with_adapter: str, bucket: str) -> None:
+    source = f"gs://{bucket}/{ENV_ID}/cli_cp_file/file.txt"
+    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file/other.txt"
+    # Pathy(source).write_text("---")
+    assert runner.invoke(app, ["cp", source, destination]).exit_code == 1
+    assert not Pathy(destination).is_file()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_file(with_adapter: str, bucket: str) -> None:
     source = f"gs://{bucket}/{ENV_ID}/cli_cp_file/file.txt"
     destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file/other.txt"
@@ -22,6 +32,16 @@ def test_cli_cp_file(with_adapter: str, bucket: str) -> None:
     assert runner.invoke(app, ["cp", source, destination]).exit_code == 0
     assert Pathy(source).exists()
     assert Pathy(destination).is_file()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_cp_file_name_from_source(with_adapter: str, bucket: str) -> None:
+    source = pathlib.Path("./file.txt")
+    source.touch()
+    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file/"
+    assert runner.invoke(app, ["cp", str(source), destination]).exit_code == 0
+    assert Pathy(f"{destination}file.txt").is_file()
+    source.unlink()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -59,6 +79,17 @@ def test_cli_mv_folder(with_adapter: str, bucket: str) -> None:
     for i in range(2):
         for j in range(2):
             assert (destination / f"{i}" / f"{j}").is_file()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_mv_file_copy_from_name(with_adapter: str, bucket: str) -> None:
+    source = pathlib.Path("./file.txt")
+    source.touch()
+    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file/"
+    assert runner.invoke(app, ["mv", str(source), destination]).exit_code == 0
+    assert Pathy(f"{destination}file.txt").is_file()
+    # unlink should happen from the operation
+    assert not source.exists()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -110,6 +141,14 @@ def test_cli_mv_folder_across_buckets(
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_rm_invalid_file(with_adapter: str, bucket: str) -> None:
+    source = f"gs://{bucket}/{ENV_ID}/cli_rm_file_invalid/file.txt"
+    path = Pathy(source)
+    assert not path.exists()
+    assert runner.invoke(app, ["rm", source]).exit_code == 1
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_file(with_adapter: str, bucket: str) -> None:
     source = f"gs://{bucket}/{ENV_ID}/cli_rm_file/file.txt"
     path = Pathy(source)
@@ -154,6 +193,16 @@ def test_cli_rm_folder(with_adapter: str, bucket: str) -> None:
     for i in range(2):
         for j in range(2):
             assert not (source / f"{i}" / f"{j}").is_file()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_ls_invalid_source(with_adapter: str, bucket: str) -> None:
+    root = Pathy.from_bucket(bucket) / ENV_ID / "cli_ls_invalid"
+    three = str(root / "folder/file.txt")
+
+    result = runner.invoke(app, ["ls", str(three)])
+    assert result.exit_code == 1
+    assert "No such file or directory" in result.output
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)

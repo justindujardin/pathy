@@ -27,7 +27,8 @@ def cp(from_location: str, to_location: str) -> None:
         # Copy prefix from the source if the to_path has none.
         #
         # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        if isinstance(to_path, Pathy) and to_path.prefix == "":
+        sep: str = to_path._flavour.sep  # type:ignore
+        if isinstance(to_path, Pathy) and to_location.endswith(sep):
             to_path = to_path / from_path
 
         to_path.parent.mkdir(parents=True, exist_ok=True)
@@ -46,7 +47,8 @@ def mv(from_location: str, to_location: str) -> None:
         # Copy prefix from the source if the to_path has none.
         #
         # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        if isinstance(to_path, Pathy) and to_path.prefix == "":
+        sep: str = to_path._flavour.sep  # type:ignore
+        if isinstance(to_path, Pathy) and to_location.endswith(sep):
             to_path = to_path / from_path
         to_path.parent.mkdir(parents=True, exist_ok=True)
         to_path.write_bytes(from_path.read_bytes())
@@ -122,7 +124,7 @@ def ls(
     path: FluidPath = Pathy.fluid(location)
     if not path.exists() or path.is_file():
         typer.echo(f"ls: {path}: No such file or directory")
-        return
+        raise typer.Exit(1)
     now = datetime.now()
     for blob_stat in path.ls():
         print_name = str(path / blob_stat.name)
