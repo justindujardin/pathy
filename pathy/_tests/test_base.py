@@ -192,6 +192,12 @@ def test_base_parts() -> None:
     assert PurePathy("/foo/bar").parts == ("/", "foo", "bar")
 
 
+def test_base_prefix() -> None:
+    assert PurePathy("gs://bar").prefix == ""
+    assert PurePathy("gs://bar/baz/").prefix == "baz/"
+    assert PurePathy("gs://bar/baz").prefix == "baz/"
+
+
 def test_base_drive() -> None:
     assert PurePathy("foo//bar").drive == ""
     assert PurePathy("foo/./bar").drive == ""

@@ -284,15 +284,11 @@ class PurePathy(PurePath):
 
     @property
     def prefix(self) -> str:
-        sep = self._flavour.sep
-        str(self)
-        key = self.key
-        if not key:
+        """Returns part of the path after the bucket-name, always ending with path.sep,
+        or an empty string if there is no prefix."""
+        if not self.key:
             return ""
-        key_name = str(key)
-        if not key_name.endswith(sep):
-            return key_name + sep
-        return key_name
+        return f"{self.key}{self._flavour.sep}"
 
     def _absolute_path_validation(self) -> None:
         if not self.is_absolute():
