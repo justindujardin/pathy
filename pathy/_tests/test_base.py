@@ -7,9 +7,9 @@ from uuid import uuid4
 import pytest
 
 try:
-    pass
+    import spacy  # type:ignore
 
-    has_spacy = True
+    has_spacy = bool(spacy)
 except ModuleNotFoundError:
     has_spacy = False
 
