@@ -439,9 +439,6 @@ def test_api_exists(with_adapter: str, bucket: str) -> None:
     with pytest.raises(ValueError):
         path.exists()
 
-    # GCS buckets are globally unique, "test-bucket" exists so this
-    # raises an access error.
-    assert Pathy("gs://test-bucket/fake-key").exists() is False
     # invalid bucket name
     assert Pathy("gs://unknown-bucket-name-123987519875419").exists() is False
     # valid bucket with invalid object

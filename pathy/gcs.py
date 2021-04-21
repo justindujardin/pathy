@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional
 
 try:
-    from google.api_core import exceptions as gcs_errors  # type:ignore
     from google.cloud.storage import Blob as GCSNativeBlob  # type:ignore
     from google.cloud.storage import Bucket as GCSNativeBucket  # type:ignore
     from google.cloud.storage import Client as GCSNativeClient  # type:ignore
@@ -23,7 +22,6 @@ from . import (
     Bucket,
     BucketClient,
     BucketEntry,
-    ClientError,
     PathyScanDir,
     PurePathy,
     register_client,
@@ -53,11 +51,7 @@ class BucketGCS(Bucket):
         assert isinstance(
             blob_name, str
         ), f"expected str blob name, but found: {type(blob_name)}"
-        native_blob: Optional[Any] = None
-        try:
-            native_blob = self.bucket.get_blob(blob_name)  # type:ignore
-        except gcs_errors.ClientError:
-            pass
+        native_blob: Optional[Any] = self.bucket.get_blob(blob_name)  # type:ignore
         if native_blob is None:
             return None
         return BlobGCS(
@@ -94,10 +88,7 @@ class BucketGCS(Bucket):
         return self.bucket.delete_blobs(blobs)  # type:ignore
 
     def exists(self) -> bool:
-        try:
-            return self.bucket.exists()  # type:ignore
-        except gcs_errors.ClientError:
-            return False
+        return self.bucket.exists()  # type:ignore
 
 
 class BucketClientGCS(BucketClient):
@@ -133,34 +124,24 @@ class BucketClientGCS(BucketClient):
         # "directory/foo.file") to return True, we enumerate the blobs with a prefix
         # and compare the object names to see if they match a substring of the path
         key_name = str(path.key)
-        try:
-            for obj in self.list_blobs(path):
-                if obj.name == key_name:
-                    return True
-                if obj.name.startswith(key_name + path._flavour.sep):  # type:ignore
-                    return True
-        except gcs_errors.ClientError:
-            return False
+        for obj in self.list_blobs(path):
+            if obj.name == key_name:
+                return True
+            if obj.name.startswith(key_name + path._flavour.sep):  # type:ignore
+                return True
         return False
 
     def lookup_bucket(self, path: PurePathy) -> Optional[BucketGCS]:
-        try:
-            native_bucket = self.client.bucket(path.root)  # type:ignore
-            if native_bucket is not None:
-                return BucketGCS(str(path.root), bucket=native_bucket)
-        except gcs_errors.ClientError as err:
-            print(err)
-
+        native_bucket = self.client.bucket(path.root)  # type:ignore
+        if native_bucket is not None:
+            return BucketGCS(str(path.root), bucket=native_bucket)
         return None
 
     def get_bucket(self, path: PurePathy) -> BucketGCS:
-        try:
-            native_bucket = self.client.bucket(path.root)  # type:ignore
-            if native_bucket is not None:
-                return BucketGCS(str(path.root), bucket=native_bucket)
-            raise FileNotFoundError(f"Bucket {path.root} does not exist!")
-        except gcs_errors.ClientError as e:
-            raise ClientError(message=e.message, code=e.code)  # type:ignore
+        native_bucket = self.client.bucket(path.root)  # type:ignore
+        if native_bucket is not None:
+            return BucketGCS(str(path.root), bucket=native_bucket)
+        raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
     def list_buckets(  # type:ignore[override]
         self, **kwargs: Dict[str, Any]
@@ -180,48 +161,29 @@ class BucketClientGCS(BucketClient):
         path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-        include_dirs: bool = False,
     ) -> Generator[BlobGCS, None, None]:
-        continuation_token: Any = None
         bucket = self.lookup_bucket(path)
         if bucket is None:
             return
-        while True:
-            response: Any
-            if continuation_token:
-                response = self.client.list_blobs(  # type:ignore
-                    path.root,
-                    prefix=prefix,
-                    delimiter=delimiter,
-                    page_token=continuation_token,
+        response: Any = self.client.list_blobs(  # type:ignore
+            path.root, prefix=prefix, delimiter=delimiter
+        )
+        for page in response.pages:  # type:ignore
+            for item in page:
+                yield BlobGCS(
+                    bucket=bucket,
+                    owner=item.owner,
+                    name=item.name,
+                    raw=item,
+                    size=item.size,
+                    updated=item.updated.timestamp(),
                 )
-            else:
-                response = self.client.list_blobs(  # type:ignore
-                    path.root, prefix=prefix, delimiter=delimiter
-                )
-
-            page: Any
-            item: Any
-            for page in response.pages:  # type:ignore
-                for item in page:
-                    yield BlobGCS(
-                        bucket=bucket,
-                        owner=item.owner,
-                        name=item.name,
-                        raw=item,
-                        size=item.size,
-                        updated=item.updated.timestamp(),
-                    )
-            if response.next_page_token is None:
-                break
-            continuation_token = response.next_page_token
 
 
 class _GCSScanDir(PathyScanDir):
     _client: BucketClientGCS
 
     def scandir(self) -> Generator[BucketEntryGCS, None, None]:
-        continuation_token = None
         if self._path is None or not self._path.root:
             gcs_bucket: GCSNativeBucket
             for gcs_bucket in self._client.client.list_buckets():
@@ -231,37 +193,25 @@ class _GCSScanDir(PathyScanDir):
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:
             return
-        while True:
-            if continuation_token:
-                response = self._client.client.list_blobs(
-                    bucket.name,
-                    prefix=self._prefix,
-                    delimiter=sep,
-                    page_token=continuation_token,
-                )
-            else:
-                response = self._client.client.list_blobs(
-                    bucket.name, prefix=self._prefix, delimiter=sep
-                )
-            for page in response.pages:
-                for folder in list(page.prefixes):
-                    full_name = folder[:-1] if folder.endswith(sep) else folder
-                    name = full_name.split(sep)[-1]
-                    if name:
-                        yield BucketEntryGCS(name, is_dir=True, raw=None)
-                for item in page:
-                    name = item.name.split(sep)[-1]
-                    if name:
-                        yield BucketEntryGCS(
-                            name=name,
-                            is_dir=False,
-                            size=item.size,
-                            last_modified=item.updated.timestamp(),
-                            raw=item,
-                        )
-            if response.next_page_token is None:
-                break
-            continuation_token = response.next_page_token
+        response = self._client.client.list_blobs(
+            bucket.name, prefix=self._prefix, delimiter=sep
+        )
+        for page in response.pages:  # type:ignore
+            for folder in list(page.prefixes):
+                full_name = folder[:-1] if folder.endswith(sep) else folder
+                name = full_name.split(sep)[-1]
+                if name:
+                    yield BucketEntryGCS(name, is_dir=True, raw=None)
+            for item in page:
+                name = item.name.split(sep)[-1]
+                if name:
+                    yield BucketEntryGCS(
+                        name=name,
+                        is_dir=False,
+                        size=item.size,
+                        last_modified=item.updated.timestamp(),
+                        raw=item,
+                    )
 
 
 register_client("gs", BucketClientGCS)

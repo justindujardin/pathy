@@ -195,7 +195,6 @@ class BucketClient:
         path: "Pathy",
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-        include_dirs: bool = False,
     ) -> Generator[Blob, None, None]:
         raise NotImplementedError(SUBCLASS_ERROR)
 
@@ -1067,7 +1066,6 @@ class BucketClientFS(BucketClient):
         path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
-        include_dirs: bool = False,
     ) -> Generator[BlobFS, None, None]:
         assert path.root is not None
         bucket = self.get_bucket(path)
