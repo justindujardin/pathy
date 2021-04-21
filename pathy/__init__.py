@@ -484,11 +484,10 @@ class Pathy(Path, PurePathy, _PathyExtensions):
         return super().__truediv__(key)  # type:ignore
 
     def _init(self: "Pathy", template: Optional[Any] = None) -> None:
-        super()._init(template)  # type:ignore
-        if template is None:
-            self._accessor = Pathy._default_accessor
-        else:
-            self._accessor = template._accessor
+        super()._init(template=template)  # type:ignore
+        self._accessor = (
+            Pathy._default_accessor if template is None else template._accessor
+        )
 
     @classmethod
     def fluid(cls, path_candidate: Union[str, FluidPath]) -> FluidPath:
