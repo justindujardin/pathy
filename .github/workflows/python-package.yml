@@ -13,7 +13,7 @@ jobs:
   build:
     strategy:
       matrix:
-        python-version: [3.6]
+        python-version: [3.6, 3.9]
         os: [ubuntu-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
@@ -23,14 +23,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Set up Node
-        uses: actions/setup-node@v2
-        with:
-          node-version: "12"
-      - name: Set Build Version
-        run: |
-          npm install
-          npx ts-node tools/ci-set-build-version.ts
       - name: Install dependencies
         run: sh tools/setup.sh
       - name: Lint Codebase
@@ -51,8 +43,13 @@ jobs:
     needs: "build"
     if: github.ref == 'refs/heads/master'
     steps:
+      - name: Set up Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "12"
       - name: Deploy
         env:
           PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: sh tools/deploy.sh
