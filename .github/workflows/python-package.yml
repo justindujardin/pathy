@@ -10,7 +10,7 @@ on:
     branches: [master]
 
 jobs:
-  build: Build and Test Wheels
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
