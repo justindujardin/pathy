@@ -10,7 +10,7 @@ on:
     branches: [master]
 
 jobs:
-  build:
+  build: Build and Test Wheels
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -31,7 +31,7 @@ jobs:
       - name: Test Wheel
         env:
           GCS_CREDENTIALS: ${{ secrets.GCS_CREDENTIALS }}
-        run: sh tools/test_package.sh
+        run: rm -rf ./pathy/ && sh tools/test_package.sh
       - name: Report Code Coverage
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
