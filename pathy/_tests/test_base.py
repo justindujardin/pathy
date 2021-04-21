@@ -437,43 +437,43 @@ def test_api_exists(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_glob(with_adapter: str, bucket: str) -> None:
+    base = Pathy(f"gs://{bucket}/{ENV_ID}/glob/")
+    root = base / "glob/"
     for i in range(3):
-        path = Pathy(f"gs://{bucket}/{ENV_ID}/glob/{i}.file")
+        path = root / f"{i}.file"
         path.write_text("---")
     for i in range(2):
-        path = Pathy(f"gs://{bucket}/{ENV_ID}/glob/{i}/dir/file.txt")
+        path = root / f"{i}/dir/file.txt"
         path.write_text("---")
 
-    assert list(Pathy(f"gs://{bucket}/{ENV_ID}/glob/").glob("*.test")) == []
-    assert sorted(list(Pathy(f"gs://{bucket}/{ENV_ID}/glob/").glob("*.file"))) == [
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob/0.file"),
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob/1.file"),
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob/2.file"),
+    assert list(root.glob("*.test")) == []
+    blobs = sorted(list(root.glob("*.file")))
+    assert blobs == [
+        root / "0.file",
+        root / "1.file",
+        root / "2.file",
     ]
-    assert list(Pathy(f"gs://{bucket}/{ENV_ID}/glob/0/").glob("*/*.txt")) == [
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob/0/dir/file.txt"),
-    ]
-    assert sorted(Pathy(f"gs://{bucket}/{ENV_ID}/").glob("*lob/")) == [
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob"),
-    ]
+    assert list((root / "0").glob("*/*.txt")) == [root / "0/dir/file.txt"]
+    assert sorted(base.glob("*lob/")) == [root]
     # Recursive matches
-    assert sorted(list(Pathy(f"gs://{bucket}/{ENV_ID}/glob/").glob("**/*.txt"))) == [
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob/0/dir/file.txt"),
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob/1/dir/file.txt"),
+    assert sorted(list(root.glob("**/*.txt"))) == [
+        root / "0/dir/file.txt",
+        root / "1/dir/file.txt",
     ]
     # rglob adds the **/ for you
-    assert sorted(list(Pathy(f"gs://{bucket}/{ENV_ID}/glob/").rglob("*.txt"))) == [
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob/0/dir/file.txt"),
-        Pathy(f"gs://{bucket}/{ENV_ID}/glob/1/dir/file.txt"),
+    assert sorted(list(root.rglob("*.txt"))) == [
+        root / "0/dir/file.txt",
+        root / "1/dir/file.txt",
     ]
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_unlink_path(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/unlink/404.txt")
+    root = Pathy(f"gs://{bucket}/{ENV_ID}/unlink/")
+    path = root / "404.txt"
     with pytest.raises(FileNotFoundError):
         path.unlink()
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/unlink/foo.txt")
+    path = root / "foo.txt"
     path.write_text("---")
     assert path.exists()
     path.unlink()
@@ -502,21 +502,21 @@ def test_api_is_file(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_iterdir(with_adapter: str, bucket: str) -> None:
+    root = Pathy(f"gs://{bucket}/{ENV_ID}/iterdir/")
     # (n) files in a folder
     for i in range(2):
-        path = Pathy(f"gs://{bucket}/{ENV_ID}/iterdir/{i}.file")
+        path = root / f"{i}.file"
         path.write_text("---")
 
     # 1 file in a subfolder
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/iterdir/sub/file.txt")
+    path = root / "sub/file.txt"
     path.write_text("---")
 
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/iterdir/")
-    check = sorted(path.iterdir())
+    check = sorted(root.iterdir())
     assert check == [
-        Pathy(f"gs://{bucket}/{ENV_ID}/iterdir/0.file"),
-        Pathy(f"gs://{bucket}/{ENV_ID}/iterdir/1.file"),
-        Pathy(f"gs://{bucket}/{ENV_ID}/iterdir/sub"),
+        root / "0.file",
+        root / "1.file",
+        root / "sub",
     ]
 
 
