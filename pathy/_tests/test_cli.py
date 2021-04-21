@@ -17,9 +17,8 @@ runner = CliRunner()
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_invalid_from_path(with_adapter: str, bucket: str) -> None:
-    source = f"gs://{bucket}/{ENV_ID}/cli_cp_file/file.txt"
-    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file/other.txt"
-    # Pathy(source).write_text("---")
+    source = f"gs://{bucket}/{ENV_ID}/cli_cp_file_invalid/file.txt"
+    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file_invalid/dest.txt"
     assert runner.invoke(app, ["cp", source, destination]).exit_code == 1
     assert not Pathy(destination).is_file()
 
