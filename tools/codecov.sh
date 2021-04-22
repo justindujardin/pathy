@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
 . .env/bin/activate
-pip install codecov coverage
-python -m coverage combine
+pip install codecov
 python -m codecov

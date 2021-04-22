@@ -19,4 +19,4 @@ python -m pytest --pyargs pathy._tests --cov=pathy
 
 pip install "${WHEEL}[all]"
 echo " === Running tests WITH package extras installed..."
-python -m pytest --pyargs pathy._tests --cov=pathy
+python -m pytest --pyargs pathy._tests --cov=pathy --cov-append
