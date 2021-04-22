@@ -15,7 +15,7 @@ from . import has_gcs
 has_credentials = "GCS_CREDENTIALS" in os.environ
 
 # Which adapters to use
-TEST_ADAPTERS = ["gcs", "fs"] if has_credentials and has_gcs else ["fs"]
+TEST_ADAPTERS = ["gcs"] if has_credentials and has_gcs else ["fs"]
 ENV_ID = f"{sys.platform}.{sys.version_info.major}.{sys.version_info.minor}"
 
 

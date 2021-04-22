@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional
 
 try:
+    from google.api_core.exceptions import BadRequest  # type:ignore
     from google.cloud.storage import Blob as GCSNativeBlob  # type:ignore
     from google.cloud.storage import Bucket as GCSNativeBucket  # type:ignore
     from google.cloud.storage import Client as GCSNativeClient  # type:ignore
@@ -125,22 +126,23 @@ class BucketClientGCS(BucketClient):
         # and compare the object names to see if they match a substring of the path
         key_name = str(path.key)
         for obj in self.list_blobs(path):
-            if obj.name == key_name:
-                return True
             if obj.name.startswith(key_name + path._flavour.sep):  # type:ignore
                 return True
         return False
 
     def lookup_bucket(self, path: PurePathy) -> Optional[BucketGCS]:
-        native_bucket = self.client.bucket(path.root)  # type:ignore
-        if native_bucket is not None:
-            return BucketGCS(str(path.root), bucket=native_bucket)
-        return None
+        try:
+            return self.get_bucket(path)
+        except FileNotFoundError:
+            return None
 
     def get_bucket(self, path: PurePathy) -> BucketGCS:
-        native_bucket = self.client.bucket(path.root)  # type:ignore
-        if native_bucket is not None:
-            return BucketGCS(str(path.root), bucket=native_bucket)
+        native_bucket: Any = self.client.bucket(path.root)  # type:ignore
+        try:
+            if native_bucket.exists():
+                return BucketGCS(str(path.root), bucket=native_bucket)
+        except BadRequest:
+            pass
         raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
     def list_buckets(  # type:ignore[override]
