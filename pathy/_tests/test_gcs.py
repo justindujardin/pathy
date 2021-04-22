@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from pathy import Pathy, get_client, set_client_params
-from pathy.gcs import BucketClientGCS, ScanDirGCS
+
 
 from . import has_gcs
 
@@ -48,6 +48,8 @@ def test_gcs_import_error_missing_deps() -> None:
 def test_gcs_scandir_list_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
+    from pathy.gcs import ScanDirGCS
+
     root = Pathy("gs://foo/bar")
     client = root._accessor.client(root)  # type:ignore
     scandir = ScanDirGCS(client=client, path=Pathy())
@@ -59,6 +61,8 @@ def test_gcs_scandir_list_buckets(
 def test_gcs_scandir_invalid_bucket_name(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
+    from pathy.gcs import ScanDirGCS
+
     root = Pathy("gs://invalid_h3gE_ds5daEf_Sdf15487t2n4/bar")
     client = root._accessor.client(root)  # type:ignore
     scandir = ScanDirGCS(client=client, path=root)
@@ -69,6 +73,8 @@ def test_gcs_scandir_invalid_bucket_name(
 @pytest.mark.skipif(not has_gcs, reason="requires gcs")
 def test_gcs_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
     """Test corner-case in GCS client that isn't easily reachable from Pathy"""
+    from pathy.gcs import BucketClientGCS
+
     client: BucketClientGCS = get_client("gs")
     root = Pathy("gs://invalid_h3gE_ds5daEf_Sdf15487t2n4")
     assert len(list(client.list_blobs(root))) == 0
