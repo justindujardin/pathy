@@ -1,3 +1,17 @@
+# [0.5.0](https://github.com/justindujardin/pathy/compare/v0.4.0...v0.5.0) (2021-04-22)
+
+
+### Bug Fixes
+
+* **auto-import:** move public exports into __init__.py ([fd09021](https://github.com/justindujardin/pathy/commit/fd090215efc392e76d167e9c0203520c251578da))
+* **cli:** ls returns code 1 from invalid sources ([b2ff829](https://github.com/justindujardin/pathy/commit/b2ff829f35db6b5af25c9bc553f1e1b76be7e39c))
+* **samefile:** compare self.key to other.key not self.key ([688628e](https://github.com/justindujardin/pathy/commit/688628ecbf430284fbcb83142d7751e0b54475d2))
+
+
+### BREAKING CHANGES
+
+* **auto-import:** Previously you could import symbols directly from their files in the module, e.g. `from pathy.base import Pathy`. Now you must import them from the base package, e.g. `from pathy import Pathy`.
+
 # [0.4.0](https://github.com/justindujardin/pathy/compare/v0.3.6...v0.4.0) (2021-02-15)
 
 
