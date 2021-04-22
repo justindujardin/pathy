@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from pathy import Pathy, set_client_params
+from pathy import Pathy, get_client, set_client_params
 
 from . import has_gcs
 
@@ -32,3 +32,9 @@ def test_gcs_as_uri(with_adapter: str, bucket: str) -> None:
     assert Pathy("gs://etc/passwd").as_uri() == "gs://etc/passwd"
     assert Pathy("gs://etc/init.d/apache2").as_uri() == "gs://etc/init.d/apache2"
     assert Pathy("gs://bucket/key").as_uri() == "gs://bucket/key"
+
+
+@pytest.mark.skipif(has_gcs, reason="requires gcs deps to NOT be installed")
+def test_gcs_import_error_missing_deps():
+    with pytest.raises(ImportError):
+        get_client("gs")

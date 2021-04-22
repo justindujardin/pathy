@@ -1,3 +1,4 @@
+import uuid
 import importlib
 import os
 import pathlib
@@ -670,9 +671,6 @@ class Pathy(Path, PurePathy, _PathyExtensions):
         if "b" in mode and encoding:
             raise ValueError("binary mode doesn't take an encoding argument")
 
-        # Leftover pathlib internals stuff
-        if hasattr(self, "_closed") and self._closed:  # type:ignore
-            self._raise_closed()  # type:ignore
         return self._accessor.open(
             self,
             mode=mode,
@@ -964,7 +962,9 @@ class BucketFS(Bucket):
 @dataclass
 class BucketClientFS(BucketClient):
     # Root to store file-system buckets as children of
-    root: pathlib.Path = field(default_factory=lambda: pathlib.Path("/tmp/"))
+    root: pathlib.Path = field(
+        default_factory=lambda: pathlib.Path(f"/tmp/pathy-{uuid.uuid4().hex}/")
+    )
 
     def full_path(self, path: Pathy) -> pathlib.Path:
         full_path = self.root.absolute() / path.root
@@ -1059,7 +1059,7 @@ class BucketClientFS(BucketClient):
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:
-        return _FSScanDir(client=self, path=path, prefix=prefix, delimiter=delimiter)
+        return FSScanDir(client=self, path=path, prefix=prefix, delimiter=delimiter)
 
     def list_blobs(
         self,
@@ -1107,7 +1107,7 @@ class BucketClientFS(BucketClient):
             )
 
 
-class _FSScanDir(PathyScanDir):
+class FSScanDir(PathyScanDir):
     _client: BucketClientFS
 
     def scandir(self) -> Generator[BucketEntry, None, None]:
@@ -1186,8 +1186,6 @@ def get_client(scheme: str) -> BucketClientType:  # type:ignore
 
     # Attempt to dynamically load optional clients if we find a matching scheme
     if scheme not in _client_registry and scheme in _optional_clients:
-        # We don't handle ImportError here because we expect clients to register
-        # on import or add a "null" handler if their requirements are not satisfied.
         importlib.import_module(_optional_clients[scheme])
 
     # Create the client from the known registry

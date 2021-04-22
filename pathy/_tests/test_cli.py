@@ -11,8 +11,8 @@ from .conftest import ENV_ID, TEST_ADAPTERS
 
 runner = CliRunner()
 
-# TODO: add a test for wildcard cp/mv/rm/ls paths (e.g. "pathy cp gs://my-bucket/*.file ./")
-# TODO: add a test for streaming in/out sources (e.g. "pathy cp - gs://my-bucket/my.file")
+# TODO: add support/test for wildcard cp/mv/rm/ls paths (e.g. "pathy cp gs://my-bucket/*.file ./")
+# TODO: add support/test for streaming in/out sources (e.g. "pathy cp - gs://my-bucket/my.file")
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
