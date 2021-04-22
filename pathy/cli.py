@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 import typer
 
@@ -57,7 +58,7 @@ def mv(from_location: str, to_location: str) -> None:
 
     if from_path.is_dir():
         to_path.mkdir(parents=True, exist_ok=True)
-        to_unlink = []
+        to_unlink: List[FluidPath] = []
         for blob in from_path.rglob("*"):
             if not blob.is_file():
                 continue
