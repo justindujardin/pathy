@@ -1059,7 +1059,7 @@ class BucketClientFS(BucketClient):
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:
-        return FSScanDir(client=self, path=path, prefix=prefix, delimiter=delimiter)
+        return ScanDirFS(client=self, path=path, prefix=prefix, delimiter=delimiter)
 
     def list_blobs(
         self,
@@ -1107,7 +1107,7 @@ class BucketClientFS(BucketClient):
             )
 
 
-class FSScanDir(PathyScanDir):
+class ScanDirFS(PathyScanDir):
     _client: BucketClientFS
 
     def scandir(self) -> Generator[BucketEntry, None, None]:

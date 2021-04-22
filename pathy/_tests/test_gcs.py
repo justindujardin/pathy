@@ -3,8 +3,11 @@ from unittest.mock import patch
 import pytest
 
 from pathy import Pathy, get_client, set_client_params
+from pathy.gcs import BucketClientGCS, ScanDirGCS
 
 from . import has_gcs
+
+GCS_ADAPTER = ["gcs"]
 
 
 def raise_default_creds_error() -> None:
@@ -13,7 +16,7 @@ def raise_default_creds_error() -> None:
     raise DefaultCredentialsError()
 
 
-@pytest.mark.parametrize("adapter", ["gcs"])
+@pytest.mark.parametrize("adapter", GCS_ADAPTER)
 @patch("google.auth.default", raise_default_creds_error)
 @pytest.mark.skipif(not has_gcs, reason="requires gcs")
 def test_gcs_default_credentials_error_is_preserved(
@@ -26,7 +29,7 @@ def test_gcs_default_credentials_error_is_preserved(
         set_client_params("gs")
 
 
-@pytest.mark.parametrize("adapter", ["gcs"])
+@pytest.mark.parametrize("adapter", GCS_ADAPTER)
 @pytest.mark.skipif(not has_gcs, reason="requires gcs")
 def test_gcs_as_uri(with_adapter: str, bucket: str) -> None:
     assert Pathy("gs://etc/passwd").as_uri() == "gs://etc/passwd"
@@ -38,3 +41,31 @@ def test_gcs_as_uri(with_adapter: str, bucket: str) -> None:
 def test_gcs_import_error_missing_deps() -> None:
     with pytest.raises(ImportError):
         get_client("gs")
+
+
+@pytest.mark.parametrize("adapter", GCS_ADAPTER)
+def test_gcs_scandir_list_buckets(
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
+    root = Pathy("gs://foo/bar")
+    client = root._accessor.client(root)  # type:ignore
+    scandir = ScanDirGCS(client=client, path=Pathy())
+    assert sorted([s.name for s in scandir]) == sorted([bucket, other_bucket])
+
+
+@pytest.mark.parametrize("adapter", GCS_ADAPTER)
+def test_gcs_scandir_invalid_bucket_name(
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
+    root = Pathy("gs://invalid_h3gE_ds5daEf_Sdf15487t2n4/bar")
+    client = root._accessor.client(root)  # type:ignore
+    scandir = ScanDirGCS(client=client, path=root)
+    assert len(list(scandir)) == 0
+
+
+@pytest.mark.parametrize("adapter", GCS_ADAPTER)
+def test_gcs_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
+    """Test corner-case in GCS client that isn't easily reachable from Pathy"""
+    client: BucketClientGCS = get_client("gs")
+    root = Pathy("gs://invalid_h3gE_ds5daEf_Sdf15487t2n4")
+    assert len(list(client.list_blobs(root))) == 0

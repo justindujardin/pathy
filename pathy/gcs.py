@@ -71,8 +71,6 @@ class BucketGCS(Bucket):
         native_blob: GCSNativeBlob = self.bucket.copy_blob(  # type: ignore
             blob.raw, target.bucket, name
         )
-        if native_blob is None:
-            return None
         return BlobGCS(
             bucket=self.bucket,
             owner=native_blob.owner,  # type:ignore
@@ -156,7 +154,7 @@ class BucketClientGCS(BucketClient):
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:
-        return _GCSScanDir(client=self, path=path, prefix=prefix, delimiter=delimiter)
+        return ScanDirGCS(client=self, path=path, prefix=prefix, delimiter=delimiter)
 
     def list_blobs(
         self,
@@ -182,29 +180,33 @@ class BucketClientGCS(BucketClient):
                 )
 
 
-class _GCSScanDir(PathyScanDir):
+class ScanDirGCS(PathyScanDir):
     _client: BucketClientGCS
 
     def scandir(self) -> Generator[BucketEntryGCS, None, None]:
         if self._path is None or not self._path.root:
             gcs_bucket: GCSNativeBucket
-            for gcs_bucket in self._client.client.list_buckets():
-                yield BucketEntryGCS(gcs_bucket.name, is_dir=True, raw=None)
+            for gcs_bucket in self._client.list_buckets():
+                yield BucketEntryGCS(
+                    gcs_bucket.name, is_dir=True, raw=None  # type:ignore
+                )
             return
-        sep = self._path._flavour.sep
+        sep = self._path._flavour.sep  # type:ignore
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:
             return
-        response = self._client.client.list_blobs(
+        response = self._client.client.list_blobs(  # type:ignore
             bucket.name, prefix=self._prefix, delimiter=sep
         )
         for page in response.pages:  # type:ignore
-            for folder in list(page.prefixes):
+            folder: str
+            for folder in list(page.prefixes):  # type:ignore
                 full_name = folder[:-1] if folder.endswith(sep) else folder
                 name = full_name.split(sep)[-1]
                 if name:
                     yield BucketEntryGCS(name, is_dir=True, raw=None)
-            for item in page:
+            item: Any
+            for item in page:  # type:ignore
                 name = item.name.split(sep)[-1]
                 if name:
                     yield BucketEntryGCS(

@@ -9,8 +9,8 @@ from pathy import (
     BucketClientFS,
     BucketFS,
     ClientError,
-    FSScanDir,
     Pathy,
+    ScanDirFS,
     get_client,
 )
 
@@ -118,5 +118,5 @@ def test_file_scandir_list_buckets(
 ) -> None:
     root = Pathy()
     client = root._accessor.client(root)  # type:ignore
-    scandir = FSScanDir(client=client, path=root)
+    scandir = ScanDirFS(client=client, path=root)
     assert sorted([s.name for s in scandir]) == sorted([bucket, other_bucket])
