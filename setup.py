@@ -18,7 +18,10 @@ def setup_package():
     readme_path = root / "README.md"
     with readme_path.open("r", encoding="utf8") as f:
         long_description = f.read()
-    extras = {"gcs": ["google-cloud-storage>=1.26.0,<2.0.0"]}
+    extras = {
+        "gcs": ["google-cloud-storage>=1.26.0,<2.0.0"],
+        "test": ["pytest", "pytest-coverage", "mock", "typer-cli"],
+    }
     extras["all"] = [item for group in extras.values() for item in group]
     setup(
         name=about["__title__"],
@@ -49,6 +52,7 @@ def setup_package():
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
         ],
     )
 

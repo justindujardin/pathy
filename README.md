@@ -1,6 +1,6 @@
 # Pathy: a Path interface for local and cloud bucket storage
 
-[![Build status](https://travis-ci.com/justindujardin/pathy.svg?branch=master)](https://travis-ci.com/justindujardin/pathy)
+[![Build](https://github.com/justindujardin/pathy/actions/workflows/python-package.yml/badge.svg)](https://github.com/justindujardin/pathy/actions/workflows/python-package.yml)
 [![codecov](https://codecov.io/gh/justindujardin/pathy/branch/master/graph/badge.svg)](https://codecov.io/gh/justindujardin/pathy)
 [![Pypi version](https://badgen.net/pypi/v/pathy)](https://pypi.org/project/pathy/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
@@ -304,7 +304,7 @@ Determine if this path points to the same location as other_path.
 ## stat <kbd>method</kbd>
 
 ```python (doc)
-Pathy.stat(self: 'Pathy') -> pathy.base.BlobStat
+Pathy.stat(self: 'Pathy') -> pathy.BlobStat
 ```
 
 Returns information about this bucket path.
@@ -353,7 +353,7 @@ Stat for a bucket item
 ```python (doc)
 use_fs(
     root: Optional[str, pathlib.Path, bool] = None,
-) -> Optional[pathy.file.BucketClientFS]
+) -> Optional[pathy.BucketClientFS]
 ```
 
 Use a path in the local file-system to store blobs and buckets.
@@ -364,7 +364,7 @@ applications.
 # get_fs_client <kbd>function</kbd>
 
 ```python (doc)
-get_fs_client() -> Optional[pathy.file.BucketClientFS]
+get_fs_client() -> Optional[pathy.BucketClientFS]
 ```
 
 Get the file-system client (or None)

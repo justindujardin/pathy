@@ -4,23 +4,30 @@ from typing import Any
 
 import pytest
 
-from pathy import Pathy, get_client
-from pathy.base import BucketClient
-from pathy.clients import (
+from pathy import (
+    BucketClient,
+    BucketClientFS,
+    Pathy,
+    get_client,
     get_fs_client,
     register_client,
     set_client_params,
     use_fs,
     use_fs_cache,
 )
-from pathy.file import BucketClientFS
-from pathy.gcs import BucketClientGCS
 
-from .conftest import TEST_ADAPTERS
+from . import has_gcs
+from .conftest import ENV_ID, TEST_ADAPTERS
+
+
+@pytest.mark.skipif(not has_gcs, reason="requires gcs")
+def test_clients_get_client_works_with_optional_builtin_schems() -> None:
+    from pathy.gcs import BucketClientGCS
+
+    assert isinstance(get_client("gs"), BucketClientGCS)
 
 
 def test_clients_get_client_works_with_builtin_schems() -> None:
-    assert isinstance(get_client("gs"), BucketClientGCS)
     assert isinstance(get_client("file"), BucketClientFS)
     assert isinstance(get_client(""), BucketClientFS)
 
@@ -56,30 +63,30 @@ def test_clients_use_fs(with_fs: Path) -> None:
     assert client.root == with_fs
 
     # Can use a pathlib.Path
-    use_fs(with_fs)
+    use_fs(with_fs / "sub_folder")
     client = get_fs_client()
     assert isinstance(client, BucketClientFS)
-    assert client.root == with_fs
+    assert client.root == with_fs / "sub_folder"
 
     use_fs(False)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_api_use_fs_cache(with_adapter: str, with_fs: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/directory/foo.txt")
+    path = Pathy(f"gs://{bucket}/{ENV_ID}/directory/foo.txt")
     path.write_text("---")
     assert isinstance(path, Pathy)
     with pytest.raises(ValueError):
         Pathy.to_local(path)
 
-    use_fs_cache(with_fs)
+    use_fs_cache(Path(with_fs) / "sub_folder")
     source_file: Path = Pathy.to_local(path)
     foo_timestamp = Path(f"{source_file}.time")
     assert foo_timestamp.exists()
     orig_cache_time = foo_timestamp.read_text()
 
     # fetch from the local cache
-    cached_file: Path = Pathy.to_local(path)
+    cached_file: Path = Pathy.to_local(f"{path}")
     assert cached_file == source_file
     cached_cache_time = foo_timestamp.read_text()
     assert orig_cache_time == cached_cache_time, "cached blob timestamps should match"

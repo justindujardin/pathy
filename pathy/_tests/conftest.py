@@ -1,20 +1,25 @@
 import json
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Generator, Optional
 
 import pytest
 
-from pathy import Pathy, use_fs, use_fs_cache
-from pathy.clients import set_client_params
-from pathy.gcs import has_gcs
+from pathy import Pathy, set_client_params, use_fs, use_fs_cache
+
+from . import has_gcs
 
 has_credentials = "GCS_CREDENTIALS" in os.environ
 
 # Which adapters to use
 TEST_ADAPTERS = ["gcs", "fs"] if has_credentials and has_gcs else ["fs"]
+# A unique identifier used to allow each python version and OS to test
+# with separate bucket paths. This makes it possible to parallelize the
+# tests.
+ENV_ID = f"{sys.platform}.{sys.version_info.major}.{sys.version_info.minor}"
 
 
 @pytest.fixture()

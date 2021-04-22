@@ -9,6 +9,7 @@ sdist/
 wheels/
 *.egg-info/
 *.egg
+.test-env/
 
 # Unit test / coverage reports
 htmlcov/

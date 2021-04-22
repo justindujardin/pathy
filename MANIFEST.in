@@ -3,4 +3,4 @@ include README.md
 include LICENSE
 include pathy/py.typed
 include requirements.txt
-include pathy/tests/fixtures/*
+include pathy/_tests/fixtures/*

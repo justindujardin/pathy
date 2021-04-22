@@ -1,10 +1,12 @@
 from datetime import datetime
+from pathlib import Path
+from typing import List, Union
 
 import typer
 
-from .base import FluidPath, Pathy
+from . import BasePath, FluidPath, Pathy
 
-app = typer.Typer(help="Pathy command line interface.")
+app: typer.Typer = typer.Typer(help="Pathy command line interface.")
 
 
 @app.command()
@@ -27,7 +29,8 @@ def cp(from_location: str, to_location: str) -> None:
         # Copy prefix from the source if the to_path has none.
         #
         # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        if isinstance(to_path, Pathy) and to_path.prefix == "":
+        sep: str = to_path._flavour.sep  # type:ignore
+        if isinstance(to_path, Pathy) and to_location.endswith(sep):
             to_path = to_path / from_path
 
         to_path.parent.mkdir(parents=True, exist_ok=True)
@@ -46,7 +49,8 @@ def mv(from_location: str, to_location: str) -> None:
         # Copy prefix from the source if the to_path has none.
         #
         # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        if isinstance(to_path, Pathy) and to_path.prefix == "":
+        sep: str = to_path._flavour.sep  # type:ignore
+        if isinstance(to_path, Pathy) and to_location.endswith(sep):
             to_path = to_path / from_path
         to_path.parent.mkdir(parents=True, exist_ok=True)
         to_path.write_bytes(from_path.read_bytes())
@@ -55,15 +59,15 @@ def mv(from_location: str, to_location: str) -> None:
 
     if from_path.is_dir():
         to_path.mkdir(parents=True, exist_ok=True)
-        to_unlink = []
+        to_unlink: List[Union[Pathy, BasePath, Path]] = []
         for blob in from_path.rglob("*"):
             if not blob.is_file():
                 continue
             to_blob = to_path / str(blob.relative_to(from_path))
             to_blob.write_bytes(blob.read_bytes())
             to_unlink.append(blob)
-        for blob in to_unlink:
-            blob.unlink()
+        for unlink in to_unlink:
+            unlink.unlink()
         if from_path.is_dir():
             from_path.rmdir()
 
@@ -122,7 +126,7 @@ def ls(
     path: FluidPath = Pathy.fluid(location)
     if not path.exists() or path.is_file():
         typer.echo(f"ls: {path}: No such file or directory")
-        return
+        raise typer.Exit(1)
     now = datetime.now()
     for blob_stat in path.ls():
         print_name = str(path / blob_stat.name)
@@ -142,3 +146,5 @@ def ls(
 
 if __name__ == "__main__":
     app()
+
+__all__ = ()

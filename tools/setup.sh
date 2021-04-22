@@ -4,7 +4,8 @@ set -e
 # Make the virtualenv only if the folder doesn't exist
 DIR=.env
 if [ ! -d "${DIR}" ]; then
-  virtualenv .env -p python3.7
+  pip install virtualenv
+  python -m virtualenv .env -p python3
 fi
 
 . .env/bin/activate
