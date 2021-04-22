@@ -44,6 +44,7 @@ def test_gcs_import_error_missing_deps() -> None:
 
 
 @pytest.mark.parametrize("adapter", GCS_ADAPTER)
+@pytest.mark.skipif(not has_gcs, reason="requires gcs")
 def test_gcs_scandir_list_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
@@ -54,6 +55,7 @@ def test_gcs_scandir_list_buckets(
 
 
 @pytest.mark.parametrize("adapter", GCS_ADAPTER)
+@pytest.mark.skipif(not has_gcs, reason="requires gcs")
 def test_gcs_scandir_invalid_bucket_name(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
@@ -64,6 +66,7 @@ def test_gcs_scandir_invalid_bucket_name(
 
 
 @pytest.mark.parametrize("adapter", GCS_ADAPTER)
+@pytest.mark.skipif(not has_gcs, reason="requires gcs")
 def test_gcs_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
     """Test corner-case in GCS client that isn't easily reachable from Pathy"""
     client: BucketClientGCS = get_client("gs")
