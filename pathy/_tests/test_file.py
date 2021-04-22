@@ -113,7 +113,9 @@ def test_file_bucket_client_fs_list_blobs(with_adapter: str) -> None:
 
 
 @pytest.mark.parametrize("adapter", FS_ADAPTER)
-def test_file_scandir_list_buckets(with_adapter: str, bucket: str, other_bucket: str):
+def test_file_scandir_list_buckets(
+    with_adapter: str, bucket: str, other_bucket: str
+) -> None:
     root = Pathy()
     client = root._accessor.client(root)  # type:ignore
     scandir = FSScanDir(client=client, path=root)

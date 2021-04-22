@@ -1,5 +1,7 @@
-import pytest
 from typing import Generator
+
+import pytest
+
 from pathy import BucketClientFS, BucketEntry, Pathy, PathyScanDir, use_fs
 
 
@@ -13,7 +15,7 @@ class AbstractScanDir(PathyScanDir):
         return super().scandir()
 
 
-def test_scandir_abstract_methods(bucket: str):
+def test_scandir_abstract_methods(bucket: str) -> None:
     use_fs(True)
     client = BucketClientFS()
     root = Pathy(f"gs://{bucket}/")
@@ -21,7 +23,7 @@ def test_scandir_abstract_methods(bucket: str):
         AbstractScanDir(client=client, path=root)  # type:ignore
 
 
-def test_scandir_custom_class(bucket: str):
+def test_scandir_custom_class(bucket: str) -> None:
     use_fs(True)
     client = BucketClientFS()
     root = Pathy(f"gs://{bucket}/")
@@ -30,7 +32,7 @@ def test_scandir_custom_class(bucket: str):
     assert len(blobs) == 1
 
 
-def test_scandir_next(bucket: str):
+def test_scandir_next(bucket: str) -> None:
     use_fs(True)
     client = BucketClientFS()
     root = Pathy(f"gs://{bucket}/")

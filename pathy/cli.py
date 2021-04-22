@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import List
+from pathlib import Path
+from typing import List, Union
 
 import typer
 
-from . import FluidPath, Pathy
+from . import BasePath, FluidPath, Pathy
 
 app: typer.Typer = typer.Typer(help="Pathy command line interface.")
 
@@ -58,15 +59,15 @@ def mv(from_location: str, to_location: str) -> None:
 
     if from_path.is_dir():
         to_path.mkdir(parents=True, exist_ok=True)
-        to_unlink: List[FluidPath] = []
+        to_unlink: List[Union[Pathy, BasePath, Path]] = []
         for blob in from_path.rglob("*"):
             if not blob.is_file():
                 continue
             to_blob = to_path / str(blob.relative_to(from_path))
             to_blob.write_bytes(blob.read_bytes())
             to_unlink.append(blob)
-        for blob in to_unlink:
-            blob.unlink()
+        for unlink in to_unlink:
+            unlink.unlink()
         if from_path.is_dir():
             from_path.rmdir()
 

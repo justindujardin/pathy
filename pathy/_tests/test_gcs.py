@@ -35,6 +35,6 @@ def test_gcs_as_uri(with_adapter: str, bucket: str) -> None:
 
 
 @pytest.mark.skipif(has_gcs, reason="requires gcs deps to NOT be installed")
-def test_gcs_import_error_missing_deps():
+def test_gcs_import_error_missing_deps() -> None:
     with pytest.raises(ImportError):
         get_client("gs")
