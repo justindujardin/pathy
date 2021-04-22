@@ -10,8 +10,8 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: [3.6, 3.9]
+        os: [ubuntu-latest]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -40,6 +40,7 @@ jobs:
     needs: "build"
     if: github.ref == 'refs/heads/master'
     steps:
+      - uses: actions/checkout@v2
       - name: Set up Node
         uses: actions/setup-node@v2
         with:
