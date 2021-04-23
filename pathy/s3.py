@@ -112,10 +112,11 @@ class BucketS3(Bucket):
 
 class BucketClientS3(BucketClient):
     client: S3NativeClient
+    _session: Optional[Any]
 
     @property
-    def client_params(self) -> Any:
-        return dict(client=self.client)
+    def client_params(self) -> Dict[str, Any]:
+        return dict() if self._session is None else dict(session=self._session)
 
     def __init__(self, **kwargs: Any) -> None:
         self.recreate(**kwargs)
@@ -123,15 +124,14 @@ class BucketClientS3(BucketClient):
     def recreate(self, **kwargs: Any) -> None:
         key_id = kwargs.get("key_id", None)
         key_secret = kwargs.get("key_secret", None)
-        session: Any
         if key_id is not None and key_secret is not None:
-            session = boto3.Session(  # type:ignore
+            self._session = boto3.Session(  # type:ignore
                 aws_access_key_id=key_id,
                 aws_secret_access_key=key_secret,
             )
+            self.client = self._session.client("s3")  # type:ignore
         else:
-            session = boto3
-        self.client = session.client("s3")  # type:ignore
+            self.client = boto3.client("s3")  # type:ignore
 
     def make_uri(self, path: PurePathy) -> str:
         return str(path)
