@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/justindujardin/pathy/compare/v0.5.0...v0.5.1) (2021-04-23)
+
+
+### Features
+
+* **clients:** add support for S3 bucket storage ([#54](https://github.com/justindujardin/pathy/issues/54)) ([5bb7e1b](https://github.com/justindujardin/pathy/commit/5bb7e1b8faa422c8a80d91d7d8e71f6de4052962))
+
 # [0.5.0](https://github.com/justindujardin/pathy/compare/v0.4.0...v0.5.0) (2021-04-22)
 
 
