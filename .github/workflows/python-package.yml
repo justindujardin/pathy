@@ -29,6 +29,8 @@ jobs:
       - name: Test Wheel
         env:
           GCS_CREDENTIALS: ${{ secrets.GCS_CREDENTIALS }}
+          PATHY_S3_ACCESS_ID: ${{ secrets.PATHY_S3_ACCESS_ID }}
+          PATHY_S3_ACCESS_SECRET: ${{ secrets.PATHY_S3_ACCESS_SECRET }}
         run: rm -rf ./pathy/ && sh tools/test_package.sh
       - name: Report Code Coverage
         env:
