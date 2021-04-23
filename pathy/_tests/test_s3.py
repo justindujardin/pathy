@@ -2,7 +2,6 @@ import pytest
 
 from pathy import get_client
 
-
 from . import has_s3
 
 S3_ADAPTER = ["s3"]

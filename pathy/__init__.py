@@ -516,7 +516,7 @@ class Pathy(Path, PurePathy, _PathyExtensions):
         return from_path
 
     @classmethod
-    def from_bucket(cls, bucket_name: str, scheme:str = "gs") -> "Pathy":
+    def from_bucket(cls, bucket_name: str, scheme: str = "gs") -> "Pathy":
         """Initialize a Pathy from a bucket name. This helper adds a trailing slash and
         the appropriate prefix.
 

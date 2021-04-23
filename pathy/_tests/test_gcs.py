@@ -4,7 +4,6 @@ import pytest
 
 from pathy import Pathy, get_client, set_client_params
 
-
 from . import has_gcs
 
 GCS_ADAPTER = ["gcs"]

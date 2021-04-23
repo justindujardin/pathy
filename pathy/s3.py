@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional
 
-
 try:
     import boto3  # type:ignore
-    from botocore.exceptions import ParamValidationError
     from botocore.client import ClientError
+    from botocore.exceptions import ParamValidationError
 
     S3NativeClient = Any
     S3NativeBucket = Any
@@ -49,10 +48,9 @@ class BlobS3(Blob):
         response = self.client.list_objects_v2(
             Bucket=self.bucket.name, Prefix=self.name
         )
-        for obj in response.get("Contents", []):
-            if obj["Key"] == self.name:
-                return True
-        return False
+        objects = response.get("Contents", [])
+        matched = [o["Key"] for o in objects if o["Key"] == self.name]
+        return len(matched) > 0
 
 
 @dataclass
@@ -105,7 +103,7 @@ class BucketS3(Bucket):
             self.delete_blob(blob)
 
     def exists(self) -> bool:
-        # TODO: ensure this always holds.
+        # TODO: are you sure this always holds?
         #
         # S3 buckets don't make it this far if they don't exist. The BucketS3 instance
         # is not instantiated unless a metadata check on the bucket passes.
@@ -123,9 +121,6 @@ class BucketClientS3(BucketClient):
         self.recreate(**kwargs)
 
     def recreate(self, **kwargs: Any) -> None:
-        creds = kwargs["credentials"] if "credentials" in kwargs else None
-        if creds is not None:
-            kwargs["project"] = creds.project_id
         self.client = boto3.client("s3")  # type:ignore
 
     def make_uri(self, path: PurePathy) -> str:
