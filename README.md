@@ -5,7 +5,7 @@
 [![Pypi version](https://badgen.net/pypi/v/pathy)](https://pypi.org/project/pathy/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
-Pathy is a python package (_with type annotations_) for working with Bucket storage providers. It provides a CLI app for basic file operations between local files and remote buckets. It enables a smooth developer experience by supporting local file-system backed buckets during development and testing. It makes converting bucket blobs into local files a snap with optional local file caching of blobs.
+Pathy is a python package (_with type annotations_) for working with Cloud Bucket storage providers using a pathlib interface. It provides an easy-to-use API bundled with a CLI app for basic file operations between local files and remote buckets. It enables a smooth developer experience by letting developers work against the local file system during development and only switch over to live APIs for deployment. It also makes converting bucket blobs into local files a snap with optional local file caching.
 
 ## 🚀 Quickstart
 
@@ -15,7 +15,7 @@ You can install `pathy` from pip:
 pip install pathy
 ```
 
-The package exports the `Pathy` class and utilities for configuring the bucket storage provider to use. By default Pathy prefers GoogleCloudStorage paths of the form `gs://bucket_name/folder/blob_name.txt`. Internally Pathy can convert GCS paths to local files, allowing for a nice developer experience.
+The package exports the `Pathy` class and utilities for configuring the bucket storage provider to use.
 
 ```python
 from pathy import Pathy, use_fs
@@ -36,6 +36,16 @@ greeting.unlink()
 # Now it doesn't
 assert not greeting.exists()
 ```
+
+## Supported Clouds
+
+The table below details the supported cloud provider APIs.
+
+| Cloud Service        | Support |      Install Extras      |
+| :------------------- | :-----: | :----------------------: |
+| Google Cloud Storage |   ✅    | `pip install pathy[gcs]` |
+| Amazon S3            |   ✅    | `pip install pathy[s3]`  |
+| Azure                |   ❌    |                          |
 
 ## Semantic Versioning
 
