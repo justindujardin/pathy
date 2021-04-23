@@ -15,7 +15,7 @@ from . import has_gcs
 has_credentials = "GCS_CREDENTIALS" in os.environ
 
 # Which adapters to use
-TEST_ADAPTERS = ["gcs", "s3", "fs"] if has_credentials and has_gcs else ["s3"]
+TEST_ADAPTERS = ["gcs", "s3", "fs"] if has_credentials and has_gcs else ["fs"]
 # A unique identifier used to allow each python version and OS to test
 # with separate bucket paths. This makes it possible to parallelize the
 # tests.
