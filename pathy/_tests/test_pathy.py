@@ -42,7 +42,7 @@ def test_pathy_fluid(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_path_to_local(with_adapter: str, bucket: str) -> None:
-    root: Pathy = Pathy.from_bucket(bucket) / ENV_ID / "to_local"
+    root: Pathy = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/to_local")
     foo_blob: Pathy = root / "foo"
     foo_blob.write_text("---")
     assert isinstance(foo_blob, Pathy)
@@ -85,16 +85,16 @@ def test_pathy_stat(with_adapter: str, bucket: str) -> None:
     path = Pathy("fake-bucket-1234-0987/fake-key")
     with pytest.raises(ValueError):
         path.stat()
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/stat/foo.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/stat/foo.txt")
     path.write_text("a-a-a-a-a-a-a")
     stat = path.stat()
     assert isinstance(stat, BlobStat)
     assert stat.size is not None and stat.size > 0
     assert stat.last_modified is not None and stat.last_modified > 0
     with pytest.raises(ValueError):
-        assert Pathy(f"gs://{bucket}").stat()
+        assert Pathy(f"{with_adapter}://{bucket}").stat()
     with pytest.raises(FileNotFoundError):
-        assert Pathy(f"gs://{bucket}/{ENV_ID}/stat/nonexistant_file.txt").stat()
+        assert Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/stat/nope.txt").stat()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -113,12 +113,12 @@ def test_pathy_exists(with_adapter: str, bucket: str) -> None:
 
     # invalid bucket name
     invalid_bucket = "unknown-bucket-name-123987519875419"
-    assert Pathy(f"gs://{invalid_bucket}").exists() is False
-    assert Pathy(f"gs://{invalid_bucket}/foo.blob").exists() is False
+    assert Pathy(f"{with_adapter}://{invalid_bucket}").exists() is False
+    assert Pathy(f"{with_adapter}://{invalid_bucket}/foo.blob").exists() is False
     # valid bucket with invalid object
-    assert Pathy(f"gs://{bucket}/not_found_lol_nice.txt").exists() is False
+    assert Pathy(f"{with_adapter}://{bucket}/not_found_lol_nice.txt").exists() is False
 
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/directory/foo.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/directory/foo.txt")
     path.write_text("---")
     assert path.exists()
     for parent in path.parents:
@@ -127,7 +127,7 @@ def test_pathy_exists(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_glob(with_adapter: str, bucket: str) -> None:
-    base = Pathy(f"gs://{bucket}/{ENV_ID}/glob/")
+    base = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/")
     root = base / "glob/"
     for i in range(3):
         path = root / f"{i}.file"
@@ -159,7 +159,7 @@ def test_pathy_glob(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_unlink_path(with_adapter: str, bucket: str) -> None:
-    root = Pathy(f"gs://{bucket}/{ENV_ID}/unlink/")
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/unlink/")
     path = root / "404.txt"
     with pytest.raises(FileNotFoundError):
         path.unlink()
@@ -172,7 +172,7 @@ def test_pathy_unlink_path(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_is_dir(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/is_dir/subfolder/another/my.file")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/is_dir/subfolder/another/my.file")
     path.write_text("---")
     assert path.is_dir() is False
     for parent in path.parents:
@@ -181,7 +181,9 @@ def test_pathy_is_dir(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_is_file(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/is_file/subfolder/another/my.file")
+    path = Pathy(
+        f"{with_adapter}://{bucket}/{ENV_ID}/is_file/subfolder/another/my.file"
+    )
     path.write_text("---")
     # The full file is a file
     assert path.is_file() is True
@@ -192,7 +194,7 @@ def test_pathy_is_file(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_iterdir(with_adapter: str, bucket: str) -> None:
-    root = Pathy(f"gs://{bucket}/{ENV_ID}/iterdir/")
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/iterdir/")
     # (n) files in a folder
     for i in range(2):
         path = root / f"{i}.file"
@@ -212,16 +214,18 @@ def test_pathy_iterdir(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_iterdir_pipstore(with_adapter: str, bucket: str) -> None:
-    path = Pathy.from_bucket(bucket) / f"{ENV_ID}/iterdir_pipstore/prodigy/prodigy.whl"
+    path = Pathy(
+        f"{with_adapter}://{bucket}/{ENV_ID}/iterdir_pipstore/prodigy/prodigy.whl"
+    )
     path.write_bytes(b"---")
-    path = Pathy.from_bucket(bucket) / f"{ENV_ID}/iterdir_pipstore"
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/iterdir_pipstore")
     res = [e.name for e in sorted(path.iterdir())]
     assert res == ["prodigy"]
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_open_errors(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/open_errors/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/open_errors/file.txt")
     # Invalid open mode
     with pytest.raises(ValueError):
         path.open(mode="t")
@@ -237,7 +241,7 @@ def test_pathy_open_errors(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_open_for_read(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/read/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/read/file.txt")
     path.write_text("---")
     with path.open() as file_obj:
         assert file_obj.read() == "---"
@@ -246,18 +250,18 @@ def test_pathy_open_for_read(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_open_for_write(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/write/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/write/file.txt")
     with path.open(mode="w") as file_obj:
         file_obj.write("---")
         file_obj.writelines(["---"])
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/write/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/write/file.txt")
     with path.open() as file_obj:
         assert file_obj.read() == "------"
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_open_binary_read(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/read_binary/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/read_binary/file.txt")
     path.write_bytes(b"---")
     with path.open(mode="rb") as file_obj:
         assert file_obj.readlines() == [b"---"]
@@ -268,7 +272,7 @@ def test_pathy_open_binary_read(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_readwrite_text(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/write_text/file.txt")
+    path = Pathy(f"s3://{bucket}/{ENV_ID}/write_text/file.txt")
     path.write_text("---")
     with path.open() as file_obj:
         assert file_obj.read() == "---"
@@ -277,14 +281,14 @@ def test_pathy_readwrite_text(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_readwrite_bytes(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/write_bytes/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/write_bytes/file.txt")
     path.write_bytes(b"---")
     assert path.read_bytes() == b"---"
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_readwrite_lines(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/write_text/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/write_text/file.txt")
     with path.open("w") as file_obj:
         file_obj.writelines(["---"])
     with path.open("r") as file_obj:
@@ -295,7 +299,7 @@ def test_pathy_readwrite_lines(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_ls_blobs_with_stat(with_adapter: str, bucket: str) -> None:
-    root = Pathy(f"gs://{bucket}/{ENV_ID}/ls")
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/ls")
     for i in range(3):
         (root / f"file_{i}").write_text("NICE")
     files = list(root.ls())
@@ -311,9 +315,9 @@ def test_pathy_ls_blobs_with_stat(with_adapter: str, bucket: str) -> None:
 def test_pathy_owner(with_adapter: str, bucket: str) -> None:
     # Raises for invalid file
     with pytest.raises(FileNotFoundError):
-        Pathy(f"gs://{bucket}/{ENV_ID}/write_text/not_a_valid_blob").owner()
+        Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/write_text/not_a_valid_blob").owner()
 
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/write_text/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/write_text/file.txt")
     path.write_text("---")
     # TODO: How to set file owner to non-None in GCS? Then assert here.
     #
@@ -328,15 +332,15 @@ def test_pathy_owner(with_adapter: str, bucket: str) -> None:
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_rename_files_in_bucket(with_adapter: str, bucket: str) -> None:
     # Rename a single file
-    from_blob = f"gs://{bucket}/{ENV_ID}/rename/file.txt"
-    to_blob = f"gs://{bucket}/{ENV_ID}/rename/other.txt"
+    from_blob = f"{with_adapter}://{bucket}/{ENV_ID}/rename/file.txt"
+    to_blob = f"{with_adapter}://{bucket}/{ENV_ID}/rename/other.txt"
     Pathy(from_blob).write_text("---")
     Pathy(from_blob).rename(to_blob)
     assert not Pathy(from_blob).exists()
     assert Pathy(to_blob).is_file()
 
     with pytest.raises(FileNotFoundError):
-        Pathy("gs://invlid_bkt_nme_18$%^@57582397/foo").rename(to_blob)
+        Pathy(f"{with_adapter}://invlid_bkt_nme_18$%^@57582397/foo").rename(to_blob)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -344,26 +348,26 @@ def test_pathy_rename_files_across_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
     # Rename a single file across buckets
-    Pathy(f"gs://{bucket}/{ENV_ID}/rename/file.txt").write_text("---")
-    Pathy(f"gs://{bucket}/{ENV_ID}/rename/file.txt").rename(
-        f"gs://{other_bucket}/{ENV_ID}/rename/other.txt"
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/file.txt").write_text("---")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/file.txt").rename(
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/rename/other.txt"
     )
-    assert not Pathy(f"gs://{bucket}/{ENV_ID}/rename/file.txt").exists()
-    assert Pathy(f"gs://{other_bucket}/{ENV_ID}/rename/other.txt").is_file()
+    assert not Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/file.txt").exists()
+    assert Pathy(f"{with_adapter}://{other_bucket}/{ENV_ID}/rename/other.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_rename_folders_in_bucket(with_adapter: str, bucket: str) -> None:
     # Rename a folder in the same bucket
-    Pathy(f"gs://{bucket}/{ENV_ID}/rename/folder/one.txt").write_text("---")
-    Pathy(f"gs://{bucket}/{ENV_ID}/rename/folder/two.txt").write_text("---")
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/rename/folder/")
-    new_path = Pathy(f"gs://{bucket}/{ENV_ID}/rename/other/")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/folder/one.txt").write_text("---")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/folder/two.txt").write_text("---")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/folder/")
+    new_path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/other/")
     path.rename(new_path)
     assert not path.exists()
     assert new_path.exists()
-    assert Pathy(f"gs://{bucket}/{ENV_ID}/rename/other/one.txt").is_file()
-    assert Pathy(f"gs://{bucket}/{ENV_ID}/rename/other/two.txt").is_file()
+    assert Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/other/one.txt").is_file()
+    assert Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/other/two.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -371,26 +375,30 @@ def test_pathy_rename_folders_across_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
     # Rename a folder across buckets
-    Pathy(f"gs://{bucket}/{ENV_ID}/rename/folder/one.txt").write_text("---")
-    Pathy(f"gs://{bucket}/{ENV_ID}/rename/folder/two.txt").write_text("---")
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/rename/folder/")
-    new_path = Pathy(f"gs://{other_bucket}/{ENV_ID}/rename/other/")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/folder/one.txt").write_text("---")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/folder/two.txt").write_text("---")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rename/folder/")
+    new_path = Pathy(f"{with_adapter}://{other_bucket}/{ENV_ID}/rename/other/")
     path.rename(new_path)
     assert not path.exists()
     assert new_path.exists()
-    assert Pathy(f"gs://{other_bucket}/{ENV_ID}/rename/other/one.txt").is_file()
-    assert Pathy(f"gs://{other_bucket}/{ENV_ID}/rename/other/two.txt").is_file()
+    assert Pathy(
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/rename/other/one.txt"
+    ).is_file()
+    assert Pathy(
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/rename/other/two.txt"
+    ).is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_replace_files_in_bucket(with_adapter: str, bucket: str) -> None:
     # replace a single file
-    Pathy(f"gs://{bucket}/{ENV_ID}/replace/file.txt").write_text("---")
-    Pathy(f"gs://{bucket}/{ENV_ID}/replace/file.txt").replace(
-        f"gs://{bucket}/{ENV_ID}/replace/other.txt"
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/file.txt").write_text("---")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/file.txt").replace(
+        f"{with_adapter}://{bucket}/{ENV_ID}/replace/other.txt"
     )
-    assert not Pathy(f"gs://{bucket}/{ENV_ID}/replace/file.txt").exists()
-    assert Pathy(f"gs://{bucket}/{ENV_ID}/replace/other.txt").is_file()
+    assert not Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/file.txt").exists()
+    assert Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/other.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -398,26 +406,32 @@ def test_pathy_replace_files_across_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
     # Rename a single file across buckets
-    Pathy(f"gs://{bucket}/{ENV_ID}/replace/file.txt").write_text("---")
-    Pathy(f"gs://{bucket}/{ENV_ID}/replace/file.txt").replace(
-        f"gs://{other_bucket}/{ENV_ID}/replace/other.txt"
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/file.txt").write_text("---")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/file.txt").replace(
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/replace/other.txt"
     )
-    assert not Pathy(f"gs://{bucket}/{ENV_ID}/replace/file.txt").exists()
-    assert Pathy(f"gs://{other_bucket}/{ENV_ID}/replace/other.txt").is_file()
+    assert not Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/file.txt").exists()
+    assert Pathy(
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/replace/other.txt"
+    ).is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_replace_folders_in_bucket(with_adapter: str, bucket: str) -> None:
     # Rename a folder in the same bucket
-    Pathy(f"gs://{bucket}/{ENV_ID}/replace/folder/one.txt").write_text("---")
-    Pathy(f"gs://{bucket}/{ENV_ID}/replace/folder/two.txt").write_text("---")
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/replace/folder/")
-    new_path = Pathy(f"gs://{bucket}/{ENV_ID}/replace/other/")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/folder/one.txt").write_text(
+        "---"
+    )
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/folder/two.txt").write_text(
+        "---"
+    )
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/folder/")
+    new_path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/other/")
     path.replace(new_path)
     assert not path.exists()
     assert new_path.exists()
-    assert Pathy(f"gs://{bucket}/{ENV_ID}/replace/other/one.txt").is_file()
-    assert Pathy(f"gs://{bucket}/{ENV_ID}/replace/other/two.txt").is_file()
+    assert Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/other/one.txt").is_file()
+    assert Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/other/two.txt").is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -425,31 +439,41 @@ def test_pathy_replace_folders_across_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
     # Rename a folder across buckets
-    Pathy(f"gs://{bucket}/{ENV_ID}/replace/folder/one.txt").write_text("---")
-    Pathy(f"gs://{bucket}/{ENV_ID}/replace/folder/two.txt").write_text("---")
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/replace/folder/")
-    new_path = Pathy(f"gs://{other_bucket}/{ENV_ID}/replace/other/")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/folder/one.txt").write_text(
+        "---"
+    )
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/folder/two.txt").write_text(
+        "---"
+    )
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/replace/folder/")
+    new_path = Pathy(f"{with_adapter}://{other_bucket}/{ENV_ID}/replace/other/")
     path.replace(new_path)
     assert not path.exists()
     assert new_path.exists()
-    assert Pathy(f"gs://{other_bucket}/{ENV_ID}/replace/other/one.txt").is_file()
-    assert Pathy(f"gs://{other_bucket}/{ENV_ID}/replace/other/two.txt").is_file()
+    assert Pathy(
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/replace/other/one.txt"
+    ).is_file()
+    assert Pathy(
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/replace/other/two.txt"
+    ).is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_rmdir(with_adapter: str, bucket: str) -> None:
-    blob = Pathy(f"gs://{bucket}/{ENV_ID}/rmdir/one.txt")
+    blob = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rmdir/one.txt")
     blob.write_text("---")
 
     # Cannot rmdir a blob
     with pytest.raises(NotADirectoryError):
         blob.rmdir()
 
-    Pathy(f"gs://{bucket}/{ENV_ID}/rmdir/folder/two.txt").write_text("---")
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/rmdir/")
+    Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rmdir/folder/two.txt").write_text("---")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rmdir/")
     path.rmdir()
-    assert not Pathy(f"gs://{bucket}/{ENV_ID}/rmdir/one.txt").is_file()
-    assert not Pathy(f"gs://{bucket}/{ENV_ID}/rmdir/other/two.txt").is_file()
+    assert not Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rmdir/one.txt").is_file()
+    assert not Pathy(
+        f"{with_adapter}://{bucket}/{ENV_ID}/rmdir/other/two.txt"
+    ).is_file()
     assert not path.exists()
 
     # Cannot rmdir an invalid folder
@@ -459,9 +483,9 @@ def test_pathy_rmdir(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_samefile(with_adapter: str, bucket: str) -> None:
-    blob_str = f"gs://{bucket}/{ENV_ID}/samefile/one.txt"
+    blob_str = f"{with_adapter}://{bucket}/{ENV_ID}/samefile/one.txt"
     blob_one = Pathy(blob_str)
-    blob_two = Pathy(f"gs://{bucket}/{ENV_ID}/samefile/two.txt")
+    blob_two = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/samefile/two.txt")
     blob_one.touch()
     blob_two.touch()
     assert blob_one.samefile(blob_two) is False
@@ -474,7 +498,7 @@ def test_pathy_samefile(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_touch(with_adapter: str, bucket: str) -> None:
-    blob = Pathy(f"gs://{bucket}/{ENV_ID}/touch/one.txt")
+    blob = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/touch/one.txt")
     if blob.is_file():
         blob.unlink()
     # The blob doesn't exist
@@ -494,10 +518,13 @@ def test_pathy_touch(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_rglob_unlink(with_adapter: str, bucket: str) -> None:
-    files = [f"gs://{bucket}/{ENV_ID}/rglob_and_unlink/{i}.file.txt" for i in range(3)]
+    files = [
+        f"{with_adapter}://{bucket}/{ENV_ID}/rglob_and_unlink/{i}.file.txt"
+        for i in range(3)
+    ]
     for file in files:
         Pathy(file).write_text("---")
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/rglob_and_unlink/")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/rglob_and_unlink/")
     for blob in path.rglob("*"):
         blob.unlink()
     # All the files are gone
@@ -508,10 +535,10 @@ def test_pathy_rglob_unlink(with_adapter: str, bucket: str) -> None:
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_pathy_mkdir(with_adapter: str, bucket: str) -> None:
+def test_pathy_mkdir(with_adapter: str) -> None:
     bucket_name = f"pathy-e2e-test-{uuid4().hex}"
     # Create a bucket
-    path = Pathy(f"gs://{bucket_name}/")
+    path = Pathy(f"{with_adapter}://{bucket_name}/")
     path.mkdir()
     assert path.exists()
     # Does not assert if it already exists
@@ -528,7 +555,7 @@ def test_pathy_ignore_extension(with_adapter: str, bucket: str) -> None:
     """The smart_open library does automatic decompression based
     on the filename. We disable that to avoid errors, e.g. if you
     have a .tar.gz file that isn't gzipped."""
-    not_targz = Pathy.from_bucket(bucket) / ENV_ID / "ignore_ext/one.tar.gz"
+    not_targz = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/ignore_ext/one.tar.gz")
     fixture_tar = Path(__file__).parent / "fixtures" / "tar_but_not_gzipped.tar.gz"
     not_targz.write_bytes(fixture_tar.read_bytes())
     again = not_targz.read_bytes()

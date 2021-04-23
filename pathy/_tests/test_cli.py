@@ -17,16 +17,16 @@ runner = CliRunner()
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_invalid_from_path(with_adapter: str, bucket: str) -> None:
-    source = f"gs://{bucket}/{ENV_ID}/cli_cp_file_invalid/file.txt"
-    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file_invalid/dest.txt"
+    source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_cp_file_invalid/file.txt"
+    destination = f"{with_adapter}://{bucket}/{ENV_ID}/cli_cp_file_invalid/dest.txt"
     assert runner.invoke(app, ["cp", source, destination]).exit_code == 1
     assert not Pathy(destination).is_file()
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_file(with_adapter: str, bucket: str) -> None:
-    source = f"gs://{bucket}/{ENV_ID}/cli_cp_file/file.txt"
-    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file/other.txt"
+    source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_cp_file/file.txt"
+    destination = f"{with_adapter}://{bucket}/{ENV_ID}/cli_cp_file/other.txt"
     Pathy(source).write_text("---")
     assert runner.invoke(app, ["cp", source, destination]).exit_code == 0
     assert Pathy(source).exists()
@@ -37,7 +37,7 @@ def test_cli_cp_file(with_adapter: str, bucket: str) -> None:
 def test_cli_cp_file_name_from_source(with_adapter: str, bucket: str) -> None:
     source = pathlib.Path("./file.txt")
     source.touch()
-    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file/"
+    destination = f"{with_adapter}://{bucket}/{ENV_ID}/cli_cp_file/"
     assert runner.invoke(app, ["cp", str(source), destination]).exit_code == 0
     assert Pathy(f"{destination}file.txt").is_file()
     source.unlink()
@@ -45,7 +45,7 @@ def test_cli_cp_file_name_from_source(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_folder(with_adapter: str, bucket: str) -> None:
-    root = Pathy.from_bucket(bucket) / ENV_ID
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/")
     source = root / "cli_cp_folder"
     destination = root / "cli_cp_folder_other"
     for i in range(2):
@@ -61,7 +61,7 @@ def test_cli_cp_folder(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_mv_folder(with_adapter: str, bucket: str) -> None:
-    root = Pathy.from_bucket(bucket) / ENV_ID
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/")
     source = root / "cli_mv_folder"
     destination = root / "cli_mv_folder_other"
     for i in range(2):
@@ -84,7 +84,7 @@ def test_cli_mv_folder(with_adapter: str, bucket: str) -> None:
 def test_cli_mv_file_copy_from_name(with_adapter: str, bucket: str) -> None:
     source = pathlib.Path("./file.txt")
     source.touch()
-    destination = f"gs://{bucket}/{ENV_ID}/cli_cp_file/"
+    destination = f"{with_adapter}://{bucket}/{ENV_ID}/cli_cp_file/"
     assert runner.invoke(app, ["mv", str(source), destination]).exit_code == 0
     assert Pathy(f"{destination}file.txt").is_file()
     # unlink should happen from the operation
@@ -93,8 +93,8 @@ def test_cli_mv_file_copy_from_name(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_mv_file(with_adapter: str, bucket: str) -> None:
-    source = f"gs://{bucket}/{ENV_ID}/cli_mv_file/file.txt"
-    destination = f"gs://{bucket}/{ENV_ID}/cli_mv_file/other.txt"
+    source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_mv_file/file.txt"
+    destination = f"{with_adapter}://{bucket}/{ENV_ID}/cli_mv_file/other.txt"
     Pathy(source).write_text("---")
     assert Pathy(source).exists()
     assert runner.invoke(app, ["mv", source, destination]).exit_code == 0
@@ -106,8 +106,10 @@ def test_cli_mv_file(with_adapter: str, bucket: str) -> None:
 def test_cli_mv_file_across_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
-    source = f"gs://{bucket}/{ENV_ID}/cli_mv_file_across_buckets/file.txt"
-    destination = f"gs://{other_bucket}/{ENV_ID}/cli_mv_file_across_buckets/other.txt"
+    source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_mv_file_across_buckets/file.txt"
+    destination = (
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/cli_mv_file_across_buckets/other.txt"
+    )
     Pathy(source).write_text("---")
     assert Pathy(source).exists()
     assert runner.invoke(app, ["mv", source, destination]).exit_code == 0
@@ -119,9 +121,9 @@ def test_cli_mv_file_across_buckets(
 def test_cli_mv_folder_across_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
-    source = Pathy.from_bucket(bucket) / ENV_ID / "cli_mv_folder_across_buckets"
-    destination = (
-        Pathy.from_bucket(other_bucket) / ENV_ID / "cli_mv_folder_across_buckets"
+    source = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/cli_mv_folder_across_buckets")
+    destination = Pathy(
+        f"{with_adapter}://{other_bucket}/{ENV_ID}/cli_mv_folder_across_buckets"
     )
     for i in range(2):
         for j in range(2):
@@ -141,7 +143,7 @@ def test_cli_mv_folder_across_buckets(
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_invalid_file(with_adapter: str, bucket: str) -> None:
-    source = f"gs://{bucket}/{ENV_ID}/cli_rm_file_invalid/file.txt"
+    source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_rm_file_invalid/file.txt"
     path = Pathy(source)
     assert not path.exists()
     assert runner.invoke(app, ["rm", source]).exit_code == 1
@@ -149,7 +151,7 @@ def test_cli_rm_invalid_file(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_file(with_adapter: str, bucket: str) -> None:
-    source = f"gs://{bucket}/{ENV_ID}/cli_rm_file/file.txt"
+    source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_rm_file/file.txt"
     path = Pathy(source)
     path.write_text("---")
     assert path.exists()
@@ -159,7 +161,7 @@ def test_cli_rm_file(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_verbose(with_adapter: str, bucket: str) -> None:
-    root = Pathy.from_bucket(bucket) / ENV_ID / "cli_rm_folder"
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_rm_folder"
     source = str(root / "file.txt")
     other = str(root / "folder/other")
     Pathy(source).write_text("---")
@@ -178,7 +180,7 @@ def test_cli_rm_verbose(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_folder(with_adapter: str, bucket: str) -> None:
-    root = Pathy.from_bucket(bucket) / ENV_ID
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/")
     source = root / "cli_rm_folder"
     for i in range(2):
         for j in range(2):
@@ -196,7 +198,7 @@ def test_cli_rm_folder(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_ls_invalid_source(with_adapter: str, bucket: str) -> None:
-    root = Pathy.from_bucket(bucket) / ENV_ID / "cli_ls_invalid"
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls_invalid"
     three = str(root / "folder/file.txt")
 
     result = runner.invoke(app, ["ls", str(three)])
@@ -206,7 +208,7 @@ def test_cli_ls_invalid_source(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_ls(with_adapter: str, bucket: str) -> None:
-    root = Pathy.from_bucket(bucket) / ENV_ID / "cli_ls"
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls"
     one = str(root / "file.txt")
     two = str(root / "other.txt")
     three = str(root / "folder/file.txt")
@@ -241,7 +243,7 @@ def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
         assert blob_stat.size == 4
         assert blob_stat.last_modified is not None
 
-    root = Pathy.from_bucket(bucket) / ENV_ID / "cli_ls"
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls"
     one = str(root / "file.txt")
     two = str(root / "other.txt")
     three = str(root / "folder/file.txt")

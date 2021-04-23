@@ -366,7 +366,7 @@ class BucketsAccessor(_Accessor):  # type:ignore
         blob: Optional[Blob] = bucket.get_blob(str(path.key))
         if blob is None:
             raise FileNotFoundError(path)
-        return BlobStat(name=str(blob), size=blob.size, last_modified=blob.updated)
+        return BlobStat(name=str(blob.name), size=blob.size, last_modified=blob.updated)
 
     def is_dir(self, path: "Pathy") -> bool:
         if self.get_blob(path) is not None:
@@ -516,7 +516,7 @@ class Pathy(Path, PurePathy, _PathyExtensions):
         return from_path
 
     @classmethod
-    def from_bucket(cls, bucket_name: str) -> "Pathy":
+    def from_bucket(cls, bucket_name: str, scheme:str = "gs") -> "Pathy":
         """Initialize a Pathy from a bucket name. This helper adds a trailing slash and
         the appropriate prefix.
 
@@ -527,7 +527,7 @@ class Pathy(Path, PurePathy, _PathyExtensions):
         assert str(Pathy.from_bucket("two")) == "gs://two/"
         ```
         """
-        return Pathy(f"gs://{bucket_name}/")  # type:ignore
+        return Pathy(f"{scheme}://{bucket_name}/")  # type:ignore
 
     @classmethod
     def to_local(cls, blob_path: Union["Pathy", str], recurse: bool = True) -> Path:
@@ -1159,6 +1159,7 @@ _client_registry: Dict[str, Type[BucketClient]] = {
 # a Pathy object with a matching scheme
 _optional_clients: Dict[str, str] = {
     "gs": "pathy.gcs",
+    "s3": "pathy.s3",
 }
 BucketClientType = TypeVar("BucketClientType", bound=BucketClient)
 

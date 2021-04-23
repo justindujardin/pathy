@@ -109,7 +109,7 @@ assert fluid_path.prefix == "foo.txt/"
 ## from_bucket <kbd>classmethod</kbd>
 
 ```python (doc)
-Pathy.from_bucket(bucket_name: str) -> 'Pathy'
+Pathy.from_bucket(bucket_name: str, scheme: str = 'gs') -> 'Pathy'
 ```
 
 Initialize a Pathy from a bucket name. This helper adds a trailing slash and

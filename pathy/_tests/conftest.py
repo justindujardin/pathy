@@ -4,7 +4,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Generator, Optional
+from typing import Any, Generator, Optional, Tuple
 
 import pytest
 
@@ -15,7 +15,7 @@ from . import has_gcs
 has_credentials = "GCS_CREDENTIALS" in os.environ
 
 # Which adapters to use
-TEST_ADAPTERS = ["gcs", "fs"] if has_credentials and has_gcs else ["fs"]
+TEST_ADAPTERS = ["gcs", "s3", "fs"] if has_credentials and has_gcs else ["s3"]
 # A unique identifier used to allow each python version and OS to test
 # with separate bucket paths. This makes it possible to parallelize the
 # tests.
@@ -82,6 +82,18 @@ def gcs_credentials_from_env() -> Optional[Any]:
     return credentials
 
 
+def s3_credentials_from_env() -> Optional[Tuple[str, str]]:
+    """Extract an access key ID and Secret from the environment."""
+    if not has_gcs:
+        return None
+
+    access_key_id: Optional[str] = os.environ.get("PATHY_S3_ACCESS_ID", None)
+    access_secret: Optional[str] = os.environ.get("PATHY_S3_ACCESS_SECRET", None)
+    if access_key_id is None or access_secret is None:
+        return None
+    return (access_key_id, access_secret)
+
+
 @pytest.fixture()
 def with_adapter(
     adapter: str, bucket: str, other_bucket: str
@@ -94,6 +106,14 @@ def with_adapter(
         credentials = gcs_credentials_from_env()
         if credentials is not None:
             set_client_params("gs", credentials=credentials)
+    elif adapter == "s3":
+        scheme = "s3"
+        # Use boto3
+        use_fs(False)
+        credentials = s3_credentials_from_env()
+        if credentials is not None:
+            # key_id, key_secret = credentials
+            set_client_params("s3", credentials=credentials)
     elif adapter == "fs":
         # Use local file-system in a temp folder
         tmp_dir = tempfile.mkdtemp()
