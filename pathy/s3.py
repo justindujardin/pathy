@@ -121,7 +121,16 @@ class BucketClientS3(BucketClient):
         self.recreate(**kwargs)
 
     def recreate(self, **kwargs: Any) -> None:
-        self.client = boto3.client("s3")  # type:ignore
+        key_id = kwargs.get("key_id", None)
+        key_secret = kwargs.get("key_secret", None)
+        if key_id is not None and key_secret is not None:
+            session = boto3.Session(
+                aws_access_key_id=key_id,
+                aws_secret_access_key=key_secret,
+            )
+        else:
+            session = boto3
+        self.client = session.client("s3")  # type:ignore
 
     def make_uri(self, path: PurePathy) -> str:
         return str(path)

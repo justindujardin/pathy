@@ -112,8 +112,8 @@ def with_adapter(
         use_fs(False)
         credentials = s3_credentials_from_env()
         if credentials is not None:
-            # key_id, key_secret = credentials
-            set_client_params("s3", credentials=credentials)
+            key_id, key_secret = credentials
+            set_client_params("s3", key_id=key_id, key_secret=key_secret)
     elif adapter == "fs":
         # Use local file-system in a temp folder
         tmp_dir = tempfile.mkdtemp()
