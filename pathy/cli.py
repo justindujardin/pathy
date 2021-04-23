@@ -5,8 +5,9 @@ from typing import List, Union
 import typer
 
 from . import BasePath, FluidPath, Pathy
+from .about import __version__
 
-app: typer.Typer = typer.Typer(help="Pathy command line interface.")
+app: typer.Typer = typer.Typer(help=f"Pathy command line interface. (v{__version__})")
 
 
 @app.command()

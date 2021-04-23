@@ -412,7 +412,7 @@ client library prefers.
 
 # CLI
 
-Pathy command line interface.
+Pathy command line interface. (v0.5.1)
 
 **Usage**:
 
