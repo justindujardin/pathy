@@ -160,7 +160,9 @@ class BucketClientS3(BucketClient):
     def list_buckets(  # type:ignore[override]
         self, **kwargs: Dict[str, Any]
     ) -> Generator[S3NativeBucket, None, None]:
-        return self.client.list_buckets(**kwargs)  # type:ignore
+        native_buckets = self.client.list_buckets(**kwargs)["Buckets"]
+        results = (BucketS3(n["Name"], self.client, n) for n in native_buckets)
+        return results
 
     def scandir(  # type:ignore[override]
         self,
@@ -199,13 +201,22 @@ class BucketClientS3(BucketClient):
 class ScanDirS3(PathyScanDir):
     _client: BucketClientS3
 
+    def __init__(
+        self,
+        client: BucketClient,
+        path: Optional[PurePathy] = None,
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+        page_size: Optional[int] = None,
+    ) -> None:
+        super().__init__(client=client, path=path, prefix=prefix, delimiter=delimiter)
+        self._page_size = page_size
+
     def scandir(self) -> Generator[BucketEntryS3, None, None]:
         if self._path is None or not self._path.root:
-            gcs_bucket: S3NativeBucket
-            for gcs_bucket in self._client.list_buckets():
-                yield BucketEntryS3(
-                    gcs_bucket.name, is_dir=True, raw=None  # type:ignore
-                )
+            s3_bucket: BucketS3
+            for s3_bucket in self._client.list_buckets():
+                yield BucketEntryS3(s3_bucket.name, is_dir=True, raw=None)
             return
         sep = self._path._flavour.sep  # type:ignore
         bucket = self._client.lookup_bucket(self._path)
@@ -215,6 +226,8 @@ class ScanDirS3(PathyScanDir):
         kwargs: Any = {"Bucket": bucket.name, "Delimiter": sep}
         if self._prefix is not None:
             kwargs["Prefix"] = self._prefix
+        if self._page_size is not None:
+            kwargs["MaxKeys"] = self._page_size
         continuation_token: Optional[str] = None
         while True:
             if continuation_token:
