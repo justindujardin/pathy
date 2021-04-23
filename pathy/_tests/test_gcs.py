@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from pathy import Pathy, get_client, set_client_params
+from pathy import Pathy, get_client, set_client_params, use_fs
 
 from . import has_gcs
 
@@ -38,6 +38,7 @@ def test_gcs_as_uri(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.skipif(has_gcs, reason="requires gcs deps to NOT be installed")
 def test_gcs_import_error_missing_deps() -> None:
+    use_fs(False)
     with pytest.raises(ImportError):
         get_client("gs")
 
@@ -57,9 +58,7 @@ def test_gcs_scandir_list_buckets(
 
 @pytest.mark.parametrize("adapter", GCS_ADAPTER)
 @pytest.mark.skipif(not has_gcs, reason="requires gcs")
-def test_gcs_scandir_invalid_bucket_name(
-    with_adapter: str, bucket: str, other_bucket: str
-) -> None:
+def test_gcs_scandir_invalid_bucket_name(with_adapter: str) -> None:
     from pathy.gcs import ScanDirGCS
 
     root = Pathy("gs://invalid_h3gE_ds5daEf_Sdf15487t2n4/bar")

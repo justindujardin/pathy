@@ -123,8 +123,9 @@ class BucketClientS3(BucketClient):
     def recreate(self, **kwargs: Any) -> None:
         key_id = kwargs.get("key_id", None)
         key_secret = kwargs.get("key_secret", None)
+        session: Any
         if key_id is not None and key_secret is not None:
-            session = boto3.Session(
+            session = boto3.Session(  # type:ignore
                 aws_access_key_id=key_id,
                 aws_secret_access_key=key_secret,
             )

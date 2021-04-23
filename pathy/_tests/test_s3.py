@@ -1,16 +1,11 @@
 import pytest
-from pathy import Pathy, get_client
+
+from pathy import Pathy, get_client, use_fs
 
 from . import has_s3
 from .conftest import ENV_ID
 
 S3_ADAPTER = ["s3"]
-
-
-@pytest.mark.skipif(has_s3, reason="requires s3 deps to NOT be installed")
-def test_s3_import_error_missing_deps() -> None:
-    with pytest.raises(ImportError):
-        get_client("s3")
 
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
@@ -64,3 +59,10 @@ def test_s3_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
     client: BucketClientS3 = get_client("s3")
     root = Pathy("s3://invalid_h3gE_ds5daEf_Sdf15487t2n4")
     assert len(list(client.list_blobs(root))) == 0
+
+
+@pytest.mark.skipif(has_s3, reason="requires s3 deps to NOT be installed")
+def test_s3_import_error_missing_deps() -> None:
+    use_fs(False)
+    with pytest.raises(ImportError):
+        get_client("s3")
