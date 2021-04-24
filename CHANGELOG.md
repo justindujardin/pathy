@@ -1,3 +1,10 @@
+## [0.5.2](https://github.com/justindujardin/pathy/compare/v0.5.1...v0.5.2) (2021-04-24)
+
+
+### Features
+
+* **cli:** add version number to cli help string ([#55](https://github.com/justindujardin/pathy/issues/55)) ([8001907](https://github.com/justindujardin/pathy/commit/800190760759f35a545948a12417952451e7891f))
+
 ## [0.5.1](https://github.com/justindujardin/pathy/compare/v0.5.0...v0.5.1) (2021-04-23)
 
 
