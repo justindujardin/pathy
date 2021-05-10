@@ -27,5 +27,5 @@ pip install -r requirements.txt
 echo "--- Buid dists"
 python setup.py sdist bdist_wheel
 echo "--- Upload to PyPi"
-twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*
+twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/* || true
 rm -rf build dist
