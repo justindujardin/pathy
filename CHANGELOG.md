@@ -1,3 +1,17 @@
+# [0.6.0](https://github.com/justindujardin/pathy/compare/v0.5.2...v0.6.0) (2021-06-26)
+
+
+### Features
+
+* support smart_open >=5.0.0,<6.0.0 ([#63](https://github.com/justindujardin/pathy/issues/63)) ([9718752](https://github.com/justindujardin/pathy/commit/97187528b70fdb96e928e1f90a3b06732e126b16))
+
+
+### BREAKING CHANGES
+
+* This change removes support for smart_open < 5.0.0
+
+The API for specifying s3 credentials changed in smart_open v5, so previous versions are incompatible.
+
 ## [0.5.2](https://github.com/justindujardin/pathy/compare/v0.5.1...v0.5.2) (2021-04-24)
 
 
