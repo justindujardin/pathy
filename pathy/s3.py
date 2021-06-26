@@ -112,11 +112,13 @@ class BucketS3(Bucket):
 
 class BucketClientS3(BucketClient):
     client: S3NativeClient
-    _session: Optional[Any]
+    _session: Optional[boto3.Session]
 
     @property
     def client_params(self) -> Dict[str, Any]:
-        return dict() if self._session is None else dict(session=self._session)
+        session: Any = self._session
+        result: Any = dict() if session is None else dict(client=session.client("s3"))
+        return result
 
     def __init__(self, **kwargs: Any) -> None:
         self.recreate(**kwargs)
