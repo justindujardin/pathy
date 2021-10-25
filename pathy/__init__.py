@@ -116,7 +116,7 @@ class BucketEntry:
     def is_symlink(self) -> bool:
         return False
 
-    def stat(self) -> BlobStat:
+    def stat(self, *, follow_symlinks: bool = True) -> BlobStat:
         return self._stat
 
 
@@ -361,7 +361,7 @@ class BucketsAccessor(_Accessor):  # type:ignore
             raise FileNotFoundError(path)
         blob.delete()
 
-    def stat(self, path: "Pathy") -> BlobStat:
+    def stat(self, path: "Pathy", *, follow_symlinks: bool = True) -> BlobStat:
         bucket = self.client(path).get_bucket(path)
         blob: Optional[Blob] = bucket.get_blob(str(path.key))
         if blob is None:
@@ -476,8 +476,7 @@ class Pathy(Path, PurePathy, _PathyExtensions):
     """Subclass of `pathlib.Path` that works with bucket APIs."""
 
     __slots__ = ()
-    _accessor: "BucketsAccessor"
-    _default_accessor = BucketsAccessor()
+    _accessor: BucketsAccessor = BucketsAccessor()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
 
     def __truediv__(self, key: Union[str, Path, "Pathy", PurePathy]) -> "Pathy":  # type: ignore[override]
@@ -485,9 +484,7 @@ class Pathy(Path, PurePathy, _PathyExtensions):
 
     def _init(self: "Pathy", template: Optional[Any] = None) -> None:
         super()._init(template=template)  # type:ignore
-        self._accessor = (
-            Pathy._default_accessor if template is None else template._accessor
-        )
+        self._accessor = Pathy._accessor if template is None else template._accessor
 
     @classmethod
     def fluid(cls, path_candidate: Union[str, FluidPath]) -> FluidPath:
@@ -594,7 +591,7 @@ class Pathy(Path, PurePathy, _PathyExtensions):
         """
         yield from super(Pathy, self).ls()
 
-    def stat(self: "Pathy") -> BlobStat:  # type: ignore[override]
+    def stat(self: "Pathy", *, follow_symlinks: bool = True) -> BlobStat:  # type: ignore[override]
         """Returns information about this bucket path."""
         self._absolute_path_validation()
         if not self.key:
@@ -803,7 +800,7 @@ class Pathy(Path, PurePathy, _PathyExtensions):
         message = cls._NOT_SUPPORTED_MESSAGE.format(method=cls.home.__qualname__)
         raise NotImplementedError(message)
 
-    def chmod(self: "Pathy", mode: int) -> None:
+    def chmod(self: "Pathy", mode: int, *, follow_symlinks: bool = True) -> None:
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.chmod.__qualname__)
         raise NotImplementedError(message)
 
