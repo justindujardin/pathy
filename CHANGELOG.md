@@ -1,3 +1,10 @@
+## [0.6.1](https://github.com/justindujardin/pathy/compare/v0.6.0...v0.6.1) (2021-10-25)
+
+
+### Bug Fixes
+
+* Update for Python 3.10 compatibility ([#68](https://github.com/justindujardin/pathy/issues/68)) ([450c2f2](https://github.com/justindujardin/pathy/commit/450c2f206efefe3d96e24294f5d02f8e9ceaf4ff))
+
 # [0.6.0](https://github.com/justindujardin/pathy/compare/v0.5.2...v0.6.0) (2021-06-26)
 
 
