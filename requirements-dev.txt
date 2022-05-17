@@ -1,18 +1,17 @@
-pytest
-mypy
-isort
-autoflake
-flake8
-black
+pytest>=7.0.0
+mypy>=0.942
+isort>=5.10.0
+autoflake>=1.3.0
+flake8>=4.0.0
+black==21.11b1
 pytest-coverage
-tox
-mock
-mathy_pydoc>=0.7.22,<0.8.0
-typer-cli
+mock>=4.0.0
+mathy_pydoc>=0.7.27,<0.8.0
+typer-cli>=0.0.12
 
 # test serializing spacy models using Pathy in place of Path
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.5/en_core_web_sm-2.2.5.tar.gz#egg=en_core_web_sm
-spacy
+spacy>=2.2.5
 
 # Mypy type stubs
 types-mock
