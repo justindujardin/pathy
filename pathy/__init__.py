@@ -167,7 +167,7 @@ class BucketClient:
             newline=newline,
             transport_params=client_params,
             # Disable de/compression based on the file extension
-            ignore_ext=True,
+            compression="disable",
         )  # type:ignore
 
     def make_uri(self, path: "Pathy") -> str:
