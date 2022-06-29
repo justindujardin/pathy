@@ -38,7 +38,7 @@
         "husky": "^4.2.5",
         "lint-staged": "^10.2.11",
         "minimist": "^1.2.5",
-        "pyright": "^1.1.66",
+        "pyright": "1.1.223",
         "semantic-release": "^17.3.8",
         "stream-buffers": "^3.0.2",
         "ts-node": "^8.0.2",
@@ -100,6 +100,5 @@
             ],
             "@semantic-release/github"
         ]
-    },
-    "dependencies": {}
+    }
 }
