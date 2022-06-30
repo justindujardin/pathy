@@ -1,3 +1,10 @@
+## [0.6.2](https://github.com/justindujardin/pathy/compare/v0.6.1...v0.6.2) (2022-06-30)
+
+
+### Bug Fixes
+
+* **smart_open:** use compression flag required by 6.x versions ([8c5f092](https://github.com/justindujardin/pathy/commit/8c5f09221702261e0f35f60fd2663e4ab42d2cf9))
+
 ## [0.6.1](https://github.com/justindujardin/pathy/compare/v0.6.0...v0.6.1) (2021-10-25)
 
 
