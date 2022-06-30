@@ -10,4 +10,5 @@ flake8 pathy
 echo "========================= black"
 black pathy --check
 echo "========================= pyright"
-npx pyright pathy
+npm i
+npm run pyright
