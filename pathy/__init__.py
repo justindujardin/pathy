@@ -29,6 +29,7 @@ from typing import (
 )
 
 import smart_open
+import smart_open.compression
 
 SUBCLASS_ERROR = "must be implemented in a subclass"
 
@@ -167,7 +168,7 @@ class BucketClient:
             newline=newline,
             transport_params=client_params,
             # Disable de/compression based on the file extension
-            ignore_ext=True,
+            compression=smart_open.compression.NO_COMPRESSION,
         )  # type:ignore
 
     def make_uri(self, path: "Pathy") -> str:
