@@ -7,7 +7,6 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from io import DEFAULT_BUFFER_SIZE
-from pathlib import _Accessor  # type:ignore
 from pathlib import _PosixFlavour  # type:ignore
 from pathlib import _WindowsFlavour  # type:ignore
 from pathlib import Path, PurePath
@@ -336,7 +335,7 @@ class BasePath(_PathyExtensions, Path):
     _flavour = _windows_flavour if os.name == "nt" else _posix_flavour  # type:ignore
 
 
-class BucketsAccessor(_Accessor):  # type:ignore
+class BucketsAccessor:
     """Access data from blob buckets"""
 
     _client: Optional[BucketClient]
