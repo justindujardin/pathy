@@ -25,13 +25,13 @@ from .conftest import ENV_ID, TEST_ADAPTERS
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_is_path_instance(with_adapter: str) -> None:
-    blob = Pathy("gs://fake/blob")
+    blob = Pathy(f"{with_adapter}://fake/blob")
     assert isinstance(blob, Path)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_fluid(with_adapter: str, bucket: str) -> None:
-    path: FluidPath = Pathy.fluid(f"gs://{bucket}/{ENV_ID}/fake-key")
+    path: FluidPath = Pathy.fluid(f"{with_adapter}://{bucket}/{ENV_ID}/fake-key")
     assert isinstance(path, Pathy)
     path = Pathy.fluid("foo/bar.txt")
     assert isinstance(path, BasePath)
@@ -98,10 +98,10 @@ def test_pathy_stat(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_resolve(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/fake-key")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/fake-key")
     assert path.resolve() == path
-    path = Pathy(f"gs://{bucket}/{ENV_ID}/dir/../fake-key")
-    assert path.resolve() == Pathy(f"gs://{bucket}/{ENV_ID}/fake-key")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/dir/../fake-key")
+    assert path.resolve() == Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/fake-key")
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -199,9 +199,9 @@ def test_pathy_iterdir(with_adapter: str, bucket: str) -> None:
         path = root / f"{i}.file"
         path.write_text("---")
 
-    # 1 file in a subfolder
-    path = root / "sub/file.txt"
-    path.write_text("---")
+    # 2 files in a subfolder
+    (root / "sub/file.txt").write_text("---")
+    (root / "sub/file2.txt").write_text("---")
 
     check = sorted(root.iterdir())
     assert check == [

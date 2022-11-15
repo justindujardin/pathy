@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import shutil
 import sys
 import tempfile
@@ -10,7 +11,7 @@ import pytest
 
 from pathy import Pathy, set_client_params, use_fs, use_fs_cache
 
-from . import gcs_testable, s3_testable
+from . import azure_testable, gcs_testable, s3_testable
 
 # Which adapters to use
 TEST_ADAPTERS = ["fs"]
@@ -18,6 +19,8 @@ if gcs_testable:
     TEST_ADAPTERS.append("gcs")
 if s3_testable:
     TEST_ADAPTERS.append("s3")
+if azure_testable:
+    TEST_ADAPTERS.append("azure")
 
 # A unique identifier used to allow each python version and OS to test
 # with separate bucket paths. This makes it possible to parallelize the
@@ -97,6 +100,17 @@ def s3_credentials_from_env() -> Optional[Tuple[str, str]]:
     return (access_key_id, access_secret)
 
 
+def azure_credentials_from_env() -> Optional[str]:
+    """Extract an access key ID and Secret from the environment."""
+    if not azure_testable:
+        return None
+
+    connection_string: Optional[str] = os.environ.get(
+        "PATHY_AZURE_CONNECTION_STRING", None
+    )
+    return connection_string
+
+
 @pytest.fixture()
 def with_adapter(
     adapter: str, bucket: str, other_bucket: str
@@ -104,7 +118,7 @@ def with_adapter(
     tmp_dir = None
     scheme = "gs"
     if adapter == "gcs":
-        # Use GCS
+        # Use google-cloud-storage
         use_fs(False)
         credentials = gcs_credentials_from_env()
         if credentials is not None:
@@ -117,6 +131,23 @@ def with_adapter(
         if credentials is not None:
             key_id, key_secret = credentials
             set_client_params("s3", key_id=key_id, key_secret=key_secret)
+    elif adapter == "azure":
+        scheme = "azure"
+        # Use azure-storage-blob
+        use_fs(False)
+        connection_string = azure_credentials_from_env()
+        assert connection_string is not None, "expected valid connection_string in env"
+        # Sometimes pass BlobServiceClient, and sometimes a connection string
+        if bool(random.getrandbits(1)):
+            from azure.storage.blob import BlobServiceClient
+
+            service: BlobServiceClient = BlobServiceClient.from_connection_string(
+                connection_string
+            )
+            set_client_params("azure", service=service)
+        else:
+            set_client_params("azure", connection_string=connection_string)
+
     elif adapter == "fs":
         # Use local file-system in a temp folder
         tmp_dir = tempfile.mkdtemp()

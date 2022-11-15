@@ -168,13 +168,6 @@ class BucketClientS3(BucketClient):
         except (ClientError, ParamValidationError):
             raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
-    def list_buckets(  # type:ignore[override]
-        self, **kwargs: Dict[str, Any]
-    ) -> Generator[S3NativeBucket, None, None]:
-        native_buckets = self.client.list_buckets(**kwargs)["Buckets"]
-        results = (BucketS3(n["Name"], self.client, n) for n in native_buckets)
-        return results
-
     def scandir(  # type:ignore[override]
         self,
         path: Optional[PurePathy] = None,
@@ -225,9 +218,6 @@ class ScanDirS3(PathyScanDir):
 
     def scandir(self) -> Generator[BucketEntryS3, None, None]:
         if self._path is None or not self._path.root:
-            s3_bucket: BucketS3
-            for s3_bucket in self._client.list_buckets():
-                yield BucketEntryS3(s3_bucket.name, is_dir=True, raw=None)
             return
         sep = self._path._flavour.sep  # type:ignore
         bucket = self._client.lookup_bucket(self._path)

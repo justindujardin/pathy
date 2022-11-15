@@ -23,3 +23,17 @@ try:
 except ImportError:
     s3_installed = False
     s3_testable = False
+
+
+azure_testable: bool
+azure_installed: bool
+
+
+try:
+    from ..azure import BucketClientAzure
+
+    azure_installed = bool(BucketClientAzure)
+    azure_testable = azure_installed and "PATHY_AZURE_CONNECTION_STRING" in os.environ
+except ImportError:
+    azure_installed = False
+    azure_testable = False

@@ -45,19 +45,6 @@ def test_gcs_import_error_missing_deps() -> None:
 
 @pytest.mark.parametrize("adapter", GCS_ADAPTER)
 @pytest.mark.skipif(not gcs_testable, reason="requires gcs")
-def test_gcs_scandir_list_buckets(
-    with_adapter: str, bucket: str, other_bucket: str
-) -> None:
-    from pathy.gcs import ScanDirGCS
-
-    root = Pathy("gs://foo/bar")
-    client = root.client(root)
-    scandir = ScanDirGCS(client=client, path=Pathy())
-    assert sorted([s.name for s in scandir]) == sorted([bucket, other_bucket])
-
-
-@pytest.mark.parametrize("adapter", GCS_ADAPTER)
-@pytest.mark.skipif(not gcs_testable, reason="requires gcs")
 def test_gcs_scandir_invalid_bucket_name(with_adapter: str) -> None:
     from pathy.gcs import ScanDirGCS
 

@@ -10,21 +10,6 @@ S3_ADAPTER = ["s3"]
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
 @pytest.mark.skipif(not s3_testable, reason="requires s3")
-def test_s3_scandir_list_buckets(
-    with_adapter: str, bucket: str, other_bucket: str
-) -> None:
-    from pathy.s3 import ScanDirS3
-
-    root = Pathy("s3://foo/bar")
-    client = root.client(root)
-    scandir = ScanDirS3(client=client, path=Pathy())
-    buckets = [s.name for s in scandir]
-    assert bucket in buckets
-    assert other_bucket in buckets
-
-
-@pytest.mark.parametrize("adapter", S3_ADAPTER)
-@pytest.mark.skipif(not s3_testable, reason="requires s3")
 def test_s3_scandir_scandir_continuation_token(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
