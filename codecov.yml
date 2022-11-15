@@ -1,3 +1,7 @@
 coverage:
   status:
     patch: off
+  require_ci_to_pass: yes
+  notify:
+    after_n_builds: 6
+    wait_for_ci: yes
