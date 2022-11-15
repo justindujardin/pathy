@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import datetime
+from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional, cast
 
 try:
@@ -165,11 +165,13 @@ class BucketClientAzure(BucketClient):
     def get_bucket(self, path: PurePathy) -> BucketAzure:
         try:
             native_bucket = self._service.get_container_client(container=path.root)
-            return BucketAzure(
-                str(path.root), client=self._service, container=native_bucket
-            )
-        except (ValueError):
-            raise FileNotFoundError(f"Bucket {path.root} does not exist!")
+            if native_bucket.exists():
+                return BucketAzure(
+                    str(path.root), client=self._service, container=native_bucket
+                )
+        except azure.core.exceptions.HttpResponseError:  # type: ignore
+            pass
+        raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
     def scandir(  # type:ignore[override]
         self,
