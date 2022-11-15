@@ -61,7 +61,7 @@ def test_s3_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
     assert len(list(client.list_blobs(root))) == 0
 
 
-@pytest.mark.skipif(not s3_installed, reason="requires s3 deps to NOT be installed")
+@pytest.mark.skipif(s3_installed, reason="requires s3 deps to NOT be installed")
 def test_s3_import_error_missing_deps() -> None:
     use_fs(False)
     with pytest.raises(ImportError):

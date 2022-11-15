@@ -36,7 +36,7 @@ def test_gcs_as_uri(with_adapter: str, bucket: str) -> None:
     assert Pathy("gs://bucket/key").as_uri() == "gs://bucket/key"
 
 
-@pytest.mark.skipif(not gcs_installed, reason="requires gcs deps to NOT be installed")
+@pytest.mark.skipif(gcs_installed, reason="requires gcs deps to NOT be installed")
 def test_gcs_import_error_missing_deps() -> None:
     use_fs(False)
     with pytest.raises(ImportError):
