@@ -146,8 +146,6 @@ def test_client_base_bucket_raises_not_implemented() -> None:
     with pytest.raises(NotImplementedError):
         bucket.copy_blob(blob, bucket, "baz")
     with pytest.raises(NotImplementedError):
-        bucket.get_blob("baz")
-    with pytest.raises(NotImplementedError):
         bucket.delete_blobs([blob])
     with pytest.raises(NotImplementedError):
         bucket.delete_blob(blob)
@@ -170,8 +168,6 @@ def test_client_base_bucket_client_raises_not_implemented() -> None:
     with pytest.raises(NotImplementedError):
         client.is_dir(Pathy("gs://foo"))
     with pytest.raises(NotImplementedError):
-        client.lookup_bucket(Pathy("gs://foo"))
-    with pytest.raises(NotImplementedError):
         client.get_bucket(Pathy("gs://foo"))
     with pytest.raises(NotImplementedError):
         client.list_buckets()
@@ -188,6 +184,11 @@ def test_client_base_bucket_client_raises_not_implemented() -> None:
 def test_bucket_client_rmdir() -> None:
     client: BucketClient = BucketClient()
     client.rmdir(Pathy("gs://foo/bar"))
+
+
+def test_bucket_client_get_blob() -> None:
+    client: BucketClient = BucketClient()
+    assert client.get_blob(Pathy("gs://foo")) is None
 
 
 def test_bucket_client_make_uri() -> None:

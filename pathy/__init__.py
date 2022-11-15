@@ -143,8 +143,6 @@ class BucketClient:
 
     def get_blob(self, path: "Pathy") -> Optional[Blob]:
         """Get the blob associated with a path or return None"""
-        if not path.root:
-            return None
         bucket = self.lookup_bucket(path)
         if bucket is None:
             return None
@@ -193,7 +191,7 @@ class BucketClient:
         raise NotImplementedError(SUBCLASS_ERROR)
 
     def lookup_bucket(self, path: "Pathy") -> Optional[Bucket]:
-        raise NotImplementedError(SUBCLASS_ERROR)
+        return None
 
     def get_bucket(self, path: "Pathy") -> Bucket:
         raise NotImplementedError(SUBCLASS_ERROR)
@@ -490,15 +488,7 @@ class Pathy(Path, PurePathy):
             self, prefix=self.prefix
         )  # type:ignore
         for blob in blobs:
-            any_blob: Any = blob
-            if hasattr(any_blob, "_stat"):
-                yield any_blob._stat
-            elif isinstance(any_blob, os.DirEntry):
-                os_blob: Any = blob
-                stat = os_blob.stat()
-                file_size = stat.st_size
-                updated = int(round(stat.st_mtime))
-                yield BlobStat(name=os_blob.name, size=file_size, last_modified=updated)
+            yield blob._stat
 
     def stat(  # type: ignore[override]
         self: "Pathy", *, follow_symlinks: bool = True
@@ -563,9 +553,6 @@ class Pathy(Path, PurePathy):
         """Iterate over the blobs found in the given bucket or blob prefix path."""
         self._absolute_path_validation()
         for blob in self.ls():
-            if blob.name in {".", ".."}:
-                # Yielding a path object for these makes little sense
-                continue
             yield self / blob.name
 
     def glob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
@@ -766,11 +753,6 @@ class Pathy(Path, PurePathy):
     def _scandir(self: "Pathy") -> "PathyScanDir":
         # Python 3.11 calls this instead of _accessor.scandir
         return self.client(self).scandir(self, prefix=self.prefix)
-
-    def listdir(self: "Pathy") -> Generator[str, None, None]:
-        with self._scandir() as entries:
-            for entry in entries:
-                yield entry.name
 
     # Unsupported operations below here
 

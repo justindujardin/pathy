@@ -2,14 +2,14 @@ import pytest
 
 from pathy import Pathy, get_client, use_fs
 
-from . import has_s3
+from . import s3_installed, s3_testable
 from .conftest import ENV_ID
 
 S3_ADAPTER = ["s3"]
 
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
-@pytest.mark.skipif(not has_s3, reason="requires s3")
+@pytest.mark.skipif(not s3_testable, reason="requires s3")
 def test_s3_scandir_list_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
@@ -24,7 +24,7 @@ def test_s3_scandir_list_buckets(
 
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
-@pytest.mark.skipif(not has_s3, reason="requires s3")
+@pytest.mark.skipif(not s3_testable, reason="requires s3")
 def test_s3_scandir_scandir_continuation_token(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
@@ -40,7 +40,7 @@ def test_s3_scandir_scandir_continuation_token(
 
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
-@pytest.mark.skipif(not has_s3, reason="requires s3")
+@pytest.mark.skipif(not s3_testable, reason="requires s3")
 def test_s3_scandir_invalid_bucket_name(with_adapter: str) -> None:
     from pathy.s3 import ScanDirS3
 
@@ -51,7 +51,7 @@ def test_s3_scandir_invalid_bucket_name(with_adapter: str) -> None:
 
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
-@pytest.mark.skipif(not has_s3, reason="requires s3")
+@pytest.mark.skipif(not s3_testable, reason="requires s3")
 def test_s3_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
     """Test corner-case in S3 client that isn't easily reachable from Pathy"""
     from pathy.s3 import BucketClientS3
@@ -61,7 +61,7 @@ def test_s3_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
     assert len(list(client.list_blobs(root))) == 0
 
 
-@pytest.mark.skipif(has_s3, reason="requires s3 deps to NOT be installed")
+@pytest.mark.skipif(not s3_installed, reason="requires s3 deps to NOT be installed")
 def test_s3_import_error_missing_deps() -> None:
     use_fs(False)
     with pytest.raises(ImportError):
