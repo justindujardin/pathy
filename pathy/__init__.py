@@ -507,8 +507,6 @@ class Pathy(Path, PurePathy):
         """Returns True if the path points to an existing bucket, blob, or prefix."""
         self._absolute_path_validation()
         client = self.client(self)
-        if not self.root:
-            return any(client.list_buckets())
         bucket = client.lookup_bucket(self)
         if bucket is None or not bucket.exists():
             return False
