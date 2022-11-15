@@ -10,12 +10,15 @@ import pytest
 
 from pathy import Pathy, set_client_params, use_fs, use_fs_cache
 
-from . import has_gcs
-
-has_credentials = "GCS_CREDENTIALS" in os.environ
+from . import gcs_testable, s3_testable
 
 # Which adapters to use
-TEST_ADAPTERS = ["gcs", "s3", "fs"] if has_credentials and has_gcs else ["fs"]
+TEST_ADAPTERS = ["fs"]
+if gcs_testable:
+    TEST_ADAPTERS.append("gcs")
+if s3_testable:
+    TEST_ADAPTERS.append("s3")
+
 # A unique identifier used to allow each python version and OS to test
 # with separate bucket paths. This makes it possible to parallelize the
 # tests.
@@ -54,7 +57,7 @@ def gcs_credentials_from_env() -> Optional[Any]:
 
     Raises AssertionError if the value is present but does not point to a file
     or valid JSON content."""
-    if not has_gcs:
+    if not gcs_testable:
         return None
 
     creds = os.environ.get("GCS_CREDENTIALS", None)
@@ -84,7 +87,7 @@ def gcs_credentials_from_env() -> Optional[Any]:
 
 def s3_credentials_from_env() -> Optional[Tuple[str, str]]:
     """Extract an access key ID and Secret from the environment."""
-    if not has_gcs:
+    if not s3_testable:
         return None
 
     access_key_id: Optional[str] = os.environ.get("PATHY_S3_ACCESS_ID", None)
