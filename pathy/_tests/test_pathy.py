@@ -128,6 +128,19 @@ def test_pathy_exists(with_adapter: str, bucket: str) -> None:
 def test_pathy_glob(with_adapter: str, bucket: str) -> None:
     base = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/")
     root = base / "glob/"
+    if root.exists():
+        root.rmdir()
+
+    # Glob for metadata.json in a few widlcard matched "folders"
+    for i in range(3):
+        (root / f"sub{i}/metadata.json").write_text("{}")
+    meta_files = sorted(list(root.glob("*/metadata.json")))
+    assert meta_files == [
+        root / "sub0/metadata.json",
+        root / "sub1/metadata.json",
+        root / "sub2/metadata.json",
+    ]
+
     for i in range(3):
         path = root / f"{i}.file"
         path.write_text("---")
