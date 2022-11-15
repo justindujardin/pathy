@@ -1,3 +1,10 @@
+## [0.7.1](https://github.com/justindujardin/pathy/compare/v0.7.0...v0.7.1) (2022-11-15)
+
+
+### Bug Fixes
+
+* **pypi:** add classifiers for python 3.10 / 3.11 ([515cb5d](https://github.com/justindujardin/pathy/commit/515cb5d69c7be9a324b8c144d97671803d33401e)), closes [#89](https://github.com/justindujardin/pathy/issues/89)
+
 # [0.7.0](https://github.com/justindujardin/pathy/compare/v0.6.2...v0.7.0) (2022-11-15)
 
 
