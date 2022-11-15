@@ -271,7 +271,7 @@ def test_pathy_open_binary_read(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_readwrite_text(with_adapter: str, bucket: str) -> None:
-    path = Pathy(f"s3://{bucket}/{ENV_ID}/write_text/file.txt")
+    path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/write_text/file.txt")
     path.write_text("---")
     with path.open() as file_obj:
         assert file_obj.read() == "---"

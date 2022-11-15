@@ -10,12 +10,18 @@ import pytest
 
 from pathy import Pathy, set_client_params, use_fs, use_fs_cache
 
-from . import has_gcs
+from . import has_gcs, has_s3
 
-has_credentials = "GCS_CREDENTIALS" in os.environ
+has_gcs_credentials = "GCS_CREDENTIALS" in os.environ
+has_s3_credentials = "PATHY_S3_ACCESS_ID" in os.environ
 
 # Which adapters to use
-TEST_ADAPTERS = ["gcs", "s3", "fs"] if has_credentials and has_gcs else ["fs"]
+TEST_ADAPTERS = ["fs"]
+if has_gcs_credentials and has_gcs:
+    TEST_ADAPTERS.append("gcs")
+if has_s3_credentials and has_s3:
+    TEST_ADAPTERS.append("s3")
+
 # A unique identifier used to allow each python version and OS to test
 # with separate bucket paths. This makes it possible to parallelize the
 # tests.
@@ -84,7 +90,7 @@ def gcs_credentials_from_env() -> Optional[Any]:
 
 def s3_credentials_from_env() -> Optional[Tuple[str, str]]:
     """Extract an access key ID and Secret from the environment."""
-    if not has_gcs:
+    if not has_s3:
         return None
 
     access_key_id: Optional[str] = os.environ.get("PATHY_S3_ACCESS_ID", None)

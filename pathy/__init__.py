@@ -343,7 +343,7 @@ class BasePath(Path):
     _flavour = _windows_flavour if os.name == "nt" else _posix_flavour  # type:ignore
 
     def ls(self: Any) -> Generator["BlobStat", None, None]:
-        client: BucketClientFS = get_client("fs")
+        client: BucketClient = get_client(getattr(self, "scheme", "file"))
         blobs: "ScanDirFS" = cast(
             ScanDirFS, client.scandir(self, prefix=getattr(self, "prefix", None))
         )  # type:ignore
@@ -358,7 +358,7 @@ class BucketsAccessor:
     """Path access for python < 3.11"""
 
     def scandir(self, target: Any) -> "PathyScanDir":
-        client: BucketClientFS = get_client("fs")
+        client: BucketClientFS = get_client(getattr(target, "scheme", "file"))
         return client.scandir(target, prefix=getattr(target, "prefix", None))
 
 
