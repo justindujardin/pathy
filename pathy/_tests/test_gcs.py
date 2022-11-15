@@ -51,7 +51,7 @@ def test_gcs_scandir_list_buckets(
     from pathy.gcs import ScanDirGCS
 
     root = Pathy("gs://foo/bar")
-    client = root._accessor.client(root)  # type:ignore
+    client = root.client(root)
     scandir = ScanDirGCS(client=client, path=Pathy())
     assert sorted([s.name for s in scandir]) == sorted([bucket, other_bucket])
 
@@ -62,7 +62,7 @@ def test_gcs_scandir_invalid_bucket_name(with_adapter: str) -> None:
     from pathy.gcs import ScanDirGCS
 
     root = Pathy("gs://invalid_h3gE_ds5daEf_Sdf15487t2n4/bar")
-    client = root._accessor.client(root)  # type:ignore
+    client = root.client(root)
     scandir = ScanDirGCS(client=client, path=root)
     assert len(list(scandir)) == 0
 

@@ -117,6 +117,6 @@ def test_file_scandir_list_buckets(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
     root = Pathy()
-    client = root._accessor.client(root)  # type:ignore
+    client = root.client(root)
     scandir = ScanDirFS(client=client, path=root)
     assert sorted([s.name for s in scandir]) == sorted([bucket, other_bucket])

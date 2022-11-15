@@ -10,7 +10,6 @@ from .. import (
     BucketClient,
     BucketClientFS,
     BucketEntry,
-    BucketsAccessor,
     ClientError,
     Pathy,
     PurePathy,
@@ -121,39 +120,16 @@ def test_path_truediv_operator_overload_with_subclass() -> None:
     assert isinstance(other_pathy, Pathy)
 
 
-def test_buckets_accessor_get_blob(temp_folder: Path) -> None:
-    accessor = BucketsAccessor()
-    use_fs(temp_folder)
-    # no scheme/bucket prefix
-    assert accessor.get_blob(Pathy("foo")) is None
-    # a valid bucket that does not exist
-    assert accessor.get_blob(Pathy("gs://invalid_bucket_134515h15h15j1h")) is None
-
-
-def test_buckets_accessor_rename_replace(temp_folder: Path) -> None:
+def test_buckets_rename_replace(temp_folder: Path) -> None:
     use_fs(temp_folder)
     Pathy.from_bucket("foo").mkdir()
-    accessor = Pathy("")._accessor  # type:ignore
     from_path = Pathy("gs://foo/bar")
     to_path = Pathy("gs://foo/baz")
     # Source foo/bar does not exist
     with pytest.raises(FileNotFoundError):
-        accessor.rename(from_path, to_path)
+        from_path.rename(to_path)
     with pytest.raises(FileNotFoundError):
-        accessor.replace(from_path, to_path)
-
-
-def test_buckets_accessor_exists(temp_folder: Path) -> None:
-    accessor = BucketsAccessor()
-    use_fs(temp_folder)
-    # enumerates buckets, but there are none
-    assert accessor.exists(Pathy("")) is False
-
-    # Create a bucket
-    Pathy("gs://bucket_name").mkdir()
-
-    # There is a bucket, so now exists returns true
-    assert accessor.exists(Pathy("")) is True
+        from_path.replace(to_path)
 
 
 def test_client_create_bucket(temp_folder: Path) -> None:

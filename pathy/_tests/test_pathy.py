@@ -14,7 +14,6 @@ from .. import (
     BasePath,
     BlobStat,
     BucketClientFS,
-    BucketsAccessor,
     FluidPath,
     Pathy,
     clear_fs_cache,
@@ -565,13 +564,12 @@ def test_pathy_ignore_extension(with_adapter: str, bucket: str) -> None:
 def test_pathy_raises_with_no_known_bucket_clients_for_a_scheme(
     temp_folder: Path,
 ) -> None:
-    accessor = BucketsAccessor()
     path = Pathy("foo://foo")
     with pytest.raises(ValueError):
-        accessor.client(path)
+        path.client(path)
     # Setting a fallback FS adapter fixes the problem
     use_fs(str(temp_folder))
-    assert isinstance(accessor.client(path), BucketClientFS)
+    assert isinstance(path.client(path), BucketClientFS)
 
 
 @pytest.mark.skipif(not has_spacy, reason="requires spacy and en_core_web_sm model")

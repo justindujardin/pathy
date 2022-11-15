@@ -16,7 +16,7 @@ def test_s3_scandir_list_buckets(
     from pathy.s3 import ScanDirS3
 
     root = Pathy("s3://foo/bar")
-    client = root._accessor.client(root)  # type:ignore
+    client = root.client(root)
     scandir = ScanDirS3(client=client, path=Pathy())
     buckets = [s.name for s in scandir]
     assert bucket in buckets
@@ -33,7 +33,7 @@ def test_s3_scandir_scandir_continuation_token(
     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/s3_scandir_pagination/")
     for i in range(8):
         (root / f"file{i}.blob").touch()
-    client = root._accessor.client(root)  # type:ignore
+    client = root.client(root)
     scandir = ScanDirS3(client=client, path=root, prefix=root.prefix, page_size=4)
     blobs = [s.name for s in scandir]
     assert len(blobs) == 8
@@ -45,7 +45,7 @@ def test_s3_scandir_invalid_bucket_name(with_adapter: str) -> None:
     from pathy.s3 import ScanDirS3
 
     root = Pathy(f"{with_adapter}://invalid_h3gE_ds5daEf_Sdf15487t2n4/bar")
-    client = root._accessor.client(root)  # type:ignore
+    client = root.client(root)
     scandir = ScanDirS3(client=client, path=root)
     assert len(list(scandir)) == 0
 
