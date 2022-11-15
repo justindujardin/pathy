@@ -146,6 +146,8 @@ def test_client_base_bucket_raises_not_implemented() -> None:
     with pytest.raises(NotImplementedError):
         bucket.copy_blob(blob, bucket, "baz")
     with pytest.raises(NotImplementedError):
+        bucket.get_blob("baz")
+    with pytest.raises(NotImplementedError):
         bucket.delete_blobs([blob])
     with pytest.raises(NotImplementedError):
         bucket.delete_blob(blob)
