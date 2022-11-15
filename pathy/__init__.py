@@ -376,7 +376,9 @@ class Pathy(Path, PurePathy):
     def client(self, path: "Pathy") -> BucketClient:
         return get_client(path.scheme)
 
-    def __truediv__(self, key: Union[str, Path, "Pathy", PurePathy]) -> "Pathy":  # type: ignore[override]
+    def __truediv__(  # type: ignore[override]
+        self, key: Union[str, Path, "Pathy", PurePathy]
+    ) -> "Pathy":
         return super().__truediv__(key)  # type:ignore
 
     def _init(self: "Pathy", template: Optional[Any] = None) -> None:
@@ -499,7 +501,9 @@ class Pathy(Path, PurePathy):
                 updated = int(round(stat.st_mtime))
                 yield BlobStat(name=os_blob.name, size=file_size, last_modified=updated)
 
-    def stat(self: "Pathy", *, follow_symlinks: bool = True) -> BlobStat:  # type: ignore[override]
+    def stat(  # type: ignore[override]
+        self: "Pathy", *, follow_symlinks: bool = True
+    ) -> BlobStat:
         """Returns information about this bucket path."""
         self._absolute_path_validation()
         if not self.key:
@@ -732,7 +736,7 @@ class Pathy(Path, PurePathy):
         Raises FileExistsError if exist_ok is false and the bucket already exists.
         """
         try:
-            # If the whole path is just the bucket, respect the result of "bucket.exists()"
+            # If the path is just the bucket, respect the result of "bucket.exists()"
             if self.key is None and not exist_ok and self.bucket.exists():
                 raise FileExistsError("Bucket {} already exists".format(self.bucket))
             return self.client(self).mkdir(self, mode)
