@@ -366,10 +366,8 @@ class BucketsAccessor:
 class Pathy(Path, PurePathy):
     """Subclass of `pathlib.Path` that works with bucket APIs."""
 
-    if sys.version_info.major == 3 and sys.version_info.minor < 11:
-        _accessor: BucketsAccessor = BucketsAccessor()
-
     __slots__ = ()
+    _accessor: BucketsAccessor = BucketsAccessor()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
     _client: Optional[BucketClient]
 
