@@ -380,7 +380,9 @@ class Pathy(Path, PurePathy):
         return super().__truediv__(key)  # type:ignore
 
     def _init(self: "Pathy", template: Optional[Any] = None) -> None:
-        super()._init(template=template)  # type:ignore
+        # This was removed in python 3.10, and in earlier versions we
+        # assign the _accessor directly, so pass on the super() behavior
+        pass
 
     @classmethod
     def fluid(cls, path_candidate: Union[str, FluidPath]) -> FluidPath:
