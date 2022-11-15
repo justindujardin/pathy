@@ -1,3 +1,15 @@
+# [0.7.0](https://github.com/justindujardin/pathy/compare/v0.6.2...v0.7.0) (2022-11-15)
+
+
+### Features
+
+* **python:** support python 3.11 ([c2a0586](https://github.com/justindujardin/pathy/commit/c2a0586c198a19cf6fcf81b41c60689af574db17))
+
+
+### BREAKING CHANGES
+
+* **python:** Pathy.exists() no longer enumerates buckets if given a path with no root.
+
 ## [0.6.2](https://github.com/justindujardin/pathy/compare/v0.6.1...v0.6.2) (2022-06-30)
 
 
