@@ -1,3 +1,15 @@
+# [0.8.0](https://github.com/justindujardin/pathy/compare/v0.7.1...v0.8.0) (2022-11-16)
+
+
+### Features
+
+* **azure:** support azure blob container storage ([#93](https://github.com/justindujardin/pathy/issues/93)) ([9624856](https://github.com/justindujardin/pathy/commit/962485661a67a87f7b0cdccb25ee135a0faa7614))
+
+
+### BREAKING CHANGES
+
+* **azure:** This removes an internal bit of code that allows for enumerating buckets in certain situations. The API was impossible to reach without going indirectly through the glob functionality, and it's unclear whether the code paths were ever reached outside of specific unit testing situations. If there's an explicit need for listing buckets, we can add a top-level API for it.
+
 ## [0.7.1](https://github.com/justindujardin/pathy/compare/v0.7.0...v0.7.1) (2022-11-15)
 
 

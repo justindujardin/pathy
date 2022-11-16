@@ -1,5 +1,5 @@
 __title__: str = "pathy"
-__version__: str = "0.7.1"
+__version__: str = "0.8.0"
 __summary__: str = "pathlib.Path subclasses for local and cloud bucket storage"
 __uri__: str = "https://github.com/justindujardin/pathy"
 __author__: str = "Justin DuJardin"
