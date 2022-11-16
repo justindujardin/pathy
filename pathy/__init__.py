@@ -1113,6 +1113,7 @@ _client_registry: Dict[str, Type[BucketClient]] = {
 _optional_clients: Dict[str, str] = {
     "gs": "pathy.gcs",
     "s3": "pathy.s3",
+    "azure": "pathy.azure",
 }
 BucketClientType = TypeVar("BucketClientType", bound=BucketClient)
 
