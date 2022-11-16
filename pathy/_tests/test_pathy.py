@@ -116,6 +116,7 @@ def test_pathy_exists(with_adapter: str, bucket: str) -> None:
     assert Pathy(f"{with_adapter}://{invalid_bucket}/foo.blob").exists() is False
     # valid bucket with invalid object
     assert Pathy(f"{with_adapter}://{bucket}/not_found_lol_nice.txt").exists() is False
+    assert Pathy(f"{with_adapter}://{bucket}/@^@^#$%@#$.txt").exists() is False
 
     path = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/directory/foo.txt")
     path.write_text("---")
@@ -154,6 +155,12 @@ def test_pathy_glob(with_adapter: str, bucket: str) -> None:
         root / "0/dir/file.txt",
         root / "1/dir/file.txt",
     ]
+
+    bad_root = Pathy(f"{with_adapter}://{bucket}-bad-name")
+    assert list(bad_root.glob("*.txt")) == []
+
+    bad_name = root / "@#$%@^@%@#@#$.glob"
+    assert list(bad_name.glob("*.glob")) == []
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
