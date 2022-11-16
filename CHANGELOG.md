@@ -1,3 +1,10 @@
+## [0.8.1](https://github.com/justindujardin/pathy/compare/v0.8.0...v0.8.1) (2022-11-16)
+
+
+### Bug Fixes
+
+* **azure:** "azure" scheme was not registered ([#94](https://github.com/justindujardin/pathy/issues/94)) ([2791565](https://github.com/justindujardin/pathy/commit/279156530e8b88e5fbc27c58da034b441511dc6c))
+
 # [0.8.0](https://github.com/justindujardin/pathy/compare/v0.7.1...v0.8.0) (2022-11-16)
 
 
