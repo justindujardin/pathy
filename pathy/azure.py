@@ -63,12 +63,7 @@ class BucketAzure(Bucket):
 
     def get_blob(self, blob_name: str) -> Optional[BlobAzure]:
         blob_client = self.client.get_blob_client(container=self.name, blob=blob_name)
-        try:
-            if not blob_client.exists():
-                return None
-        except azure.core.exceptions.HttpResponseError:  # type: ignore
-            # This error is thrown if a blob name has invalid characters in it
-            # TODO: Check a more specific error code?
+        if not blob_client.exists():
             return None
         blob_stat = blob_client.get_blob_properties()
         size = blob_stat.size
@@ -192,22 +187,18 @@ class BucketClientAzure(BucketClient):
             return
         paginator = bucket.container.list_blobs(name_starts_with=prefix)
         props: BlobProperties
-        try:
-            for props in paginator:
-                prop_name = cast(str, props.name)
-                blob_client = bucket.container.get_blob_client(prop_name)
-                yield BlobAzure(
-                    client=blob_client,
-                    bucket=bucket,
-                    owner=None,
-                    name=prop_name,
-                    raw=props,
-                    size=props.size,
-                    updated=_safe_last_modified(props.last_modified),
-                )
-        except azure.core.exceptions.HttpResponseError:  # type: ignore
-            # Response errors can happen when prefix has invalid characters.
-            return
+        for props in paginator:
+            prop_name = cast(str, props.name)
+            blob_client = bucket.container.get_blob_client(prop_name)
+            yield BlobAzure(
+                client=blob_client,
+                bucket=bucket,
+                owner=None,
+                name=prop_name,
+                raw=props,
+                size=props.size,
+                updated=_safe_last_modified(props.last_modified),
+            )
 
 
 class ScanDirAzure(PathyScanDir):

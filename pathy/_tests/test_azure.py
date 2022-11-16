@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import mock
 import pytest
 
-from pathy import Pathy
+from pathy import Pathy, get_client
 
 from . import azure_testable
 from .conftest import ENV_ID
@@ -28,7 +28,26 @@ def test_azure_bucket_get_blob_failure_cases(with_adapter: str, bucket: str) -> 
     client = root.client(root)
     azure_bucket = client.get_bucket(root)
     # Returns none if blob contains invalid character
-    assert azure_bucket.get_blob("#$%^@#%$@#$@#$") is None
+    assert azure_bucket.get_blob("invlid_bkt_nme_18$%^@57582397?.___asd") is None
+
+
+@pytest.mark.parametrize("adapter", AZURE_ADAPTER)
+@pytest.mark.skipif(not azure_testable, reason="requires azure")
+def test_azure_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
+    """Test corner-case in Azure client that isn't easily reachable from Pathy"""
+    from pathy.azure import BucketClientAzure
+
+    client: BucketClientAzure = get_client("azure")
+
+    # Invalid bucket
+    root = Pathy("azure://invalid_h3gE_ds5daEf_Sdf15487t2n4")
+    blobs = list(client.list_blobs(root))
+    assert blobs == []
+
+    # Invalid search prefix
+    root = Pathy(f"azure://{bucket}")
+    blobs = list(client.list_blobs(root, prefix="#@/:|*?%@^@$^@$@#$@#$"))
+    assert blobs == []
 
 
 @dataclass
@@ -71,6 +90,7 @@ class MockAzureBlobServiceClient:
 def test_azure_bucket_copy_blob_aborts_copy_on_failure(
     with_adapter: str, bucket: str
 ) -> None:
+    """Verify abort_copy is called when copy status != 'success'"""
     root: Pathy = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/azure_abort_copy")
 
     # Create a source blob to copy
