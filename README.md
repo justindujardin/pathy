@@ -74,7 +74,6 @@ set_client_params("s3", key_id="YOUR_ACCESS_KEY_ID", key_secret="YOUR_ACCESS_SEC
 Azure blob storage can be passed a `connection_string`:
 
 ```python
-from azure.storage.blob import BlobServiceClient
 from pathy import set_client_params
 
 set_client_params("azure", connection_string="YOUR_CONNECTION_STRING")
