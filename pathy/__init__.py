@@ -196,9 +196,6 @@ class BucketClient:
     def get_bucket(self, path: "Pathy") -> Bucket:
         raise NotImplementedError(SUBCLASS_ERROR)
 
-    def list_buckets(self) -> Generator[Bucket, None, None]:
-        raise NotImplementedError(SUBCLASS_ERROR)
-
     def list_blobs(
         self,
         path: "Pathy",
@@ -209,7 +206,7 @@ class BucketClient:
 
     def scandir(
         self,
-        path: Optional["Pathy"] = None,
+        path: "Pathy",
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> "PathyScanDir":
@@ -819,7 +816,7 @@ class PathyScanDir(Iterator[Any], ContextManager[Any], ABC):
     def __init__(
         self,
         client: BucketClient,
-        path: Optional[PurePathy] = None,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> None:
@@ -1009,14 +1006,9 @@ class BucketClientFS(BucketClient):
             return BucketFS(str(path.root), bucket=bucket_path)
         raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
-    def list_buckets(self, **kwargs: Dict[str, Any]) -> Generator[BucketFS, None, None]:
-        for f in self.root.glob("*"):
-            if f.is_dir():
-                yield BucketFS(f.name, f)
-
     def scandir(
         self,
-        path: Optional[Pathy] = None,
+        path: Pathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:
@@ -1072,12 +1064,6 @@ class ScanDirFS(PathyScanDir):
     _client: BucketClientFS
 
     def scandir(self) -> Generator[BucketEntry, None, None]:
-        if self._path is None or not self._path.root:
-            for bucket in self._client.list_buckets():
-                yield BucketEntryFS(bucket.name, is_dir=True, raw=None)
-            return
-        assert self._path is not None
-        assert self._path.root is not None
         scan_path = self._client.root / self._path.root
         if isinstance(self._path, BasePath):
             scan_path = (

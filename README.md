@@ -41,11 +41,55 @@ assert not greeting.exists()
 
 The table below details the supported cloud provider APIs.
 
-| Cloud Service        | Support |      Install Extras      |
-| :------------------- | :-----: | :----------------------: |
-| Google Cloud Storage |   ✅    | `pip install pathy[gcs]` |
-| Amazon S3            |   ✅    | `pip install pathy[s3]`  |
-| Azure                |   ❌    |                          |
+| Cloud Service        | Support |       Install Extras       |
+| :------------------- | :-----: | :------------------------: |
+| Google Cloud Storage |   ✅    |  `pip install pathy[gcs]`  |
+| Amazon S3            |   ✅    |  `pip install pathy[s3]`   |
+| Azure                |   ✅    | `pip install pathy[azure]` |
+
+### Google Cloud Storage
+
+Google recommends using a JSON credentials file, which you can specify by path:
+
+```python
+from google.oauth2 import service_account
+from pathy import set_client_params
+
+credentials = service_account.Credentials.from_service_account_file("./my-creds.json")
+set_client_params("gs", credentials=credentials)
+```
+
+### Amazon S3
+
+S3 uses a JSON credentials file, which you can specify by path:
+
+```python
+from pathy import set_client_params
+
+set_client_params("s3", key_id="YOUR_ACCESS_KEY_ID", key_secret="YOUR_ACCESS_SECRET")
+```
+
+### Azure
+
+Azure blob storage can be passed a `connection_string`:
+
+```python
+from pathy import set_client_params
+
+set_client_params("azure", connection_string="YOUR_CONNECTION_STRING")
+```
+
+or a `BlobServiceClient` instance:
+
+```python
+from azure.storage.blob import BlobServiceClient
+from pathy import set_client_params
+
+service: BlobServiceClient = BlobServiceClient.from_connection_string(
+    "YOUR_CONNECTION_STRING"
+)
+set_client_params("azure", service=service)
+```
 
 ## Semantic Versioning
 

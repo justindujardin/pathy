@@ -21,6 +21,7 @@ def setup_package():
     extras = {
         "gcs": ["google-cloud-storage>=1.26.0,<2.0.0"],
         "s3": ["boto3"],
+        "azure": ["azure-storage-blob"],
         "test": ["pytest", "pytest-coverage", "mock", "typer-cli"],
     }
     extras["all"] = [item for group in extras.values() for item in group]

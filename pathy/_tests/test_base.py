@@ -172,8 +172,6 @@ def test_client_base_bucket_client_raises_not_implemented() -> None:
     with pytest.raises(NotImplementedError):
         client.get_bucket(Pathy("gs://foo"))
     with pytest.raises(NotImplementedError):
-        client.list_buckets()
-    with pytest.raises(NotImplementedError):
         client.list_blobs(Pathy("gs://foo"))
     with pytest.raises(NotImplementedError):
         client.scandir(Pathy("gs://foo"))

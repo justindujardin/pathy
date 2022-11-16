@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Generator, List, Optional
 
 try:
     from google.api_core.exceptions import BadRequest  # type:ignore
@@ -143,14 +143,9 @@ class BucketClientGCS(BucketClient):
             pass
         raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
-    def list_buckets(  # type:ignore[override]
-        self, **kwargs: Dict[str, Any]
-    ) -> Generator[GCSNativeBucket, None, None]:
-        return self.client.list_buckets(**kwargs)  # type:ignore
-
     def scandir(  # type:ignore[override]
         self,
-        path: Optional[PurePathy] = None,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:
@@ -184,13 +179,6 @@ class ScanDirGCS(PathyScanDir):
     _client: BucketClientGCS
 
     def scandir(self) -> Generator[BucketEntryGCS, None, None]:
-        if self._path is None or not self._path.root:
-            gcs_bucket: GCSNativeBucket
-            for gcs_bucket in self._client.list_buckets():
-                yield BucketEntryGCS(
-                    gcs_bucket.name, is_dir=True, raw=None  # type:ignore
-                )
-            return
         sep = self._path._flavour.sep  # type:ignore
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:

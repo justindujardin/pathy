@@ -4,15 +4,7 @@ from typing import Any, Optional
 import mock
 import pytest
 
-from pathy import (
-    BlobFS,
-    BucketClientFS,
-    BucketFS,
-    ClientError,
-    Pathy,
-    ScanDirFS,
-    get_client,
-)
+from pathy import BlobFS, BucketClientFS, BucketFS, ClientError, Pathy, get_client
 
 FS_ADAPTER = ["fs"]
 
@@ -110,13 +102,3 @@ def test_file_bucket_client_fs_list_blobs(with_adapter: str) -> None:
 
     blobs = [b.name for b in client.list_blobs(root, prefix="foo/bar/baz")]
     assert len(blobs) == 1
-
-
-@pytest.mark.parametrize("adapter", FS_ADAPTER)
-def test_file_scandir_list_buckets(
-    with_adapter: str, bucket: str, other_bucket: str
-) -> None:
-    root = Pathy()
-    client = root.client(root)
-    scandir = ScanDirFS(client=client, path=root)
-    assert sorted([s.name for s in scandir]) == sorted([bucket, other_bucket])
