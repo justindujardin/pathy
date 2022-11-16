@@ -206,7 +206,7 @@ class BucketClient:
 
     def scandir(
         self,
-        path: Optional["Pathy"] = None,
+        path: "Pathy",
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> "PathyScanDir":
@@ -816,7 +816,7 @@ class PathyScanDir(Iterator[Any], ContextManager[Any], ABC):
     def __init__(
         self,
         client: BucketClient,
-        path: Optional[PurePathy] = None,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> None:
@@ -1008,7 +1008,7 @@ class BucketClientFS(BucketClient):
 
     def scandir(
         self,
-        path: Optional[Pathy] = None,
+        path: Pathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:

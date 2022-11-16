@@ -145,7 +145,7 @@ class BucketClientGCS(BucketClient):
 
     def scandir(  # type:ignore[override]
         self,
-        path: Optional[PurePathy] = None,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:
@@ -179,8 +179,6 @@ class ScanDirGCS(PathyScanDir):
     _client: BucketClientGCS
 
     def scandir(self) -> Generator[BucketEntryGCS, None, None]:
-        if self._path is None or not self._path.root:
-            return
         sep = self._path._flavour.sep  # type:ignore
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:

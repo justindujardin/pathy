@@ -175,7 +175,7 @@ class BucketClientAzure(BucketClient):
 
     def scandir(  # type:ignore[override]
         self,
-        path: Optional[PurePathy] = None,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:
@@ -216,7 +216,7 @@ class ScanDirAzure(PathyScanDir):
     def __init__(
         self,
         client: BucketClient,
-        path: Optional[PurePathy] = None,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         page_size: Optional[int] = None,
@@ -225,8 +225,6 @@ class ScanDirAzure(PathyScanDir):
         self._page_size = page_size
 
     def scandir(self) -> Generator[BucketEntryAzure, None, None]:
-        if self._path is None:
-            return
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:
             return

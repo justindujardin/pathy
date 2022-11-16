@@ -170,7 +170,7 @@ class BucketClientS3(BucketClient):
 
     def scandir(  # type:ignore[override]
         self,
-        path: Optional[PurePathy] = None,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
     ) -> PathyScanDir:
@@ -208,7 +208,7 @@ class ScanDirS3(PathyScanDir):
     def __init__(
         self,
         client: BucketClient,
-        path: Optional[PurePathy] = None,
+        path: PurePathy,
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         page_size: Optional[int] = None,
@@ -217,8 +217,6 @@ class ScanDirS3(PathyScanDir):
         self._page_size = page_size
 
     def scandir(self) -> Generator[BucketEntryS3, None, None]:
-        if self._path is None or not self._path.root:
-            return
         sep = self._path._flavour.sep  # type:ignore
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:
