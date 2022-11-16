@@ -1064,10 +1064,6 @@ class ScanDirFS(PathyScanDir):
     _client: BucketClientFS
 
     def scandir(self) -> Generator[BucketEntry, None, None]:
-        if self._path is None or not self._path.root:
-            return
-        assert self._path is not None
-        assert self._path.root is not None
         scan_path = self._client.root / self._path.root
         if isinstance(self._path, BasePath):
             scan_path = (
