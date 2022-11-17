@@ -42,7 +42,8 @@ def test_file_bucket_client_fs_make_uri(with_adapter: str) -> None:
     client: BucketClientFS = get_client("gs")
     blob = Pathy("gs://foo/bar")
     actual = client.make_uri(blob)
-    expected = f"file://{client.root}/foo/bar"
+    sep = client.root._flavour.sep  # type:ignore
+    expected = f"file://{client.root}{sep}foo{sep}bar"
     assert actual == expected
 
     # Invalid root
