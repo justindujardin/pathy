@@ -39,6 +39,7 @@ BucketBlobType = TypeVar("BucketBlobType")
 
 _windows_flavour: Any = _WindowsFlavour()  # type:ignore
 _posix_flavour: Any = _PosixFlavour()  # type:ignore
+_drive_letters = [(f"{chr(ord('a') + i)}:") for i in range(26)]  # lower case with :
 
 
 @dataclass
@@ -224,7 +225,13 @@ class BucketClient:
 
     def resolve(self, path: "Pathy", strict: bool = False) -> "Pathy":
         path_parts = str(path).replace(path.drive, "")
-        return Pathy(f"{path.drive}{os.path.abspath(path_parts)}")
+        resolved = f"{path.drive}{os.path.abspath(path_parts)}"
+        # On Windows the abspath normalization that happens replaces
+        # / with \\ so we have to revert it here to preserve the
+        # expected resolved path.
+        if path.drive.lower() not in _drive_letters:
+            resolved = resolved.replace("\\", "/")
+        return Pathy(resolved)
 
     def mkdir(self, path: "Pathy", mode: int = 0) -> None:
         bucket: Optional[Bucket] = self.lookup_bucket(path)
@@ -275,6 +282,7 @@ class PurePathy(PurePath):
         assert Pathy("gs://foo/bar").scheme == "gs"
         assert Pathy("file:///tmp/foo/bar").scheme == "file"
         assert Pathy("/dev/null").scheme == ""
+        assert Pathy("C:\\pathy\\subfolder").scheme == ""
 
         """
         # If there is no drive, return nothing
