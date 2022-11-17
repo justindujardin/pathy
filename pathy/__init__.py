@@ -881,8 +881,9 @@ class BucketFS(Bucket):
         # https://docs.python.org/3/library/pathlib.html#pathlib.Path.owner
         owner: Optional[str]
         try:
-            owner = native_blob.owner()
-        except KeyError:
+            # path.owner() raises NotImplementedError on windows
+            owner = native_blob.owner()  # type:ignore
+        except (KeyError, NotImplementedError):
             owner = None
         return BlobFS(
             bucket=self,
