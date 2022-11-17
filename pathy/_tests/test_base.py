@@ -212,5 +212,5 @@ def test_bucket_entry_defaults() -> None:
     assert "size" in repr(entry)
     stat = entry.stat()
     assert isinstance(stat, BlobStat)
-    assert stat.last_modified == -1
+    assert stat.last_modified is None
     assert stat.size == -1

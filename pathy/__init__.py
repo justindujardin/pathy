@@ -91,7 +91,7 @@ class BucketEntry:
         name: str,
         is_dir: bool = False,
         size: int = -1,
-        last_modified: int = -1,
+        last_modified: Optional[int] = None,
         raw: Optional[Blob] = None,
     ):
         self.name = name
@@ -626,8 +626,6 @@ class Pathy(Path, PurePathy):
         self_type = type(self)
         result = target if isinstance(target, self_type) else self_type(target)
         result._absolute_path_validation()  # type:ignore
-        # super().rename(result)
-        # return result
 
         client: BucketClient = self.client(self)
         bucket: Bucket = client.get_bucket(self)
