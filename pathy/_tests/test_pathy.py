@@ -37,6 +37,8 @@ def test_pathy_fluid(with_adapter: str, bucket: str) -> None:
     assert isinstance(path, BasePath)
     path = Pathy.fluid("/dev/null")
     assert isinstance(path, BasePath)
+    path = Pathy.fluid("C:\\Windows\\Path")
+    assert isinstance(path, BasePath)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
