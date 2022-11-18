@@ -371,7 +371,19 @@ class Pathy(Path, PurePathy):
     __slots__ = ()
     _accessor: BucketsAccessor = BucketsAccessor()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
+    _UNSUPPORTED_PATH = (
+        "ERROR: absolute file paths must be initialized using Pathy.fluid(path)"
+    )
     _client: Optional[BucketClient]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Error when initializing paths without using Pathy.fluid if the
+        # path is an absolute system path (windows/unix)
+        root = str(self)[0]  # "/tmp/path"
+        drv = str(self)[:2].lower()  # C:\\tmp\\path
+        if root == "/" or drv in _drive_letters:
+            raise ValueError(Pathy._UNSUPPORTED_PATH)
 
     def client(self, path: "Pathy") -> BucketClient:
         return get_client(path.scheme)
@@ -407,10 +419,13 @@ class Pathy(Path, PurePathy):
         assert fluid_path.prefix == "foo.txt/"
         ```
         """
-        from_path: FluidPath = Pathy(path_candidate)
-        if from_path.root in ["/", ""]:
-            from_path = BasePath(path_candidate)
-        return from_path
+        try:
+            result = Pathy(path_candidate)
+            if result.root != "":
+                return result
+        except ValueError:
+            pass
+        return BasePath(path_candidate)
 
     @classmethod
     def from_bucket(cls, bucket_name: str, scheme: str = "gs") -> "Pathy":

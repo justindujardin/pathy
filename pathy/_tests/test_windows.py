@@ -1,9 +1,10 @@
 import os
 import shutil
 import tempfile
+
 import pytest
+
 from pathy import Pathy
-from .conftest import ENV_ID, TEST_ADAPTERS
 
 is_windows = os.name == "nt"
 
