@@ -281,9 +281,6 @@ class PurePathy(PurePath):
         ```python
         assert Pathy("gs://foo/bar").scheme == "gs"
         assert Pathy("file:///tmp/foo/bar").scheme == "file"
-        assert Pathy("/dev/null").scheme == ""
-        assert Pathy("C:\\pathy\\subfolder").scheme == ""
-
         """
         # If there is no drive, return nothing
         if self.drive == "":
@@ -372,7 +369,7 @@ class Pathy(Path, PurePathy):
     _accessor: BucketsAccessor = BucketsAccessor()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
     _UNSUPPORTED_PATH = (
-        "ERROR: absolute file paths must be initialized using Pathy.fluid(path)"
+        "absolute file paths must be initialized using Pathy.fluid(path)"
     )
     _client: Optional[BucketClient]
 
