@@ -51,7 +51,9 @@ jobs:
       - name: Build Wheel
         run: .\tools\build.bat
       - name: Test Wheel (local only)
-        run: rmdir /S /Q "pathy" 2>nul && .\tools\test_package.bat
+        run: |
+          rmdir /S ".\pathy" 2>nul
+          .\tools\test_package.bat
       - name: Report Code Coverage
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
