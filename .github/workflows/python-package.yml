@@ -47,15 +47,15 @@ jobs:
         with:
           python-version: 3.11
       - name: Install dependencies
-        run: sh .\tools\setup.bat
+        run: .\tools\setup.bat
       - name: Build Wheel
-        run: sh .\tools\build.bat
+        run: .\tools\build.bat
       - name: Test Wheel (local only)
         run: rmdir /S /Q "pathy" 2>nul && .\tools\test_package.bat
       - name: Report Code Coverage
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: sh .\tools\codecov.bat
+        run: .\tools\codecov.bat
 
   deploy:
     runs-on: ubuntu-latest
