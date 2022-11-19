@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 import tempfile
 
 import pytest
@@ -262,3 +263,34 @@ def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
     assert one in result.output
     assert two in result.output
     assert str(root / "folder") in result.output
+
+
+def test_cli_ls_diff_years_modified() -> None:
+    import os
+
+    root = Pathy.fluid(tempfile.mkdtemp()) / ENV_ID / "ls_diff_year"
+    root.mkdir(parents=True, exist_ok=True)
+
+    # Create one file right now
+    new_path = root / f"new_file.txt"
+    new_path.write_text("new")
+
+    # Create another and set its modified time to one year before now
+    old_path = root / f"old_file.txt"
+    old_path.write_text("old")
+    old_stat = old_path.stat()
+    assert isinstance(old_stat, os.stat_result), "expect local file"
+    one_year = 31556926  # seconds
+    os.utime(
+        str(old_path), (old_stat.st_atime - one_year, old_stat.st_mtime - one_year)
+    )
+    new_old_stat = old_path.stat()
+    assert isinstance(new_old_stat, os.stat_result), "expect local file"
+    assert int(old_stat.st_mtime) == int(new_old_stat.st_mtime + one_year)
+
+    result = runner.invoke(app, ["ls", "-l", str(root)])
+    assert result.exit_code == 0
+    assert str(old_path) in result.output
+    assert str(new_path) in result.output
+
+    shutil.rmtree(str(root))
