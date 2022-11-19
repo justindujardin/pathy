@@ -272,11 +272,11 @@ def test_cli_ls_diff_years_modified() -> None:
     root.mkdir(parents=True, exist_ok=True)
 
     # Create one file right now
-    new_path = root / f"new_file.txt"
+    new_path = root / "new_file.txt"
     new_path.write_text("new")
 
     # Create another and set its modified time to one year before now
-    old_path = root / f"old_file.txt"
+    old_path = root / "old_file.txt"
     old_path.write_text("old")
     old_stat = old_path.stat()
     assert isinstance(old_stat, os.stat_result), "expect local file"
