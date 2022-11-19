@@ -50,10 +50,12 @@ jobs:
         run: .\tools\setup.bat
       - name: Build Wheel
         run: .\tools\build.bat
+      - name: Remove Pathy folder
+        uses: JesseTG/rm@v1.0.3
+        with:
+          path: .\pathy
       - name: Test Wheel (local only)
-        run: |
-          rmdir /S ".\pathy" 2>nul
-          .\tools\test_package.bat
+        run: .\tools\test_package.bat
       - name: Report Code Coverage
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
