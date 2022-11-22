@@ -1,3 +1,24 @@
+# [0.9.0](https://github.com/justindujardin/pathy/compare/v0.8.1...v0.9.0) (2022-11-22)
+
+
+### Bug Fixes
+
+* **blob:** properly initialize default last_modified ([d831bee](https://github.com/justindujardin/pathy/commit/d831bee6d82a02bf048f64384864a1c8a590ef1b))
+* **windows:** consistent path separator in resolve ([44f5ca0](https://github.com/justindujardin/pathy/commit/44f5ca0cf5984fd8a0d6071060e65064ec2b163c))
+* **windows:** file:/// paths had the wrong suffix ([674a109](https://github.com/justindujardin/pathy/commit/674a10926505bdfcbc5ad0482309dfa02974c9fa))
+* **windows:** return None owner on windows where not implemented ([abd28c4](https://github.com/justindujardin/pathy/commit/abd28c46ac6f7708a3591722ad862cb73d3af318))
+
+
+### Features
+
+* **Pathy:** raise error when not using Pathy.fluid for absolute paths ([e7f4e73](https://github.com/justindujardin/pathy/commit/e7f4e73b0b1bed8a68588e81f8bc3c5c74ed71ad)), closes [#87](https://github.com/justindujardin/pathy/issues/87)
+* **windows:** add windows CI test execution ([504823d](https://github.com/justindujardin/pathy/commit/504823dde36c1ab3fb778d31a7d25339a133a6d8))
+
+
+### BREAKING CHANGES
+
+* **Pathy:** Previously Pathy would allow you to initialize Pathy instances with absolute system paths (unix and windows). Now Pathy raises a ValueError if given an absolute system path that suggest using Pathy.fluid instead.
+
 ## [0.8.1](https://github.com/justindujardin/pathy/compare/v0.8.0...v0.8.1) (2022-11-16)
 
 
