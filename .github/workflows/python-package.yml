@@ -38,6 +38,29 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: sh tools/codecov.sh
 
+  build-windows:
+    runs-on: 'windows-latest'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+      - name: Install dependencies
+        run: .\tools\setup.bat
+      - name: Build Wheel
+        run: .\tools\build.bat
+      - name: Remove Pathy folder
+        uses: JesseTG/rm@v1.0.3
+        with:
+          path: .\pathy
+      - name: Test Wheel (local only)
+        run: .\tools\test_package.bat
+      - name: Report Code Coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: .\tools\codecov.bat
+
   deploy:
     runs-on: ubuntu-latest
     needs: "build"

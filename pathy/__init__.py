@@ -39,6 +39,7 @@ BucketBlobType = TypeVar("BucketBlobType")
 
 _windows_flavour: Any = _WindowsFlavour()  # type:ignore
 _posix_flavour: Any = _PosixFlavour()  # type:ignore
+_drive_letters = [(f"{chr(ord('a') + i)}:") for i in range(26)]  # lower case with :
 
 
 @dataclass
@@ -91,7 +92,7 @@ class BucketEntry:
         name: str,
         is_dir: bool = False,
         size: int = -1,
-        last_modified: int = -1,
+        last_modified: Optional[int] = None,
         raw: Optional[Blob] = None,
     ):
         self.name = name
@@ -224,7 +225,13 @@ class BucketClient:
 
     def resolve(self, path: "Pathy", strict: bool = False) -> "Pathy":
         path_parts = str(path).replace(path.drive, "")
-        return Pathy(f"{path.drive}{os.path.abspath(path_parts)}")
+        resolved = f"{path.drive}{os.path.abspath(path_parts)}"
+        # On Windows the abspath normalization that happens replaces
+        # / with \\ so we have to revert it here to preserve the
+        # expected resolved path.
+        if path.drive.lower() not in _drive_letters:
+            resolved = resolved.replace("\\", "/")
+        return Pathy(resolved)
 
     def mkdir(self, path: "Pathy", mode: int = 0) -> None:
         bucket: Optional[Bucket] = self.lookup_bucket(path)
@@ -274,8 +281,6 @@ class PurePathy(PurePath):
         ```python
         assert Pathy("gs://foo/bar").scheme == "gs"
         assert Pathy("file:///tmp/foo/bar").scheme == "file"
-        assert Pathy("/dev/null").scheme == ""
-
         """
         # If there is no drive, return nothing
         if self.drive == "":
@@ -316,6 +321,9 @@ class PurePathy(PurePath):
     def _format_parsed_parts(cls, drv: str, root: str, parts: List[str]) -> str:
         # Bucket path "gs://foo/bar"
         join_fn: Callable[[List[str]], str] = cls._flavour.join  # type:ignore
+        # If the scheme is file: and it's Windows, use \\ slashes to join
+        if drv.lower() == "file:" and os.name == "nt":
+            join_fn = "\\".join
         res: str
         if drv and root:
             res = f"{drv}//{root}/" + join_fn(parts[2:])
@@ -348,6 +356,15 @@ class BasePath(Path):
                 name=str(blob.name), size=stat.size, last_modified=stat.last_modified
             )
 
+    def iterdir(self: Any) -> Generator["BasePath", None, None]:
+        """Iterate over the blobs found in the given bucket or blob prefix path."""
+        client: BucketClient = get_client(getattr(self, "scheme", "file"))
+        blobs: "ScanDirFS" = cast(
+            ScanDirFS, client.scandir(self, prefix=getattr(self, "prefix", None))
+        )  # type:ignore
+        for blob in blobs:
+            yield self / blob.name
+
 
 class BucketsAccessor:
     """Path access for python < 3.11"""
@@ -357,13 +374,25 @@ class BucketsAccessor:
         return client.scandir(target, prefix=getattr(target, "prefix", None))
 
 
-class Pathy(Path, PurePathy):
+class Pathy(PurePathy, BasePath):
     """Subclass of `pathlib.Path` that works with bucket APIs."""
 
     __slots__ = ()
     _accessor: BucketsAccessor = BucketsAccessor()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
+    _UNSUPPORTED_PATH = (
+        "absolute file paths must be initialized using Pathy.fluid(path)"
+    )
     _client: Optional[BucketClient]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Error when initializing paths without using Pathy.fluid if the
+        # path is an absolute system path (windows/unix)
+        root = str(self)[0]  # "/tmp/path"
+        drv = str(self)[:2].lower()  # C:\\tmp\\path
+        if root == "/" or drv in _drive_letters:
+            raise ValueError(Pathy._UNSUPPORTED_PATH)
 
     def client(self, path: "Pathy") -> BucketClient:
         return get_client(path.scheme)
@@ -399,10 +428,13 @@ class Pathy(Path, PurePathy):
         assert fluid_path.prefix == "foo.txt/"
         ```
         """
-        from_path: FluidPath = Pathy(path_candidate)
-        if from_path.root in ["/", ""]:
-            from_path = BasePath(path_candidate)
-        return from_path
+        try:
+            result = Pathy(path_candidate)
+            if result.root != "":
+                return result
+        except ValueError:
+            pass
+        return BasePath(path_candidate)
 
     @classmethod
     def from_bucket(cls, bucket_name: str, scheme: str = "gs") -> "Pathy":
@@ -481,11 +513,7 @@ class Pathy(Path, PurePathy):
 
         Yields BlobStat objects for each found blob.
         """
-        blobs: "PathyScanDir" = self.client(self).scandir(
-            self, prefix=self.prefix
-        )  # type:ignore
-        for blob in blobs:
-            yield blob._stat
+        yield from super().ls()
 
     def stat(  # type: ignore[override]
         self: "Pathy", *, follow_symlinks: bool = True
@@ -546,19 +574,17 @@ class Pathy(Path, PurePathy):
 
     def iterdir(self: "Pathy") -> Generator["Pathy", None, None]:
         """Iterate over the blobs found in the given bucket or blob prefix path."""
-        self._absolute_path_validation()
-        for blob in self.ls():
-            yield self / blob.name
+        yield from cast(Generator["Pathy", None, None], super().iterdir())
 
     def glob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
         """Perform a glob match relative to this Pathy instance, yielding all matched
         blobs."""
-        yield from super().glob(pattern)  # type:ignore
+        yield from cast(Generator["Pathy", None, None], super().glob(pattern))
 
     def rglob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
         """Perform a recursive glob match relative to this Pathy instance, yielding
         all matched blobs. Imagine adding "**/" before a call to glob."""
-        yield from super().rglob(pattern)  # type:ignore
+        yield from cast(Generator["Pathy", None, None], super().rglob(pattern))
 
     def open(  # type:ignore
         self: "Pathy",
@@ -626,8 +652,6 @@ class Pathy(Path, PurePathy):
         self_type = type(self)
         result = target if isinstance(target, self_type) else self_type(target)
         result._absolute_path_validation()  # type:ignore
-        # super().rename(result)
-        # return result
 
         client: BucketClient = self.client(self)
         bucket: Bucket = client.get_bucket(self)
@@ -883,8 +907,9 @@ class BucketFS(Bucket):
         # https://docs.python.org/3/library/pathlib.html#pathlib.Path.owner
         owner: Optional[str]
         try:
-            owner = native_blob.owner()
-        except KeyError:
+            # path.owner() raises NotImplementedError on windows
+            owner = native_blob.owner()  # type:ignore
+        except (KeyError, NotImplementedError):
             owner = None
         return BlobFS(
             bucket=self,
@@ -940,6 +965,10 @@ class BucketClientFS(BucketClient):
     def rmdir(self, path: Pathy) -> None:
         full_path = self.full_path(path)
         return shutil.rmtree(str(full_path))
+
+    def mkdir(self, path: "Pathy", mode: int = 0) -> None:
+        full_path = self.full_path(path)
+        os.makedirs(full_path, exist_ok=True)
 
     def open(
         self,
@@ -1065,7 +1094,7 @@ class ScanDirFS(PathyScanDir):
 
     def scandir(self) -> Generator[BucketEntry, None, None]:
         scan_path = self._client.root / self._path.root
-        if isinstance(self._path, BasePath):
+        if isinstance(self._path, BasePath) and not isinstance(self._path, Pathy):
             scan_path = (
                 self._client.root / self._path.root
                 if not self._path.is_absolute()

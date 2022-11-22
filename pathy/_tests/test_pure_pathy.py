@@ -28,6 +28,7 @@ def test_pure_pathy_scheme_extraction() -> None:
     assert PurePathy("s3://var/tests/fake").scheme == "s3"
     assert PurePathy("file://var/tests/fake").scheme == "file"
     assert PurePathy("/var/tests/fake").scheme == ""
+    assert PurePathy("C:\\pathy\\subfolder").scheme == ""
 
 
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")

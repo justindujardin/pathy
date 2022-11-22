@@ -39,65 +39,65 @@ def test_base_home() -> None:
 
 
 def test_base_expanduser() -> None:
-    path = Pathy("/fake-bucket/fake-key")
+    path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.expanduser()
 
 
 def test_base_chmod() -> None:
-    path = Pathy("/fake-bucket/fake-key")
+    path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.chmod(0o666)
 
 
 def test_base_lchmod() -> None:
-    path = Pathy("/fake-bucket/fake-key")
+    path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.lchmod(0o666)
 
 
 def test_base_group() -> None:
-    path = Pathy("/fake-bucket/fake-key")
+    path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.group()
 
 
 def test_base_is_mount() -> None:
-    assert not Pathy("/fake-bucket/fake-key").is_mount()
+    assert not Pathy("gs://fake-bucket/fake-key").is_mount()
 
 
 def test_base_is_symlink() -> None:
-    assert not Pathy("/fake-bucket/fake-key").is_symlink()
+    assert not Pathy("gs://fake-bucket/fake-key").is_symlink()
 
 
 def test_base_is_socket() -> None:
-    assert not Pathy("/fake-bucket/fake-key").is_socket()
+    assert not Pathy("gs://fake-bucket/fake-key").is_socket()
 
 
 def test_base_is_fifo() -> None:
-    assert not Pathy("/fake-bucket/fake-key").is_fifo()
+    assert not Pathy("gs://fake-bucket/fake-key").is_fifo()
 
 
 def test_base_is_block_device() -> None:
-    path = Pathy("/fake-bucket/fake-key")
+    path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.is_block_device()
 
 
 def test_base_is_char_device() -> None:
-    path = Pathy("/fake-bucket/fake-key")
+    path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.is_char_device()
 
 
 def test_base_lstat() -> None:
-    path = Pathy("/fake-bucket/fake-key")
+    path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.lstat()
 
 
 def test_base_symlink_to() -> None:
-    path = Pathy("/fake-bucket/fake-key")
+    path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.symlink_to("file_name")
 
@@ -212,5 +212,5 @@ def test_bucket_entry_defaults() -> None:
     assert "size" in repr(entry)
     stat = entry.stat()
     assert isinstance(stat, BlobStat)
-    assert stat.last_modified == -1
+    assert stat.last_modified is None
     assert stat.size == -1
