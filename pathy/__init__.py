@@ -321,6 +321,9 @@ class PurePathy(PurePath):
     def _format_parsed_parts(cls, drv: str, root: str, parts: List[str]) -> str:
         # Bucket path "gs://foo/bar"
         join_fn: Callable[[List[str]], str] = cls._flavour.join  # type:ignore
+        # If the scheme is file: and it's Windows, use \\ slashes to join
+        if drv.lower() == "file:" and os.name == "nt":
+            join_fn = "\\".join
         res: str
         if drv and root:
             res = f"{drv}//{root}/" + join_fn(parts[2:])
@@ -353,6 +356,15 @@ class BasePath(Path):
                 name=str(blob.name), size=stat.size, last_modified=stat.last_modified
             )
 
+    def iterdir(self: Any) -> Generator["BasePath", None, None]:
+        """Iterate over the blobs found in the given bucket or blob prefix path."""
+        client: BucketClient = get_client(getattr(self, "scheme", "file"))
+        blobs: "ScanDirFS" = cast(
+            ScanDirFS, client.scandir(self, prefix=getattr(self, "prefix", None))
+        )  # type:ignore
+        for blob in blobs:
+            yield self / blob.name
+
 
 class BucketsAccessor:
     """Path access for python < 3.11"""
@@ -362,7 +374,7 @@ class BucketsAccessor:
         return client.scandir(target, prefix=getattr(target, "prefix", None))
 
 
-class Pathy(Path, PurePathy):
+class Pathy(PurePathy, BasePath):
     """Subclass of `pathlib.Path` that works with bucket APIs."""
 
     __slots__ = ()
@@ -501,11 +513,7 @@ class Pathy(Path, PurePathy):
 
         Yields BlobStat objects for each found blob.
         """
-        blobs: "PathyScanDir" = self.client(self).scandir(
-            self, prefix=self.prefix
-        )  # type:ignore
-        for blob in blobs:
-            yield blob._stat
+        yield from super().ls()
 
     def stat(  # type: ignore[override]
         self: "Pathy", *, follow_symlinks: bool = True
@@ -566,19 +574,17 @@ class Pathy(Path, PurePathy):
 
     def iterdir(self: "Pathy") -> Generator["Pathy", None, None]:
         """Iterate over the blobs found in the given bucket or blob prefix path."""
-        self._absolute_path_validation()
-        for blob in self.ls():
-            yield self / blob.name
+        yield from cast(Generator["Pathy", None, None], super().iterdir())
 
     def glob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
         """Perform a glob match relative to this Pathy instance, yielding all matched
         blobs."""
-        yield from super().glob(pattern)  # type:ignore
+        yield from cast(Generator["Pathy", None, None], super().glob(pattern))
 
     def rglob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
         """Perform a recursive glob match relative to this Pathy instance, yielding
         all matched blobs. Imagine adding "**/" before a call to glob."""
-        yield from super().rglob(pattern)  # type:ignore
+        yield from cast(Generator["Pathy", None, None], super().rglob(pattern))
 
     def open(  # type:ignore
         self: "Pathy",
@@ -960,6 +966,10 @@ class BucketClientFS(BucketClient):
         full_path = self.full_path(path)
         return shutil.rmtree(str(full_path))
 
+    def mkdir(self, path: "Pathy", mode: int = 0) -> None:
+        full_path = self.full_path(path)
+        os.makedirs(full_path, exist_ok=True)
+
     def open(
         self,
         path: Pathy,
@@ -1084,7 +1094,7 @@ class ScanDirFS(PathyScanDir):
 
     def scandir(self) -> Generator[BucketEntry, None, None]:
         scan_path = self._client.root / self._path.root
-        if isinstance(self._path, BasePath):
+        if isinstance(self._path, BasePath) and not isinstance(self._path, Pathy):
             scan_path = (
                 self._client.root / self._path.root
                 if not self._path.is_absolute()
