@@ -1,3 +1,19 @@
+# [0.10.0](https://github.com/justindujardin/pathy/compare/v0.9.0...v0.10.0) (2022-11-23)
+
+
+### Bug Fixes
+
+* **stat:** return BlobStat for all pathy paths ([#96](https://github.com/justindujardin/pathy/issues/96)) ([f092605](https://github.com/justindujardin/pathy/commit/f092605c015e57e66ce88b98502da917c08ed4f3))
+
+
+### BREAKING CHANGES
+
+* **stat:** Previously when using Pathy.fluid paths that point to local file system paths, Pathy would return an `os.stat_result` rather than a `BlobStat`. This made it difficulty to treat mixed paths consistently.
+
+Now Pathy returns a BlobStat structure for local and remote paths.
+
+If you need to use `os.stat_result` you can still call `os.stat(my_path)` to access it.
+
 # [0.9.0](https://github.com/justindujardin/pathy/compare/v0.8.1...v0.9.0) (2022-11-22)
 
 
