@@ -124,6 +124,15 @@ def test_base_path_check_mode() -> None:
 
     assert root._check_mode(value_error_fn) is False
 
+    # Raises from OSError with unknown code
+    def other_os_error_fn(mode: int) -> bool:
+        err = OSError()
+        err.errno = 1337
+        raise err
+
+    with pytest.raises(OSError):
+        root._check_mode(other_os_error_fn)
+
     # Raises other unrelated exceptions
     def other_error_fn(mode: int) -> bool:
         raise BaseException()
