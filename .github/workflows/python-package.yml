@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         python-version: [3.6, 3.7, 3.8, 3.9, 3.10.6, 3.11]
 
     runs-on: ${{ matrix.os }}
@@ -39,7 +39,7 @@ jobs:
         run: sh tools/codecov.sh
 
   build-windows:
-    runs-on: 'windows-latest'
+    runs-on: "windows-latest"
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
