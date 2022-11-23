@@ -5,7 +5,7 @@ import tempfile
 import pytest
 from typer.testing import CliRunner
 
-from pathy import Pathy
+from pathy import BlobStat, Pathy
 from pathy.cli import app
 
 from .conftest import ENV_ID, TEST_ADAPTERS
@@ -279,14 +279,17 @@ def test_cli_ls_diff_years_modified() -> None:
     old_path = root / "old_file.txt"
     old_path.write_text("old")
     old_stat = old_path.stat()
-    assert isinstance(old_stat, os.stat_result), "expect local file"
+    assert isinstance(old_stat, BlobStat)
     one_year = 31556926  # seconds
+    assert old_stat.last_modified is not None
     os.utime(
-        str(old_path), (old_stat.st_atime - one_year, old_stat.st_mtime - one_year)
+        str(old_path),
+        (old_stat.last_modified - one_year, old_stat.last_modified - one_year),
     )
     new_old_stat = old_path.stat()
-    assert isinstance(new_old_stat, os.stat_result), "expect local file"
-    assert int(old_stat.st_mtime) == int(new_old_stat.st_mtime + one_year)
+    assert new_old_stat.last_modified is not None
+    assert isinstance(new_old_stat, BlobStat)
+    assert int(old_stat.last_modified) == int(new_old_stat.last_modified + one_year)
 
     result = runner.invoke(app, ["ls", "-l", str(root)])
     assert result.exit_code == 0

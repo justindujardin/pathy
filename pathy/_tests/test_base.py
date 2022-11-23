@@ -1,3 +1,5 @@
+import tempfile
+from errno import ENOTDIR
 from pathlib import Path
 from typing import Any
 
@@ -100,6 +102,56 @@ def test_base_symlink_to() -> None:
     path = Pathy("gs://fake-bucket/fake-key")
     with pytest.raises(NotImplementedError):
         path.symlink_to("file_name")
+
+
+def test_base_path_check_mode() -> None:
+    tmp_dir = tempfile.mkdtemp()
+    root = Pathy.fluid(tmp_dir)
+
+    assert root.is_dir() is True
+
+    # Ignores OSErrors about not a directory and returns false
+    def not_dir_fn(mode: int) -> bool:
+        err = OSError()
+        err.errno = ENOTDIR
+        raise err
+
+    assert root._check_mode(not_dir_fn) is False
+
+    # Ignores ValueError
+    def value_error_fn(mode: int) -> bool:
+        raise ValueError("oops")
+
+    assert root._check_mode(value_error_fn) is False
+
+    # Raises other unrelated exceptions
+    def other_error_fn(mode: int) -> bool:
+        raise BaseException()
+
+    with pytest.raises(BaseException):
+        root._check_mode(other_error_fn)
+
+
+def test_base_path_stat_helpers() -> None:
+    tmp_dir = tempfile.mkdtemp()
+    root = Pathy.fluid(tmp_dir)
+
+    assert root.is_dir() is True
+
+    file = root / "file.txt"
+    file.write_text("hello world")
+
+    assert file.is_file() is True
+    assert file.is_dir() is False
+    assert file.is_mount() is False
+    assert file.is_symlink() is False
+    assert file.is_block_device() is False
+    assert file.is_char_device() is False
+    assert file.is_fifo() is False
+    assert file.is_socket() is False
+
+    file.unlink()
+    root.rmdir()
 
 
 def test_pathy_mro() -> None:

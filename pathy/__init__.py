@@ -6,10 +6,12 @@ import tempfile
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from errno import EBADF, ELOOP, ENOENT, ENOTDIR
 from io import DEFAULT_BUFFER_SIZE
 from pathlib import _PosixFlavour  # type:ignore
 from pathlib import _WindowsFlavour  # type:ignore
 from pathlib import Path, PurePath
+from stat import S_ISBLK, S_ISCHR, S_ISFIFO, S_ISSOCK
 from typing import (
     IO,
     Any,
@@ -364,6 +366,73 @@ class BasePath(Path):
         )  # type:ignore
         for blob in blobs:
             yield self / blob.name
+
+    def stat(self: "BasePath") -> BlobStat:  # type:ignore[override]
+        """Iterate over the blobs found in the given bucket or blob prefix path."""
+        stat = super().stat()
+        return BlobStat(
+            name=self.name, size=stat.st_size, last_modified=int(stat.st_mtime)
+        )
+
+    # Stat helpers
+
+    def _check_mode(self: "BasePath", mode_fn: Callable[[int], bool]) -> bool:
+        """
+        Check the mode against a stat.S_IS[MODE] function.
+
+        This ignores OS-specific errors that are raised when a path does
+        not exist, or has some invalid attribute (e.g. a bad symlink).
+        """
+        try:
+            return mode_fn(os.stat(self).st_mode)
+        except OSError as exception:
+            # Ignorable error codes come from pathlib.py
+            #
+            error = getattr(exception, "errno", None)
+            errors = (ENOENT, ENOTDIR, EBADF, ELOOP)
+            win_error = getattr(exception, "winerror", None)
+            win_errors = (
+                21,  # ERROR_NOT_READY - drive exists but is not accessible
+                123,  # ERROR_INVALID_NAME - fix for bpo-35306
+                1921,  # ERROR_CANT_RESOLVE_FILENAME - broken symlink points to self
+            )
+            if error not in errors and win_error not in win_errors:
+                raise
+            return False
+        except ValueError:
+            return False
+
+    def is_dir(self: "BasePath") -> bool:
+        """Whether this path is a directory."""
+        return os.path.isdir(self)
+
+    def is_file(self: "BasePath") -> bool:
+        """Whether this path is a file."""
+        return os.path.isfile(self)
+
+    def is_mount(self: "BasePath") -> bool:
+        """Check if this path is a POSIX mount point"""
+        return os.path.ismount(self)
+
+    def is_symlink(self: "BasePath") -> bool:
+        """Whether this path is a symbolic link."""
+        return os.path.islink(self)
+
+    def is_block_device(self: "BasePath") -> bool:
+        """Whether this path is a block device."""
+        return self._check_mode(S_ISBLK)
+
+    def is_char_device(self: "BasePath") -> bool:
+        """Whether this path is a character device."""
+        return self._check_mode(S_ISCHR)
+
+    def is_fifo(self: "BasePath") -> bool:
+        """Whether this path is a FIFO."""
+        return self._check_mode(S_ISFIFO)
+
+    def is_socket(self: "BasePath") -> bool:
+        """Whether this path is a socket."""
+        return self._check_mode(S_ISSOCK)
 
 
 class BucketsAccessor:
