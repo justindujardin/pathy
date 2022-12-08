@@ -1,3 +1,10 @@
+## [0.10.1](https://github.com/justindujardin/pathy/compare/v0.10.0...v0.10.1) (2022-12-08)
+
+
+### Bug Fixes
+
+* **smart_open:** relax range to < 7.0 ([#98](https://github.com/justindujardin/pathy/issues/98)) ([43d1327](https://github.com/justindujardin/pathy/commit/43d13272286e2d34a56c23a27ca4e97d037e8888))
+
 # [0.10.0](https://github.com/justindujardin/pathy/compare/v0.9.0...v0.10.0) (2022-11-23)
 
 
