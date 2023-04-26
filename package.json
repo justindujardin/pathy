@@ -36,6 +36,7 @@
         "@semantic-release/git": "^10.0.0",
         "@semantic-release/github": "^8.0.0",
         "@types/node": "^13.1.1",
+        "@types/semantic-release": "^20.0.1",
         "husky": "^8.0.3",
         "lint-staged": "^13.2.1",
         "minimist": "^1.2.5",

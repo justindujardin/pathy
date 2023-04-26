@@ -5,7 +5,7 @@ set -e
 echo "Installing semantic-release requirements"
 npm install
 echo "Updating build version"
-npx ts-node tools/ci-set-build-version.ts
+npx ts-node -O '{\"module\": \"es2020\", \"esModuleInterop\":true}' tools/ci-set-build-version.ts
 echo "Running semantic-release"
 npx semantic-release
 
