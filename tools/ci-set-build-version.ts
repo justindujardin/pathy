@@ -1,23 +1,23 @@
 const fs = require("fs");
 const path = require("path");
-const semanticRelease = require("semantic-release");
 const { WritableStreamBuffer } = require("stream-buffers");
 
 const stdoutBuffer = new WritableStreamBuffer();
 const stderrBuffer = new WritableStreamBuffer();
 
-function getBuildVersion() {
+async function getBuildVersion() {
+  const semanticRelease = (await import("semantic-release")).default;
   return semanticRelease(
     {
       // Core options
       dryRun: true,
       branch: "master",
-      repositoryUrl: "https://github.com/justindujardin/pathy.git"
+      repositoryUrl: "https://github.com/justindujardin/pathy.git",
     },
     {
       cwd: "./",
       stdout: stdoutBuffer,
-      stderr: stderrBuffer
+      stderr: stderrBuffer,
     }
   ).then((result: any) => {
     if (result) {
@@ -54,3 +54,5 @@ getBuildVersion()
       "--- SKIPPING update of build versions because no release is required"
     );
   });
+
+export {};
