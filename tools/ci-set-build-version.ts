@@ -1,7 +1,7 @@
-const fs = require("fs");
-const path = require("path");
-const semanticRelease = require("semantic-release");
-const { WritableStreamBuffer } = require("stream-buffers");
+import fs from "fs";
+import path from "path";
+import semanticRelease from "semantic-release";
+import { WritableStreamBuffer } from "stream-buffers";
 
 const stdoutBuffer = new WritableStreamBuffer();
 const stderrBuffer = new WritableStreamBuffer();
@@ -12,12 +12,12 @@ function getBuildVersion() {
       // Core options
       dryRun: true,
       branch: "master",
-      repositoryUrl: "https://github.com/justindujardin/pathy.git"
+      repositoryUrl: "https://github.com/justindujardin/pathy.git",
     },
     {
       cwd: "./",
       stdout: stdoutBuffer,
-      stderr: stderrBuffer
+      stderr: stderrBuffer,
     }
   ).then((result: any) => {
     if (result) {
