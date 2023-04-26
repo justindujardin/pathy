@@ -45,7 +45,7 @@ def setup_package():
             pathy=pathy.cli:app
         """,
         classifiers=[
-            "Development Status :: 5 - Production/Stable",
+            "Development Status :: 4 - Beta",
             "Intended Audience :: Developers",
             "Natural Language :: English",
             "License :: OSI Approved :: Apache Software License",

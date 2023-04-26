@@ -1,106 +1,106 @@
 {
-    "name": "pathy",
-    "version": "0.0.0-development",
-    "description": "",
-    "main": "index.js",
-    "directories": {
-        "test": "tests"
-    },
-    "scripts": {
-        "semantic-release": "semantic-release",
-        "pyright": "pyright pathy"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/justindujardin/pathy"
-    },
-    "author": "Justin DuJardin",
-    "license": "Apache-2.0",
-    "bugs": {
-        "url": "https://github.com/justindujardin/pathy/issues"
-    },
-    "homepage": "https://github.com/justindujardin/pathy#readme",
-    "husky": {
-        "hooks": {
-            "pre-commit": "npx lint-staged"
-        }
-    },
-    "lint-staged": {
-        "pathy/*.py": [
-            "sh tools/docs.sh",
-            "git add README.md"
-        ]
-    },
-    "devDependencies": {
-        "@semantic-release/changelog": "^6.0.0",
-        "@semantic-release/git": "^10.0.0",
-        "@semantic-release/github": "^8.0.0",
-        "@types/node": "^13.1.1",
-        "@types/semantic-release": "^20.0.1",
-        "husky": "^8.0.3",
-        "lint-staged": "^13.2.1",
-        "minimist": "^1.2.5",
-        "pyright": "1.1.223",
-        "semantic-release": "^21.0.1",
-        "stream-buffers": "^3.0.2",
-        "ts-node": "^8.0.2",
-        "typescript": "^3.0.3"
-    },
-    "release": {
-        "plugins": [
-            [
-                "@semantic-release/commit-analyzer",
-                {
-                    "preset": "angular",
-                    "releaseRules": [
-                        {
-                            "breaking": true,
-                            "release": "minor"
-                        },
-                        {
-                            "revert": true,
-                            "release": "patch"
-                        },
-                        {
-                            "type": "feat",
-                            "release": "patch"
-                        },
-                        {
-                            "type": "fix",
-                            "release": "patch"
-                        },
-                        {
-                            "type": "perf",
-                            "release": "patch"
-                        }
-                    ],
-                    "parserOpts": {
-                        "noteKeywords": [
-                            "BREAKING CHANGE",
-                            "BREAKING CHANGES"
-                        ]
-                    }
-                }
-            ],
-            "@semantic-release/release-notes-generator",
-            [
-                "@semantic-release/changelog",
-                {
-                    "changelogFile": "CHANGELOG.md"
-                }
-            ],
-            [
-                "@semantic-release/git",
-                {
-                    "assets": [
-                        "pathy/about.py",
-                        "package.json",
-                        "CHANGELOG.md"
-                    ],
-                    "message": "chore(release): ${nextRelease.version} \n\n${nextRelease.notes}"
-                }
-            ],
-            "@semantic-release/github"
-        ]
+  "name": "pathy",
+  "version": "0.0.0-development",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "semantic-release": "semantic-release",
+    "pyright": "pyright pathy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justindujardin/pathy"
+  },
+  "author": "Justin DuJardin",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/justindujardin/pathy/issues"
+  },
+  "homepage": "https://github.com/justindujardin/pathy#readme",
+  "husky": {
+    "hooks": {
+      "pre-commit": "npx lint-staged"
     }
+  },
+  "lint-staged": {
+    "pathy/*.py": [
+      "sh tools/docs.sh",
+      "git add README.md"
+    ]
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.0",
+    "@semantic-release/git": "^10.0.0",
+    "@semantic-release/github": "^8.0.0",
+    "@types/node": "^13.1.1",
+    "@types/semantic-release": "^20.0.1",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.1",
+    "minimist": "^1.2.5",
+    "pyright": "1.1.223",
+    "semantic-release": "^21.0.1",
+    "stream-buffers": "^3.0.2",
+    "ts-node": "^8.0.2",
+    "typescript": "^3.0.3"
+  },
+  "release": {
+    "plugins": [
+      [
+        "@semantic-release/commit-analyzer",
+        {
+          "preset": "angular",
+          "releaseRules": [
+            {
+              "breaking": true,
+              "release": "minor"
+            },
+            {
+              "revert": true,
+              "release": "patch"
+            },
+            {
+              "type": "feat",
+              "release": "patch"
+            },
+            {
+              "type": "fix",
+              "release": "patch"
+            },
+            {
+              "type": "perf",
+              "release": "patch"
+            }
+          ],
+          "parserOpts": {
+            "noteKeywords": [
+              "BREAKING CHANGE",
+              "BREAKING CHANGES"
+            ]
+          }
+        }
+      ],
+      "@semantic-release/release-notes-generator",
+      [
+        "@semantic-release/changelog",
+        {
+          "changelogFile": "CHANGELOG.md"
+        }
+      ],
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "pathy/about.py",
+            "package.json",
+            "CHANGELOG.md"
+          ],
+          "message": "chore(release): ${nextRelease.version} \n\n${nextRelease.notes}"
+        }
+      ],
+      "@semantic-release/github"
+    ]
+  }
 }
