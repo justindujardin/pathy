@@ -73,7 +73,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "18"
       - name: Deploy
         env:
           PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
