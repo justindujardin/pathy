@@ -1,3 +1,10 @@
+## [0.10.2](https://github.com/justindujardin/pathy/compare/v0.10.1...v0.10.2) (2023-06-19)
+
+
+### Bug Fixes
+
+* **python:** add follow_symlinks for py 3.11.4 ([#104](https://github.com/justindujardin/pathy/issues/104)) ([49a53b5](https://github.com/justindujardin/pathy/commit/49a53b58d0edd07de071df53b6b041994866e8c8))
+
 ## [0.10.1](https://github.com/justindujardin/pathy/compare/v0.10.0...v0.10.1) (2022-12-08)
 
 
