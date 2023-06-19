@@ -110,10 +110,10 @@ class BucketEntry:
     def inode(self, *args: Any, **kwargs: Dict[str, Any]) -> None:
         return None
 
-    def is_dir(self) -> bool:
+    def is_dir(self, follow_symlinks: bool = True) -> bool:
         return self._is_dir
 
-    def is_file(self) -> bool:
+    def is_file(self, follow_symlinks: bool = True) -> bool:
         return not self._is_dir
 
     def is_symlink(self) -> bool:
