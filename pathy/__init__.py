@@ -623,7 +623,7 @@ class Pathy(PurePathy, BasePath):
         """
         self._absolute_path_validation()
         if self.bucket and not self.key:
-            return True
+            return self.client(self).lookup_bucket(self) is not None
         return self.client(self).is_dir(self)
 
     def is_file(self: "Pathy") -> bool:
