@@ -1,3 +1,10 @@
+## [0.10.3](https://github.com/justindujardin/pathy/compare/v0.10.2...v0.10.3) (2023-10-22)
+
+
+### Bug Fixes
+
+* **is_dir:** return False if bucket does not exist ([#107](https://github.com/justindujardin/pathy/issues/107) by [@yaelmi3](https://github.com/yaelmi3)) ([4a4e69d](https://github.com/justindujardin/pathy/commit/4a4e69dcb45a79d4183613362fa8bb94b14290dc))
+
 ## [0.10.2](https://github.com/justindujardin/pathy/compare/v0.10.1...v0.10.2) (2023-06-19)
 
 
