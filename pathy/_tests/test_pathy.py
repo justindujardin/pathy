@@ -196,6 +196,18 @@ def test_pathy_is_dir(with_adapter: str, bucket: str) -> None:
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_pathy_is_dir_bucket(with_adapter: str, bucket: str) -> None:
+    path = Pathy(f"{with_adapter}://{bucket}")
+    assert path.is_dir()
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_pathy_is_dir_bucket_not_found(with_adapter: str) -> None:
+    path = Pathy(f"{with_adapter}://not-a-real-bucket")
+    assert path.is_dir() is False
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_is_file(with_adapter: str, bucket: str) -> None:
     path = Pathy(
         f"{with_adapter}://{bucket}/{ENV_ID}/is_file/subfolder/another/my.file"
