@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Generator, List, Optional
 
 try:
-    from google.api_core.exceptions import BadRequest  # type:ignore
+    from google.api_core.exceptions import BadRequest, Forbidden  # type:ignore
     from google.cloud.storage import Blob as GCSNativeBlob  # type:ignore
     from google.cloud.storage import Bucket as GCSNativeBucket  # type:ignore
     from google.cloud.storage import Client as GCSNativeClient  # type:ignore
@@ -139,7 +139,7 @@ class BucketClientGCS(BucketClient):
         try:
             if native_bucket.exists():
                 return BucketGCS(str(path.root), bucket=native_bucket)
-        except BadRequest:
+        except (BadRequest, Forbidden):
             pass
         raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
