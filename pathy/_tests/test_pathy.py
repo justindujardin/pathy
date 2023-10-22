@@ -203,7 +203,8 @@ def test_pathy_is_dir_bucket(with_adapter: str, bucket: str) -> None:
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_is_dir_bucket_not_found(with_adapter: str) -> None:
-    path = Pathy(f"{with_adapter}://not-a-real-bucket")
+    invalid_bucket = f"unknown-bucket-name-{uuid4().hex[:16]}"
+    path = Pathy(f"{with_adapter}://{invalid_bucket}")
     assert path.is_dir() is False
 
 
