@@ -771,8 +771,8 @@ class Pathy(PurePathy, BasePath):
         elif client.is_dir(self):
             client.rmdir(self)
 
-    def samefile(
-        self: "Pathy", other_path: Union[str, os.PathLike[str], int, Path]
+    def samefile(  # type:ignore[override]
+        self: "Pathy", other_path: Union[str, bytes, int, Path]
     ) -> bool:
         """Determine if this path points to the same location as other_path."""
         self._absolute_path_validation()
