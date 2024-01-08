@@ -771,7 +771,9 @@ class Pathy(PurePathy, BasePath):
         elif client.is_dir(self):
             client.rmdir(self)
 
-    def samefile(self: "Pathy", other_path: Union[str, bytes, int, Path]) -> bool:
+    def samefile(
+        self: "Pathy", other_path: Union[str, os.PathLike[str], int, Path]
+    ) -> bool:
         """Determine if this path points to the same location as other_path."""
         self._absolute_path_validation()
         if not isinstance(other_path, Path):
@@ -888,7 +890,7 @@ class Pathy(PurePathy, BasePath):
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lstat.__qualname__)
         raise NotImplementedError(message)
 
-    def symlink_to(
+    def symlink_to(  # type: ignore[override]
         self, target: Union[str, Path], target_is_directory: bool = False
     ) -> None:
         message = self._NOT_SUPPORTED_MESSAGE.format(

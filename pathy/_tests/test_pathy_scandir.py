@@ -12,7 +12,7 @@ class MockScanDir(PathyScanDir):
 
 class AbstractScanDir(PathyScanDir):
     def scandir(self) -> Generator[BucketEntry, None, None]:
-        return super().scandir()
+        return super().scandir()  # type:ignore
 
 
 def test_scandir_abstract_methods(bucket: str) -> None:
