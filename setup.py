@@ -37,7 +37,7 @@ def setup_package():
         long_description_content_type="text/markdown",
         include_package_data=True,
         packages=find_packages(),
-        python_requires=">= 3.6",
+        python_requires=">= 3.8",
         install_requires=requirements,
         extras_require=extras,
         entry_points="""
@@ -51,7 +51,6 @@ def setup_package():
             "License :: OSI Approved :: Apache Software License",
             "Operating System :: OS Independent",
             "Programming Language :: Python",
-            "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
