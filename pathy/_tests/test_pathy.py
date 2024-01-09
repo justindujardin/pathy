@@ -89,6 +89,18 @@ def test_pathy_path_to_local(with_adapter: str, bucket: str) -> None:
     assert not cached.exists(), "cache clear should delete file"
 
 
+def test_pathy_buckets_rename_replace(temp_folder: Path) -> None:
+    use_fs(temp_folder)
+    Pathy.from_bucket("foo").mkdir()
+    from_path = Pathy("gs://foo/bar")
+    to_path = Pathy("gs://foo/baz")
+    # Source foo/bar does not exist
+    with pytest.raises(FileNotFoundError):
+        from_path.rename(to_path)
+    with pytest.raises(FileNotFoundError):
+        from_path.replace(to_path)
+
+
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_stat(with_adapter: str, bucket: str) -> None:
     path = Pathy("fake-bucket-1234-0987/fake-key")
