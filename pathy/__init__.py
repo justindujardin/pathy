@@ -289,9 +289,9 @@ class PurePathy(PurePathBase):
 
         If the scheme or bucket aren't set, they will be empty strings.
         """
-        return (self.drive, self.root) + tuple(self._tail)
+        return (self.drive, self.root) + tuple(self._tail)  # type: ignore
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Return the bytes representation of the path.  This is only
         recommended to use under Unix."""
         return os.fsencode(f"{self}")
@@ -300,14 +300,14 @@ class PurePathy(PurePathBase):
         if not self.is_absolute():
             raise ValueError("relative paths are unsupported")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}({!r})".format(self.__class__.__name__, self.as_posix())
 
     def __lt__(self, other: object) -> bool:
         """Support < comparisons and sorting with sorted()"""
         return isinstance(other, (PurePath, Pathy)) and self.parts < other.parts
 
-    def __fspath__(self):
+    def __fspath__(self) -> str:
         """Compatibilty with os.fspath()
 
         ```python
@@ -336,7 +336,7 @@ class PurePathy(PurePathBase):
             and self.drive == other.drive
         )
 
-    def as_posix(self):
+    def as_posix(self) -> str:
         return self._format_parsed_parts(self.drive, self.root, self._tail)
 
     @classmethod
