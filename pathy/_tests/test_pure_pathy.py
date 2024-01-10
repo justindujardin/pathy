@@ -16,13 +16,16 @@ def test_pure_pathy_scheme_extraction() -> None:
     assert PurePathy("gs://var/tests/fake").scheme == "gs"
     assert PurePathy("s3://var/tests/fake").scheme == "s3"
     assert PurePathy("file://var/tests/fake").scheme == "file"
-    # TODO: Add breaking change note. No more absolute paths? Just use pathlib for that stuff, no?
-    # TODO: Verify the above change is alright. Perhaps reach our to the spacy folks and see if they have any issues with it.
+    # TODO: Add breaking change note. No more absolute paths? Just use pathlib
+    #       for that stuff, no?
+    # TODO: Verify the above change is alright. Perhaps reach our to the spacy
+    #       folks and see if they have any issues with it.
     # assert PurePathy("/var/tests/fake").scheme == ""
     # assert PurePathy("C:\\pathy\\subfolder").scheme == ""
 
 
-# TODO: Add breaking change note. Pathy doesn't work with absolute paths anymore. Pathy.fluid will return pathlib.Path
+# TODO: Add breaking change note. Pathy doesn't work with absolute paths anymore.
+#       Pathy.fluid will return pathlib.Path
 # @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
 # def test_pure_pathy_fspath() -> None:
 #     assert os.fspath(PurePathy("/var/tests/fake")) == "/var/tests/fake"
@@ -32,7 +35,8 @@ def test_pure_pathy_join_strs() -> None:
     assert PurePathy("foo", "some/path", "bar") == PurePathy("foo/some/path/bar")
 
 
-# TODO: Breaking note here? We don't throw in this case, just return drv,root as "" and "" respectively and the rest of the path as the path.
+# TODO: Breaking note here? We don't throw in this case, just return drv,root as ""
+#       and "" respectively and the rest of the path as the path.
 def test_pure_pathy_parse_parts() -> None:
     # Needs two parts to extract scheme/bucket
     root = PurePathy("foo:")

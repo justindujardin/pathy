@@ -620,7 +620,7 @@ def test_pathy_raises_with_no_known_bucket_clients_for_a_scheme(
 # @pytest.mark.skipif(not has_spacy, reason="requires spacy and en_core_web_sm model")
 @pytest.mark.skipif(
     True,
-    reason="new version depends on srsly update: https://github.com/explosion/srsly/pull/106",
+    reason="depends on: https://github.com/explosion/srsly/pull/106",
 )
 def test_pathy_export_spacy_model(temp_folder: Path) -> None:
     """spaCy model loading is one of the things we need to support"""

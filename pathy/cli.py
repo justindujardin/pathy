@@ -129,7 +129,9 @@ def ls(
         typer.echo(f"ls: {path}: No such file or directory")
         raise typer.Exit(1)
     now = datetime.now()
-    for blob_stat in path.ls():
+    # TODO: What to do about ls and pathlib.Path? We previously got this
+    #       because we were a superclass.
+    for blob_stat in path.ls():  # type:ignore
         print_name = str(path / blob_stat.name)
         if not long:
             typer.echo(print_name)

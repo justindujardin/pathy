@@ -281,7 +281,7 @@ class PurePathy(PurePathBase):
         return f"{self.key}{pathy_pathmod.sep}"
 
     @property
-    def parts(self) -> Tuple[str]:
+    def parts(self) -> Tuple[str, ...]:
         """An object providing sequence-like access to the components in the cloud
         bucket path.
 
