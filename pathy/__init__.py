@@ -112,9 +112,6 @@ class BucketEntry:
     def is_file(self, follow_symlinks: bool = True) -> bool:
         return not self._is_dir
 
-    def is_symlink(self) -> bool:
-        return False
-
     def stat(self, *, follow_symlinks: bool = True) -> BlobStat:
         return self._stat
 
@@ -306,9 +303,8 @@ class PurePathy(PurePathBase):
         return "{}({!r})".format(self.__class__.__name__, self.as_posix())
 
     def __lt__(self, other: object) -> bool:
-        if isinstance(other, (PurePath, Pathy)):
-            return self.parts < other.parts
-        return NotImplemented
+        """Support < comparisons and sorting with sorted()"""
+        return isinstance(other, (PurePath, Pathy)) and self.parts < other.parts
 
     def __fspath__(self):
         """Compatibilty with os.fspath()
@@ -332,10 +328,9 @@ class PurePathy(PurePathBase):
         Pathy("gs://foo/bar") == Pathy("gs://foo/bar")
         ```
         """
-        if not isinstance(other, PurePathy):
-            return NotImplemented
         return (
-            self.parts == other.parts
+            isinstance(other, PurePathy)
+            and self.parts == other.parts
             and self.scheme == other.scheme
             and self.drive == other.drive
         )
@@ -540,7 +535,7 @@ class Pathy(PurePathy, BasePath):
         # Determine if the path exists according to the current adapter
         return client.exists(self)
 
-    def is_dir(self: "Pathy") -> bool:
+    def is_dir(self: "Pathy", *, follow_symlinks: bool = True) -> bool:
         """Determine if the path points to a bucket or a prefix of a given blob
         in the bucket.
 
@@ -552,7 +547,7 @@ class Pathy(PurePathy, BasePath):
             return self.client(self).lookup_bucket(self) is not None
         return self.client(self).is_dir(self)
 
-    def is_file(self: "Pathy") -> bool:
+    def is_file(self: "Pathy", *, follow_symlinks: bool = True) -> bool:
         """Determine if the path points to a blob in the bucket.
 
         Returns True if the path points to a blob.
@@ -563,23 +558,20 @@ class Pathy(PurePathy, BasePath):
         if not self.bucket or self.key == "":
             return False
         try:
-            return bool(self.stat())
+            return bool(self.stat(follow_symlinks=follow_symlinks))
         except (ClientError, FileNotFoundError):
             return False
 
-    def iterdir(self: "Pathy") -> Generator["Pathy", None, None]:
-        """Iterate over the blobs found in the given bucket or blob prefix path."""
-        yield from cast(Generator["Pathy", None, None], super().iterdir())
-
-    def glob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
+    def glob(
+        self: "Pathy",
+        pattern: str,
+        *,
+        case_sensitive: Optional[bool] = None,
+        follow_symlinks: Optional[bool] = None,
+    ) -> Generator["Pathy", None, None]:
         """Perform a glob match relative to this Pathy instance, yielding all matched
         blobs."""
-        yield from cast(Generator["Pathy", None, None], super().glob(pattern))
-
-    def rglob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
-        """Perform a recursive glob match relative to this Pathy instance, yielding
-        all matched blobs. Imagine adding "**/" before a call to glob."""
-        yield from cast(Generator["Pathy", None, None], super().rglob(pattern))
+        yield from super().glob(pattern)
 
     def open(  # type:ignore
         self: "Pathy",
@@ -747,9 +739,6 @@ class Pathy(PurePathy, BasePath):
                 raise
 
     def is_mount(self: "Pathy") -> bool:
-        return False
-
-    def is_symlink(self: "Pathy") -> bool:
         return False
 
     def is_socket(self: "Pathy") -> bool:
