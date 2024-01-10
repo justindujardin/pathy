@@ -179,7 +179,7 @@ class ScanDirGCS(PathyScanDir):
     _client: BucketClientGCS
 
     def scandir(self) -> Generator[BucketEntryGCS, None, None]:
-        sep = self._path._flavour.sep  # type:ignore
+        sep = self._path.pathmod.sep
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:
             return
