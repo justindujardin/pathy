@@ -7,9 +7,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from io import DEFAULT_BUFFER_SIZE
-from . import pathmod as pathy_pathmod
 from pathlib import Path, PurePath
-from pathlib_abc import PathBase, PurePathBase
 from typing import (
     IO,
     Any,
@@ -29,6 +27,9 @@ from typing import (
 
 import smart_open
 import smart_open.compression
+from pathlib_abc import PathBase, PurePathBase
+
+from . import pathmod as pathy_pathmod
 
 SUBCLASS_ERROR = "must be implemented in a subclass"
 

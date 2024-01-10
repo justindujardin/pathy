@@ -1,5 +1,5 @@
-from pathlib import Path
 import pathlib
+from pathlib import Path
 from uuid import uuid4
 
 import pytest

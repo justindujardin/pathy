@@ -1,9 +1,7 @@
-import tempfile
-from errno import ENOTDIR
 from pathlib import Path
-from typing import Any
-from pathlib_abc import PathBase, PurePathBase
+
 import pytest
+from pathlib_abc import PathBase
 
 from .. import (
     Blob,
@@ -15,15 +13,12 @@ from .. import (
     ClientError,
     Pathy,
     PurePathy,
-    use_fs,
 )
 from ..about import __version__
 
 
 def test_base_package_declares_version() -> None:
     assert __version__ is not None
-
-
 
 
 def test_base_cwd() -> None:

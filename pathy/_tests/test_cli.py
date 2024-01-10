@@ -1,11 +1,9 @@
 import pathlib
-import shutil
-import tempfile
 
 import pytest
 from typer.testing import CliRunner
 
-from pathy import BlobStat, Pathy
+from pathy import Pathy
 from pathy.cli import app
 
 from .conftest import ENV_ID, TEST_ADAPTERS

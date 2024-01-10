@@ -1,7 +1,5 @@
 import os
-from posixpath import join, normcase, splitdrive, dirname
-from typing import List, Tuple, Union
-
+from typing import Tuple
 
 sep = "/"
 schemesep = "://"
