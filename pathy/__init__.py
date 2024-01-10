@@ -6,16 +6,10 @@ import tempfile
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from errno import EBADF, ELOOP, ENOENT, ENOTDIR
 from io import DEFAULT_BUFFER_SIZE
-from pathlib import _PosixFlavour  # type:ignore
-
-# from pathlib import _WindowsFlavour  # type:ignore
-
 from . import pathmod as pathy_pathmod
 from pathlib import Path, PurePath
 from pathlib_abc import PathBase, PurePathBase
-from stat import S_ISBLK, S_ISCHR, S_ISFIFO, S_ISSOCK
 from typing import (
     IO,
     Any,
@@ -227,8 +221,10 @@ class BucketClient:
         return blob.owner if blob is not None else None
 
     def resolve(self, path: "Pathy", strict: bool = False) -> "Pathy":
-        path_parts = str(path).replace(path.drive, "")
-        resolved = f"{path.drive}{os.path.abspath(path_parts)}"
+        scheme, bucket, parts = pathy_pathmod.splitroot(str(path), resolve=True)
+        resolved = (
+            f"{scheme}{pathy_pathmod.schemesep}{bucket}{pathy_pathmod.sep}{parts}"
+        )
         # On Windows the abspath normalization that happens replaces
         # / with \\ so we have to revert it here to preserve the
         # expected resolved path.
@@ -288,9 +284,14 @@ class PurePathy(PurePathBase):
 
     @property
     def parts(self) -> Tuple[str]:
-        """An object providing sequence-like access to the
-        components in the filesystem path."""
-        return (self.drive + pathy_pathmod.schemesep + self.root,) + tuple(self._tail)
+        """An object providing sequence-like access to the components in the cloud
+        bucket path.
+
+        Returns a tuple of the scheme, bucket, path parts
+
+        If the scheme or bucket aren't set, they will be empty strings.
+        """
+        return (self.drive, self.root) + tuple(self._tail)
 
     def __bytes__(self):
         """Return the bytes representation of the path.  This is only
@@ -304,12 +305,38 @@ class PurePathy(PurePathBase):
     def __repr__(self):
         return "{}({!r})".format(self.__class__.__name__, self.as_posix())
 
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, (PurePath, Pathy)):
+            return self.parts < other.parts
+        return NotImplemented
+
+    def __fspath__(self):
+        """Compatibilty with os.fspath()
+
+        ```python
+        import os
+        from pathy import Pathy
+
+        path: Pathy = Pathy("gs://foo/bar")
+        str_path: str = os.fspath(path)
+        ```
+        """
+        return str(self)
+
     def __eq__(self, other: object) -> bool:
+        """Enables equality comparisons, e.g.
+
+        ```python
+        from pathy import Pathy
+
+        Pathy("gs://foo/bar") == Pathy("gs://foo/bar")
+        ```
+        """
         if not isinstance(other, PurePathy):
             return NotImplemented
         return (
             self.parts == other.parts
-            and self.scheme is other.scheme
+            and self.scheme == other.scheme
             and self.drive == other.drive
         )
 
@@ -358,70 +385,12 @@ class BasePath(PathBase):
 
     def stat(self: "BasePath") -> BlobStat:  # type:ignore[override]
         """Iterate over the blobs found in the given bucket or blob prefix path."""
+        # TODO: is this still used? I think we're bypassing it since we're not
+        # inheriting local file system path logic from pathlib.Path as a base class
         stat = super().stat()
         return BlobStat(
             name=self.name, size=stat.st_size, last_modified=int(stat.st_mtime)
         )
-
-    # Stat helpers
-
-    # def _check_mode(self: "BasePath", mode_fn: Callable[[int], bool]) -> bool:
-    #     """
-    #     Check the mode against a stat.S_IS[MODE] function.
-
-    #     This ignores OS-specific errors that are raised when a path does
-    #     not exist, or has some invalid attribute (e.g. a bad symlink).
-    #     """
-    #     try:
-    #         return mode_fn(os.stat(str(self)).st_mode)
-    #     except OSError as exception:
-    #         # Ignorable error codes come from pathlib.py
-    #         #
-    #         error = getattr(exception, "errno", None)
-    #         errors = (ENOENT, ENOTDIR, EBADF, ELOOP)
-    #         win_error = getattr(exception, "winerror", None)
-    #         win_errors = (
-    #             21,  # ERROR_NOT_READY - drive exists but is not accessible
-    #             123,  # ERROR_INVALID_NAME - fix for bpo-35306
-    #             1921,  # ERROR_CANT_RESOLVE_FILENAME - broken symlink points to self
-    #         )
-    #         if error not in errors and win_error not in win_errors:
-    #             raise
-    #         return False
-    #     except ValueError:
-    #         return False
-
-    # def is_dir(self: "BasePath") -> bool:
-    #     """Whether this path is a directory."""
-    #     return os.path.isdir(str(self))
-
-    # def is_file(self: "BasePath") -> bool:
-    #     """Whether this path is a file."""
-    #     return os.path.isfile(str(self))
-
-    # def is_mount(self: "BasePath") -> bool:
-    #     """Check if this path is a POSIX mount point"""
-    #     return os.path.ismount(str(self))
-
-    # def is_symlink(self: "BasePath") -> bool:
-    #     """Whether this path is a symbolic link."""
-    #     return os.path.islink(str(self))
-
-    # def is_block_device(self: "BasePath") -> bool:
-    #     """Whether this path is a block device."""
-    #     return self._check_mode(S_ISBLK)
-
-    # def is_char_device(self: "BasePath") -> bool:
-    #     """Whether this path is a character device."""
-    #     return self._check_mode(S_ISCHR)
-
-    # def is_fifo(self: "BasePath") -> bool:
-    #     """Whether this path is a FIFO."""
-    #     return self._check_mode(S_ISFIFO)
-
-    # def is_socket(self: "BasePath") -> bool:
-    #     """Whether this path is a socket."""
-    #     return self._check_mode(S_ISSOCK)
 
 
 class BucketsAccessor:
@@ -451,6 +420,18 @@ class Pathy(PurePathy, BasePath):
     #         return cls.fluid(*args, **kwargs)
     #     return super().__new__(cls)
 
+    # TODO: add breaking change, don't assert about paths.
+    # TODO: OR, if the path doesn't parse with a scheme, assume it's a local path and check. If there is a local path at that location, error.
+    #
+    # def __init__(self, *args: Any, **kwargs: Any) -> None:
+    #     super().__init__(*args, **kwargs)
+    #     # Error when initializing paths without using Pathy.fluid if the
+    #     # path is an absolute system path (windows/unix)
+    #     root = str(self)[0]  # "/tmp/path"
+    #     drv = str(self)[:2].lower()  # C:\\tmp\\path
+    #     if root == "/" or drv in _drive_letters:
+    #         raise ValueError(Pathy._UNSUPPORTED_PATH)
+
     def client(self, path: "Pathy") -> BucketClient:
         return get_client(path.scheme)
 
@@ -464,6 +445,10 @@ class Pathy(PurePathy, BasePath):
         # assign the _accessor directly, so pass on the super() behavior
         pass
 
+    def _make_child_entry(self, entry: BucketEntry) -> "Pathy":
+        # Transform an entry yielded from _scandir() into a path object.
+        return self / Pathy(entry.name)
+
     @classmethod
     def fluid(cls, path_candidate: Union[str, FluidPath]) -> FluidPath:
         """Infer either a Pathy or pathlib.Path from an input path or string.
@@ -476,6 +461,7 @@ class Pathy(PurePathy, BasePath):
         return of this function to the desired type, e.g.
 
         ```python
+        from pathlib import Path
         from pathy import FluidPath, Pathy
 
         fluid_path: FluidPath = Pathy.fluid("gs://my_bucket/foo.txt")
@@ -483,6 +469,10 @@ class Pathy(PurePathy, BasePath):
         assert isinstance(fluid_path, Pathy), "must be Pathy"
         # Use a member specific to that class
         assert fluid_path.prefix == "foo.txt/"
+
+        # Or use a file-system path
+        posix_path: FluidPath = Pathy.fluid("/tmp/foo.txt")
+        assert isinstance(posix_path, Path), "must be pathlib.Path"
         ```
         """
         try:
@@ -505,7 +495,7 @@ class Pathy(PurePathy, BasePath):
         assert str(Pathy.from_bucket("two")) == "gs://two/"
         ```
         """
-        return Pathy(f"{scheme}://{bucket_name}/")  # type:ignore
+        return Pathy(f"{scheme}://{bucket_name}/")
 
     @classmethod
     def to_local(cls, blob_path: Union["Pathy", str], recurse: bool = True) -> Path:
@@ -736,9 +726,7 @@ class Pathy(PurePathy, BasePath):
             bucket.delete_blob(blob)
         return self
 
-    def replace(
-        self: "Pathy", target: Union[str, PurePathBase]
-    ) -> "Pathy":  # type:ignore
+    def replace(self: "Pathy", target: Union[str, PurePathBase]) -> "Pathy":
         """Renames this path to the given target.
 
         If target points to an existing path, it will be replaced."""
@@ -964,7 +952,7 @@ class BucketFS(Bucket):
         stat = native_blob.stat()
         # path.owner() raises KeyError if the owner's UID isn't known
         #
-        # https://docs.python.org/3/library/pathlib.html#PathBase.owner
+        # https://docs.python.org/3/library/pathlib.html#Path.owner
         owner: Optional[str]
         try:
             # path.owner() raises NotImplementedError on windows
@@ -985,7 +973,7 @@ class BucketFS(Bucket):
     ) -> Optional[BlobFS]:
         in_file = str(blob.bucket.bucket / blob.name)
         out_file = str(target.bucket / name)
-        out_path = PathBase(os.path.dirname(out_file))
+        out_path = pathlib.Path(os.path.dirname(out_file))
         if not out_path.exists():
             out_path.mkdir(parents=True)
         shutil.copy(in_file, out_file)
@@ -1082,7 +1070,7 @@ class BucketClientFS(BucketClient):
 
     def lookup_bucket(self, path: PurePathy) -> Optional[BucketFS]:
         if path.root:
-            bucket_path: PathBase = self.root / path.root
+            bucket_path: pathlib.Path = self.root / path.root
             if bucket_path.exists():
                 return BucketFS(str(path.root), bucket=bucket_path)
         return None
@@ -1166,7 +1154,7 @@ class ScanDirFS(PathyScanDir):
             if dir_entry.is_dir():
                 yield BucketEntryFS(dir_entry.name, is_dir=True, raw=None)
             else:
-                file_path = PathBase(dir_entry)
+                file_path = pathlib.Path(dir_entry)
                 stat = file_path.stat()
                 file_size = stat.st_size
                 updated = int(round(stat.st_mtime))

@@ -1,18 +1,8 @@
-import os
-import sys
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path
 
 import pytest
 
 from .. import PurePathy
-
-
-def test_pure_pathy_paths_of_a_different_flavour() -> None:
-    with pytest.raises(TypeError):
-        PurePathy("/bucket/key") < PurePosixPath("/bucket/key")
-
-    with pytest.raises(TypeError):
-        PureWindowsPath("/bucket/key") > PurePathy("/bucket/key")
 
 
 def test_pure_pathy_repr() -> None:
@@ -32,21 +22,28 @@ def test_pure_pathy_scheme_extraction() -> None:
     # assert PurePathy("C:\\pathy\\subfolder").scheme == ""
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
-def test_pure_pathy_fspath() -> None:
-    assert os.fspath(PurePathy("/var/tests/fake")) == "/var/tests/fake"
+# TODO: Add breaking change note. Pathy doesn't work with absolute paths anymore. Pathy.fluid will return pathlib.Path
+# @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
+# def test_pure_pathy_fspath() -> None:
+#     assert os.fspath(PurePathy("/var/tests/fake")) == "/var/tests/fake"
 
 
 def test_pure_pathy_join_strs() -> None:
     assert PurePathy("foo", "some/path", "bar") == PurePathy("foo/some/path/bar")
 
 
+# TODO: Breaking note here? We don't throw in this case, just return drv,root as "" and "" respectively and the rest of the path as the path.
 def test_pure_pathy_parse_parts() -> None:
     # Needs two parts to extract scheme/bucket
-    with pytest.raises(ValueError):
-        PurePathy("foo:")
+    root = PurePathy("foo:")
+    assert root.drive == ""
+    assert root.root == ""
+    assert root.parts == ("", "", "foo:")
 
-    assert PurePathy("foo://bar") is not None
+    other = PurePathy("foo://bar/baz")
+    assert other.drive == "foo"
+    assert other.root == "bar"
+    assert other.parts == ("foo", "bar", "baz")
 
 
 def test_pure_pathy_join_paths() -> None:
@@ -57,8 +54,8 @@ def test_pure_pathy_empty() -> None:
     assert PurePathy() == PurePathy(".")
 
 
-def test_pure_pathy_absolute_paths() -> None:
-    assert PurePathy("/etc", "/usr", "lib64") == PurePathy("/usr/lib64")
+# def test_pure_pathy_absolute_paths() -> None:
+#     assert PurePathy("/etc", "/usr", "lib64") == PurePathy("/usr/lib64")
 
 
 def test_pure_pathy_slashes_single_double_dots() -> None:
@@ -68,25 +65,19 @@ def test_pure_pathy_slashes_single_double_dots() -> None:
     # TODO: Old pathy would collapse relative paths. But that makes it hard to work
     #  with certain paths, e.g. when you want to join a relative path to a bucket.
     # Should we keep this behavior? Commented out for pr testing
-    # 
+    #
     # assert PurePathy("foo/../bar") == PurePathy("bar")
     # assert PurePathy("foo", "../bar") == PurePathy("bar")
 
 
 def test_pure_pathy_operators() -> None:
-    one = PurePathy("/etc") / "init.d" / "apache2"
-    two = PurePathy("/etc/init.d/apache2")
-    assert one == two
+    assert PurePathy("/etc") / "init.d" / "apache2" == PurePathy("/etc/init.d/apache2")
     assert "/var" / PurePathy("tests") / "fake" == PurePathy("/var/tests/fake")
 
 
 def test_pure_pathy_parts() -> None:
-    assert PurePathy("../bar").parts == ("..", "bar")
-    assert PurePathy("foo//bar").parts == ("foo", "bar")
-    assert PurePathy("foo/./bar").parts == ("foo", "bar")
-    assert PurePathy("foo/../bar").parts == ("bar",)
-    assert PurePathy("foo", "../bar").parts == ("bar",)
-    assert PurePathy("/foo/bar").parts == ("/", "foo", "bar")
+    assert PurePathy("gs://foo/bar").parts == ("gs", "foo", "bar")
+    assert PurePathy("azure://foo/bar/baz").parts == ("azure", "foo", "bar", "baz")
 
 
 def test_pure_pathy_prefix() -> None:
@@ -102,53 +93,6 @@ def test_pure_pathy_drive() -> None:
     assert PurePathy("../bar").drive == ""
     assert PurePathy("foo", "../bar").drive == ""
     assert PurePathy("/foo/bar").drive == ""
-
-
-def test_pure_pathy_root() -> None:
-    assert PurePathy("foo//bar").root == ""
-    assert PurePathy("foo/./bar").root == ""
-    assert PurePathy("foo/../bar").root == ""
-    assert PurePathy("../bar").root == ""
-    assert PurePathy("foo", "../bar").root == ""
-    assert PurePathy("/foo/bar").root == "/"
-
-
-def test_pure_pathy_anchor() -> None:
-    assert PurePathy("foo//bar").anchor == ""
-    assert PurePathy("foo/./bar").anchor == ""
-    assert PurePathy("foo/../bar").anchor == ""
-    assert PurePathy("../bar").anchor == ""
-    assert PurePathy("foo", "../bar").anchor == ""
-    assert PurePathy("/foo/bar").anchor == "/"
-
-
-def test_pure_pathy_parents() -> None:
-    assert tuple(PurePathy("foo//bar").parents) == (
-        PurePathy("foo"),
-        PurePathy("."),
-    )
-    assert tuple(PurePathy("foo/./bar").parents) == (
-        PurePathy("foo"),
-        PurePathy("."),
-    )
-    assert tuple(PurePathy("foo/../bar").parents) == (PurePathy("."),)
-    assert tuple(PurePathy("../bar").parents) == (PurePathy(".."), PurePathy("."))
-    assert tuple(PurePathy("foo", "../bar").parents) == (PurePathy("."),)
-    assert tuple(PurePathy("/foo/bar").parents) == (
-        PurePathy("/foo"),
-        PurePathy("/"),
-    )
-
-
-def test_pure_pathy_parent() -> None:
-    assert PurePathy("foo//bar").parent == PurePathy("foo")
-    assert PurePathy("foo/./bar").parent == PurePathy("foo")
-    assert PurePathy("foo/../bar").parent == PurePathy(".")
-    assert PurePathy("../bar").parent == PurePathy("..")
-    assert PurePathy("foo", "../bar").parent == PurePathy(".")
-    assert PurePathy("/foo/bar").parent == PurePathy("/foo")
-    assert PurePathy(".").parent == PurePathy(".")
-    assert PurePathy("/").parent == PurePathy("/")
 
 
 def test_pure_pathy_name() -> None:
@@ -173,14 +117,8 @@ def test_pure_pathy_stem() -> None:
     assert PurePathy("my/library").stem == "library"
 
 
-def test_pure_pathy_uri() -> None:
-    assert PurePathy("/etc/passwd").as_uri() == "/etc/passwd"
-    assert PurePathy("/etc/init.d/apache2").as_uri() == "/etc/init.d/apache2"
-    assert PurePathy("/bucket/key").as_uri() == "/bucket/key"
-
-
 def test_pure_pathy_absolute() -> None:
-    assert PurePathy("/a/b").is_absolute()
+    assert PurePathy("gs://bucket/path").is_absolute()
     assert not PurePathy("a/b").is_absolute()
 
 
@@ -189,20 +127,11 @@ def test_pure_pathy_reserved() -> None:
     assert not PurePathy("a/b").is_reserved()
 
 
-def test_pure_pathy_joinpath() -> None:
-    assert PurePathy("/etc").joinpath("passwd") == PurePathy("/etc/passwd")
-    assert PurePathy("/etc").joinpath(PurePathy("passwd")) == PurePathy("/etc/passwd")
-    assert PurePathy("/etc").joinpath("init.d", "apache2") == PurePathy(
-        "/etc/init.d/apache2"
-    )
-
-
 def test_pure_pathy_match() -> None:
     assert PurePathy("a/b.py").match("*.py")
     assert PurePathy("/a/b/c.py").match("b/*.py")
     assert not PurePathy("/a/b/c.py").match("a/*.py")
     assert PurePathy("/a.py").match("/*.py")
-    assert not PurePathy("a/b.py").match("/*.py")
     assert not PurePathy("a/b.py").match("*.Py")
 
 

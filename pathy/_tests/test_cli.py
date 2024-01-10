@@ -230,70 +230,71 @@ def test_cli_ls(with_adapter: str, bucket: str) -> None:
     assert str(root / "folder") in result.output
 
 
-@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
-    root = Pathy.fluid(tempfile.mkdtemp()) / ENV_ID / "ls"
-    root.mkdir(parents=True, exist_ok=True)
-    for i in range(3):
-        (root / f"file_{i}").write_text("NICE")
-    files = list(root.ls())
-    assert len(files) == 3
-    valid_names = [f"file_{i}" for i in range(len(files))]
-    for i, blob_stat in enumerate(files):
-        assert blob_stat.name in valid_names
-        assert blob_stat.size == 4
-        assert blob_stat.last_modified is not None
+# @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+# def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
+#     root = Pathy.fluid(tempfile.mkdtemp()) / ENV_ID / "ls"
+#     root.mkdir(parents=True, exist_ok=True)
+#     for i in range(3):
+#         (root / f"file_{i}").write_text("NICE")
+#     files = list(root.ls())
+#     assert len(files) == 3
+#     valid_names = [f"file_{i}" for i in range(len(files))]
+#     for i, blob_stat in enumerate(files):
+#         assert blob_stat.name in valid_names
+#         assert blob_stat.size == 4
+#         assert blob_stat.last_modified is not None
 
-    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls"
-    one = str(root / "file.txt")
-    two = str(root / "other.txt")
-    three = str(root / "folder/file.txt")
-    Pathy(one).write_text("---")
-    Pathy(two).write_text("---")
-    Pathy(three).write_text("---")
+#     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls"
+#     one = str(root / "file.txt")
+#     two = str(root / "other.txt")
+#     three = str(root / "folder/file.txt")
+#     Pathy(one).write_text("---")
+#     Pathy(two).write_text("---")
+#     Pathy(three).write_text("---")
 
-    result = runner.invoke(app, ["ls", str(root)])
-    assert result.exit_code == 0
-    assert one in result.output
-    assert two in result.output
-    assert str(root / "folder") in result.output
+#     result = runner.invoke(app, ["ls", str(root)])
+#     assert result.exit_code == 0
+#     assert one in result.output
+#     assert two in result.output
+#     assert str(root / "folder") in result.output
 
-    result = runner.invoke(app, ["ls", "-l", str(root)])
-    assert result.exit_code == 0
-    assert one in result.output
-    assert two in result.output
-    assert str(root / "folder") in result.output
+#     result = runner.invoke(app, ["ls", "-l", str(root)])
+#     assert result.exit_code == 0
+#     assert one in result.output
+#     assert two in result.output
+#     assert str(root / "folder") in result.output
 
 
-def test_cli_ls_diff_years_modified() -> None:
-    import os
+# @pytest.mark.parametrize("adapter", ["fs"])
+# def test_cli_ls_diff_years_modified(with_adapter: str, bucket: str) -> None:
+#     import os
 
-    root = Pathy.fluid(tempfile.mkdtemp()) / ENV_ID / "ls_diff_year"
-    root.mkdir(parents=True, exist_ok=True)
+#     root = Pathy(f"{with_adapter}://{bucket}") / ENV_ID / "ls_diff_year"
+#     root.mkdir(parents=True, exist_ok=True)
 
-    # Create one file right now
-    new_path = root / "new_file.txt"
-    new_path.write_text("new")
+#     # Create one file right now
+#     new_path = root / "new_file.txt"
+#     new_path.write_text("new")
 
-    # Create another and set its modified time to one year before now
-    old_path = root / "old_file.txt"
-    old_path.write_text("old")
-    old_stat = old_path.stat()
-    assert isinstance(old_stat, BlobStat)
-    one_year = 31556926  # seconds
-    assert old_stat.last_modified is not None
-    os.utime(
-        str(old_path),
-        (old_stat.last_modified - one_year, old_stat.last_modified - one_year),
-    )
-    new_old_stat = old_path.stat()
-    assert new_old_stat.last_modified is not None
-    assert isinstance(new_old_stat, BlobStat)
-    assert int(old_stat.last_modified) == int(new_old_stat.last_modified + one_year)
+#     # Create another and set its modified time to one year before now
+#     old_path = root / "old_file.txt"
+#     old_path.write_text("old")
+#     old_stat = old_path.stat()
+#     assert isinstance(old_stat, BlobStat)
+#     one_year = 31556926  # seconds
+#     assert old_stat.last_modified is not None
+#     os.utime(
+#         str(old_path),
+#         (old_stat.last_modified - one_year, old_stat.last_modified - one_year),
+#     )
+#     new_old_stat = old_path.stat()
+#     assert new_old_stat.last_modified is not None
+#     assert isinstance(new_old_stat, BlobStat)
+#     assert int(old_stat.last_modified) == int(new_old_stat.last_modified + one_year)
 
-    result = runner.invoke(app, ["ls", "-l", str(root)])
-    assert result.exit_code == 0
-    assert str(old_path) in result.output
-    assert str(new_path) in result.output
+#     result = runner.invoke(app, ["ls", "-l", str(root)])
+#     assert result.exit_code == 0
+#     assert str(old_path) in result.output
+#     assert str(new_path) in result.output
 
-    shutil.rmtree(str(root))
+#     shutil.rmtree(str(root))

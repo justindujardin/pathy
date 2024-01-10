@@ -1,4 +1,5 @@
 from pathlib import Path
+import pathlib
 from uuid import uuid4
 
 import pytest
@@ -26,15 +27,17 @@ from .conftest import ENV_ID, TEST_ADAPTERS
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_is_path_instance(with_adapter: str) -> None:
     blob = Pathy(f"{with_adapter}://fake/blob")
-    assert isinstance(blob, Path)
+    assert isinstance(blob, BasePath)
 
 
-def test_pathy_error_invalid_scheme_paths() -> None:
-    # Initializing a path with an absolute system path warns
-    with pytest.raises(ValueError):
-        Pathy("c:\\temp\\other\\file.txt")
-    with pytest.raises(ValueError):
-        Pathy("/tmp/other/file.txt")
+# TODO: add breaking change - see Pathy.__init__
+#
+# def test_pathy_error_invalid_scheme_paths() -> None:
+#     # Initializing a path with an absolute system path warns
+#     with pytest.raises(ValueError):
+#         Pathy("c:\\temp\\other\\file.txt")
+#     with pytest.raises(ValueError):
+#         Pathy("/tmp/other/file.txt")
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -42,11 +45,11 @@ def test_pathy_fluid(with_adapter: str, bucket: str) -> None:
     path: FluidPath = Pathy.fluid(f"{with_adapter}://{bucket}/{ENV_ID}/fake-key")
     assert isinstance(path, Pathy)
     path = Pathy.fluid("foo/bar.txt")
-    assert isinstance(path, BasePath)
+    assert isinstance(path, pathlib.Path)
     path = Pathy.fluid("/dev/null")
-    assert isinstance(path, BasePath)
+    assert isinstance(path, pathlib.Path)
     path = Pathy.fluid("C:\\Windows\\Path")
-    assert isinstance(path, BasePath)
+    assert isinstance(path, pathlib.Path)
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
@@ -614,7 +617,11 @@ def test_pathy_raises_with_no_known_bucket_clients_for_a_scheme(
     assert isinstance(path.client(path), BucketClientFS)
 
 
-@pytest.mark.skipif(not has_spacy, reason="requires spacy and en_core_web_sm model")
+# @pytest.mark.skipif(not has_spacy, reason="requires spacy and en_core_web_sm model")
+@pytest.mark.skipif(
+    True,
+    reason="new version depends on srsly update: https://github.com/explosion/srsly/pull/106",
+)
 def test_pathy_export_spacy_model(temp_folder: Path) -> None:
     """spaCy model loading is one of the things we need to support"""
     import spacy

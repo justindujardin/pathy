@@ -15,7 +15,7 @@ def isabs(s: str) -> bool:
     return len(scheme_tail) == 2
 
 
-def splitroot(input_path: str) -> Tuple[str, str, str]:
+def splitroot(input_path: str, resolve: bool = False) -> Tuple[str, str, str]:
     """Split a pathname into scheme, bucket, and path. For cloud storage all three
     are required. The scheme is one Pathy's supported scehemes, e.g. 'gs', 's3', etc.
 
@@ -34,15 +34,13 @@ def splitroot(input_path: str) -> Tuple[str, str, str]:
     parts = tail.split(sep)
     if len(parts) < 1:
         return empty, empty, p
-    # TODO: the old code did this, but I think the pathlib.Path stance is that you
-    #  should call resolve() to remove ../ chunks. I'm going to leave it out for now,
-    #  but commented in case I need to bring it back for some unforeseen reason.
-    #
-    # for part in parts[1:]:
-    #     if part == "..":
-    #         index = parts.index(part)
-    #         parts.pop(index - 1)
-    #         parts.remove(part)
+    if resolve:
+        # Remove any .. parts
+        for part in parts[1:]:
+            if part == "..":
+                index = parts.index(part)
+                parts.pop(index - 1)
+                parts.remove(part)
     bucket = parts[0]
     path = sep.join(parts[1:]) if len(parts) > 1 else empty
     return scheme, bucket, path
