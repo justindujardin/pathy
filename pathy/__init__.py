@@ -383,67 +383,19 @@ class BasePath(PathBase):
         for blob in blobs:
             yield self / blob.name
 
-    def stat(self: "BasePath") -> BlobStat:  # type:ignore[override]
-        """Iterate over the blobs found in the given bucket or blob prefix path."""
-        # TODO: is this still used? I think we're bypassing it since we're not
-        # inheriting local file system path logic from pathlib.Path as a base class
-        stat = super().stat()
-        return BlobStat(
-            name=self.name, size=stat.st_size, last_modified=int(stat.st_mtime)
-        )
-
-
-class BucketsAccessor:
-    """PathBase access for python < 3.11"""
-
-    def scandir(self, target: Any) -> "PathyScanDir":
-        client: BucketClientFS = get_client(getattr(target, "scheme", "file"))
-        return client.scandir(target, prefix=getattr(target, "prefix", None))
-
 
 class Pathy(PurePathy, BasePath):
     """Subclass of `PathBase` that works with bucket APIs."""
 
     __slots__ = ()
-    _accessor: BucketsAccessor = BucketsAccessor()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
-    _UNSUPPORTED_PATH = (
-        "absolute file paths must be initialized using Pathy.fluid(path)"
-    )
     _client: Optional[BucketClient]
-
-    # TODO: how are the ergonomics on this? Too much magic? Fluid is more explicit.
-    #
-    # def __new__(cls, *args: Any, **kwargs: Any) -> FluidPath:
-    #     """Create a new instance of Pathy or pathlib.Path depending on the input path."""
-    #     if cls is Pathy:
-    #         return cls.fluid(*args, **kwargs)
-    #     return super().__new__(cls)
-
-    # TODO: add breaking change, don't assert about paths.
-    # TODO: OR, if the path doesn't parse with a scheme, assume it's a local path and check. If there is a local path at that location, error.
-    #
-    # def __init__(self, *args: Any, **kwargs: Any) -> None:
-    #     super().__init__(*args, **kwargs)
-    #     # Error when initializing paths without using Pathy.fluid if the
-    #     # path is an absolute system path (windows/unix)
-    #     root = str(self)[0]  # "/tmp/path"
-    #     drv = str(self)[:2].lower()  # C:\\tmp\\path
-    #     if root == "/" or drv in _drive_letters:
-    #         raise ValueError(Pathy._UNSUPPORTED_PATH)
 
     def client(self, path: "Pathy") -> BucketClient:
         return get_client(path.scheme)
 
-    def __truediv__(  # type: ignore[override]
-        self, key: Union[str, PathBase, "Pathy", PurePathy]
-    ) -> "Pathy":
+    def __truediv__(self, key: Union[str, PathBase, "Pathy", PurePathy]) -> "Pathy":
         return super().__truediv__(key)  # type:ignore
-
-    def _init(self: "Pathy", template: Optional[Any] = None) -> None:
-        # This was removed in python 3.10, and in earlier versions we
-        # assign the _accessor directly, so pass on the super() behavior
-        pass
 
     def _make_child_entry(self, entry: BucketEntry) -> "Pathy":
         # Transform an entry yielded from _scandir() into a path object.
@@ -475,12 +427,9 @@ class Pathy(PurePathy, BasePath):
         assert isinstance(posix_path, Path), "must be pathlib.Path"
         ```
         """
-        try:
-            result = Pathy(path_candidate)
-            if result.root != "":
-                return result
-        except ValueError:
-            pass
+        result = Pathy(path_candidate)
+        if result.root != "":
+            return result
         return pathlib.Path(str(path_candidate))
 
     @classmethod
@@ -816,10 +765,6 @@ class Pathy(PurePathy, BasePath):
         if blob is None:
             raise FileNotFoundError(self)
         blob.delete()
-
-    def _scandir(self: "Pathy") -> "PathyScanDir":
-        # Python 3.11 calls this instead of _accessor.scandir
-        return self.client(self).scandir(self, prefix=self.prefix)
 
     # Unsupported operations below here
 
