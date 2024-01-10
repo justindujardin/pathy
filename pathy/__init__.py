@@ -745,6 +745,9 @@ class Pathy(PurePathy, BasePath):
     def is_socket(self: "Pathy") -> bool:
         return False
 
+    def is_symlink(self: "Pathy") -> bool:
+        return False
+
     def is_fifo(self: "Pathy") -> bool:
         return False
 

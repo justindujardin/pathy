@@ -1,9 +1,14 @@
 import os
+import posixpath
 from typing import Tuple
 
 sep = "/"
 schemesep = "://"
 altsep = None
+join = posixpath.join
+normcase = posixpath.normcase
+splitdrive = posixpath.splitdrive
+dirname = posixpath.dirname
 
 
 def isabs(s: str) -> bool:
