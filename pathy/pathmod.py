@@ -35,8 +35,6 @@ def splitroot(input_path: str, resolve: bool = False) -> Tuple[str, str, str]:
 
     scheme, tail = scheme_tail
     parts = tail.split(sep)
-    if len(parts) < 1:
-        return empty, empty, p
     if resolve:
         # Remove any .. parts
         for part in parts[1:]:
