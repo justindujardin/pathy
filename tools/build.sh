@@ -6,4 +6,5 @@ sh tools/clean.sh
 
 . .env/bin/activate
 echo "Build python package..."
-python setup.py sdist bdist_wheel
+# .env/bin/python setup.py sdist bdist_wheel
+.env/bin/pip wheel . -w dist
