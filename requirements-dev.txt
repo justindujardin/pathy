@@ -9,10 +9,6 @@ mock>=4.0.0
 mathy_pydoc>=0.7.27,<0.8.0
 typer-cli>=0.0.12
 
-# test serializing spacy models using Pathy in place of Path
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.5/en_core_web_sm-2.2.5.tar.gz#egg=en_core_web_sm
-spacy>=2.2.5
-
 # Mypy type stubs
 types-mock
 types-dataclasses

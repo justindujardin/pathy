@@ -605,28 +605,3 @@ def test_pathy_raises_with_no_known_bucket_clients_for_a_scheme(
     # Setting a fallback FS adapter fixes the problem
     use_fs(str(temp_folder))
     assert isinstance(path.client(path), BucketClientFS)
-
-
-# @pytest.mark.skipif(not has_spacy, reason="requires spacy and en_core_web_sm model")
-@pytest.mark.skipif(
-    True,
-    reason="depends on: https://github.com/explosion/srsly/pull/106",
-)
-def test_pathy_export_spacy_model(temp_folder: Path) -> None:
-    """spaCy model loading is one of the things we need to support"""
-    import spacy
-
-    use_fs(temp_folder)
-    bucket = Pathy("gs://my-bucket/")
-    bucket.mkdir(exist_ok=True)
-    model = spacy.blank("en")
-    output_path = Pathy("gs://my-bucket/models/my_model")
-    model.to_disk(output_path)
-    sorted_entries = sorted([str(p) for p in output_path.glob("*")])
-    expected_entries = [
-        "gs://my-bucket/models/my_model/config.cfg",
-        "gs://my-bucket/models/my_model/meta.json",
-        "gs://my-bucket/models/my_model/tokenizer",
-        "gs://my-bucket/models/my_model/vocab",
-    ]
-    assert sorted_entries == expected_entries
