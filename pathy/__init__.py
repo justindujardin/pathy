@@ -12,7 +12,6 @@ from typing import (
     IO,
     Any,
     Callable,
-    ContextManager,
     Dict,
     Generator,
     Iterator,
@@ -814,14 +813,8 @@ class Pathy(PurePathy, BasePath):
         raise NotImplementedError(message)
 
 
-class PathyScanDir(Iterator[Any], ContextManager[Any], ABC):
-    """A scandir implementation that works for all python 3.x versions.
-
-    Python < 3.7 requires that scandir be iterable so it can be converted
-    to a list of results.
-
-    Python >= 3.8 requires that scandir work as a context manager.
-    """
+class PathyScanDir(Iterator[Any], ABC):
+    """A scandir implementation that works for all python 3.x versions."""
 
     def __init__(
         self,
@@ -836,12 +829,6 @@ class PathyScanDir(Iterator[Any], ContextManager[Any], ABC):
         self._prefix = prefix
         self._delimiter = delimiter
         self._generator = self.scandir()
-
-    def __enter__(self) -> Generator[BucketEntry, None, None]:
-        return self._generator
-
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        pass
 
     def __next__(self) -> Generator[BucketEntry, None, None]:
         yield from self._generator
