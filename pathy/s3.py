@@ -103,10 +103,6 @@ class BucketS3(Bucket):
             self.delete_blob(blob)
 
     def exists(self) -> bool:
-        # TODO: are you sure this always holds?
-        #
-        # S3 buckets don't make it this far if they don't exist. The BucketS3 instance
-        # is not instantiated unless a metadata check on the bucket passes.
         return True
 
 
@@ -149,9 +145,9 @@ class BucketClientS3(BucketClient):
         # Because we want all the parents of a valid blob (e.g. "directory" in
         # "directory/foo.file") to return True, we enumerate the blobs with a prefix
         # and compare the object names to see if they match a substring of the path
-        key_name = str(path.key)
+        key_name = path.key
         for obj in self.list_blobs(path):
-            if obj.name.startswith(key_name + path._flavour.sep):  # type:ignore
+            if obj.name.startswith(key_name + path.pathmod.sep):  # type:ignore
                 return True
         return False
 
@@ -217,7 +213,7 @@ class ScanDirS3(PathyScanDir):
         self._page_size = page_size
 
     def scandir(self) -> Generator[BucketEntryS3, None, None]:
-        sep = self._path._flavour.sep  # type:ignore
+        sep = self._path.pathmod.sep
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:
             return

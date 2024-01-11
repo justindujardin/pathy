@@ -6,17 +6,12 @@ import tempfile
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from errno import EBADF, ELOOP, ENOENT, ENOTDIR
 from io import DEFAULT_BUFFER_SIZE
-from pathlib import _PosixFlavour  # type:ignore
-from pathlib import _WindowsFlavour  # type:ignore
 from pathlib import Path, PurePath
-from stat import S_ISBLK, S_ISCHR, S_ISFIFO, S_ISSOCK
 from typing import (
     IO,
     Any,
     Callable,
-    ContextManager,
     Dict,
     Generator,
     Iterator,
@@ -31,16 +26,17 @@ from typing import (
 
 import smart_open
 import smart_open.compression
+from pathlib_abc import PathBase, PurePathBase
+
+from . import pathmod as pathy_pathmod
 
 SUBCLASS_ERROR = "must be implemented in a subclass"
 
 StreamableType = IO[Any]
-FluidPath = Union["Pathy", "BasePath"]
+FluidPath = Union["Pathy", "PathlibPathEx"]
 BucketType = TypeVar("BucketType")
 BucketBlobType = TypeVar("BucketBlobType")
 
-_windows_flavour: Any = _WindowsFlavour()  # type:ignore
-_posix_flavour: Any = _PosixFlavour()  # type:ignore
 _drive_letters = [(f"{chr(ord('a') + i)}:") for i in range(26)]  # lower case with :
 
 
@@ -116,9 +112,6 @@ class BucketEntry:
     def is_file(self, follow_symlinks: bool = True) -> bool:
         return not self._is_dir
 
-    def is_symlink(self) -> bool:
-        return False
-
     def stat(self, *, follow_symlinks: bool = True) -> BlobStat:
         return self._stat
 
@@ -149,8 +142,7 @@ class BucketClient:
         bucket = self.lookup_bucket(path)
         if bucket is None:
             return None
-        key_name = str(path.key)
-        return bucket.get_blob(key_name)
+        return bucket.get_blob(path.key)
 
     def recreate(self, **kwargs: Any) -> None:
         """Recreate any underlying bucket client adapter with the given kwargs"""
@@ -182,7 +174,7 @@ class BucketClient:
         )  # type:ignore
 
     def make_uri(self, path: "Pathy") -> str:
-        return path.as_uri()
+        return str(path)
 
     def is_dir(self, path: "Pathy") -> bool:
         return any(self.list_blobs(path, prefix=path.prefix))
@@ -226,8 +218,10 @@ class BucketClient:
         return blob.owner if blob is not None else None
 
     def resolve(self, path: "Pathy", strict: bool = False) -> "Pathy":
-        path_parts = str(path).replace(path.drive, "")
-        resolved = f"{path.drive}{os.path.abspath(path_parts)}"
+        scheme, bucket, parts = pathy_pathmod.splitroot(str(path), resolve=True)
+        resolved = (
+            f"{scheme}{pathy_pathmod.schemesep}{bucket}{pathy_pathmod.sep}{parts}"
+        )
         # On Windows the abspath normalization that happens replaces
         # / with \\ so we have to revert it here to preserve the
         # expected resolved path.
@@ -241,36 +235,10 @@ class BucketClient:
             self.create_bucket(path)
 
 
-class _PathyFlavour(_PosixFlavour):  # type:ignore
-    sep: str
-    is_supported = True
+class PurePathy(PurePathBase):
+    """PurePathBase subclass for bucket storage."""
 
-    def parse_parts(self, parts: List[str]) -> Tuple[str, str, List[str]]:
-        parse_tuple: Tuple[str, str, List[str]] = super().parse_parts(  # type:ignore
-            parts
-        )
-        drv, root, parsed = parse_tuple
-        if len(parsed) and parsed[0].endswith(":"):
-            if len(parsed) < 2:
-                raise ValueError("need atleast two parts")
-            # Restore the
-            drv = parsed[0]  # scheme:
-            root = parsed[1]  # bucket_name
-        for part in parsed[1:]:
-            if part == "..":
-                index = parsed.index(part)
-                parsed.pop(index - 1)
-                parsed.remove(part)
-        return drv, root, parsed
-
-    def make_uri(self, path: "Pathy") -> str:
-        return str(path)
-
-
-class PurePathy(PurePath):
-    """PurePath subclass for bucket storage."""
-
-    _flavour = _PathyFlavour()
+    pathmod = pathy_pathmod
     __slots__ = ()
 
     @property
@@ -287,71 +255,131 @@ class PurePathy(PurePath):
         # If there is no drive, return nothing
         if self.drive == "":
             return ""
-        # This is an assumption of mine. I think it's fine, but let's
-        # cause an error if it's not the case.
-        assert self.drive[-1] == ":", "drive should end with :"
-        return self.drive[:-1]
+        return str(self.drive)
 
     @property
     def bucket(self) -> "Pathy":
         """Return a new instance of only the bucket path."""
         self._absolute_path_validation()
-        return cast(Pathy, type(self)(f"{self.drive}//{self.root}"))
+        return cast(Pathy, type(self)(f"{self.drive}://{self.root}"))
 
     @property
-    def key(self) -> Optional["Pathy"]:
+    def key(self) -> str:
         """Return a new instance of only the key path."""
         self._absolute_path_validation()
-        key = self._flavour.sep.join(self.parts[2:])
-        if not key or len(self.parts) < 2:
-            return None
-        return cast(Pathy, type(self)(key))
+        if len(self._tail) == 0:
+            return ""
+        return pathy_pathmod.sep.join(self._tail)
 
     @property
     def prefix(self) -> str:
         """Returns part of the path after the bucket-name, always ending with path.sep,
         or an empty string if there is no prefix."""
-        if not self.key:
+        if self.key == "":
             return ""
-        return f"{self.key}{self._flavour.sep}"
+        return f"{self.key}{pathy_pathmod.sep}"
+
+    @property
+    def parts(self) -> Tuple[str, ...]:
+        """An object providing sequence-like access to the components in the cloud
+        bucket path.
+
+        Returns a tuple of the scheme, bucket, path parts
+
+        If the scheme or bucket aren't set, they will be empty strings.
+        """
+        return (self.drive, self.root) + tuple(self._tail)  # type: ignore
+
+    def __bytes__(self) -> bytes:
+        """Return the bytes representation of the path.  This is only
+        recommended to use under Unix."""
+        return os.fsencode(f"{self}")
 
     def _absolute_path_validation(self) -> None:
         if not self.is_absolute():
             raise ValueError("relative paths are unsupported")
 
+    def __repr__(self) -> str:
+        return "{}({!r})".format(self.__class__.__name__, self.as_posix())
+
+    def __lt__(self, other: object) -> bool:
+        """Support < comparisons and sorting with sorted()"""
+        return isinstance(other, (PurePath, Pathy)) and self.parts < other.parts
+
+    def __fspath__(self) -> str:
+        """Compatibilty with os.fspath()
+
+        ```python
+        import os
+        from pathy import Pathy
+
+        path: Pathy = Pathy("gs://foo/bar")
+        str_path: str = os.fspath(path)
+        ```
+        """
+        return str(self)
+
+    def __eq__(self, other: object) -> bool:
+        """Enables equality comparisons, e.g.
+
+        ```python
+        from pathy import Pathy
+
+        Pathy("gs://foo/bar") == Pathy("gs://foo/bar")
+        ```
+        """
+        return (
+            isinstance(other, PurePathy)
+            and self.parts == other.parts
+            and self.scheme == other.scheme
+            and self.drive == other.drive
+        )
+
+    def as_posix(self) -> str:
+        return self._format_parsed_parts(self.drive, self.root, self._tail)
+
     @classmethod
-    def _format_parsed_parts(cls, drv: str, root: str, parts: List[str]) -> str:
+    def _format_parsed_parts(cls, drv: str, root: str, tail: List[str]) -> str:
         # Bucket path "gs://foo/bar"
-        join_fn: Callable[[List[str]], str] = cls._flavour.join  # type:ignore
-        # If the scheme is file: and it's Windows, use \\ slashes to join
-        if drv.lower() == "file:" and os.name == "nt":
+        join_fn: Callable[[List[str]], str] = pathy_pathmod.sep.join
+        # If the scheme is file and it's Windows, use \\ slashes to join
+        if drv.lower() == "file" and os.name == "nt":
             join_fn = "\\".join
-        res: str
-        if drv and root:
-            res = f"{drv}//{root}/" + join_fn(parts[2:])
-        # Absolute path
-        elif drv or root:
-            res = drv + root + join_fn(parts[1:])
+        if drv != "" or root != "":
+            res = f"{drv}{pathy_pathmod.schemesep}{root}{pathy_pathmod.sep}" + join_fn(
+                tail
+            )
         else:
-            # Relative path
-            res = join_fn(parts)
+            res = join_fn(tail)
         return res
 
 
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
+if os.name == "nt":
+    BasePathlibPath = pathlib.WindowsPath  # type:ignore
+else:
+    BasePathlibPath = pathlib.PosixPath  # type:ignore
 
-class BasePath(Path):
-    # NOTE: pathlib normally takes care of this, but the logic checks
-    #       for specifically "Path" type class in __new__ so we need to
-    #       set the flavour manually based on the OS.
-    _flavour = _windows_flavour if os.name == "nt" else _posix_flavour  # type:ignore
 
+class PathlibPathEx(BasePathlibPath):
+    """Extension of pathlib.Path that includes Pathy helpers. This makes using Pathy
+    consistent across cloud and pathlib objects, including the expanded API."""
+
+    def ls(self) -> Generator[BlobStat, None, None]:
+        for entry in self.iterdir():
+            stat = entry.stat()
+            yield BlobStat(
+                name=entry.name, size=stat.st_size, last_modified=int(stat.st_mtime)
+            )
+
+
+class BasePath(PathBase):
     def ls(self: Any) -> Generator["BlobStat", None, None]:
         client: BucketClient = get_client(getattr(self, "scheme", "file"))
         blobs: "ScanDirFS" = cast(
             ScanDirFS, client.scandir(self, prefix=getattr(self, "prefix", None))
-        )  # type:ignore
+        )
         for blob in blobs:
             stat = blob.stat()
             yield BlobStat(
@@ -367,114 +395,23 @@ class BasePath(Path):
         for blob in blobs:
             yield self / blob.name
 
-    def stat(self: "BasePath") -> BlobStat:  # type:ignore[override]
-        """Iterate over the blobs found in the given bucket or blob prefix path."""
-        stat = super().stat()
-        return BlobStat(
-            name=self.name, size=stat.st_size, last_modified=int(stat.st_mtime)
-        )
-
-    # Stat helpers
-
-    def _check_mode(self: "BasePath", mode_fn: Callable[[int], bool]) -> bool:
-        """
-        Check the mode against a stat.S_IS[MODE] function.
-
-        This ignores OS-specific errors that are raised when a path does
-        not exist, or has some invalid attribute (e.g. a bad symlink).
-        """
-        try:
-            return mode_fn(os.stat(self).st_mode)
-        except OSError as exception:
-            # Ignorable error codes come from pathlib.py
-            #
-            error = getattr(exception, "errno", None)
-            errors = (ENOENT, ENOTDIR, EBADF, ELOOP)
-            win_error = getattr(exception, "winerror", None)
-            win_errors = (
-                21,  # ERROR_NOT_READY - drive exists but is not accessible
-                123,  # ERROR_INVALID_NAME - fix for bpo-35306
-                1921,  # ERROR_CANT_RESOLVE_FILENAME - broken symlink points to self
-            )
-            if error not in errors and win_error not in win_errors:
-                raise
-            return False
-        except ValueError:
-            return False
-
-    def is_dir(self: "BasePath") -> bool:
-        """Whether this path is a directory."""
-        return os.path.isdir(self)
-
-    def is_file(self: "BasePath") -> bool:
-        """Whether this path is a file."""
-        return os.path.isfile(self)
-
-    def is_mount(self: "BasePath") -> bool:
-        """Check if this path is a POSIX mount point"""
-        return os.path.ismount(self)
-
-    def is_symlink(self: "BasePath") -> bool:
-        """Whether this path is a symbolic link."""
-        return os.path.islink(self)
-
-    def is_block_device(self: "BasePath") -> bool:
-        """Whether this path is a block device."""
-        return self._check_mode(S_ISBLK)
-
-    def is_char_device(self: "BasePath") -> bool:
-        """Whether this path is a character device."""
-        return self._check_mode(S_ISCHR)
-
-    def is_fifo(self: "BasePath") -> bool:
-        """Whether this path is a FIFO."""
-        return self._check_mode(S_ISFIFO)
-
-    def is_socket(self: "BasePath") -> bool:
-        """Whether this path is a socket."""
-        return self._check_mode(S_ISSOCK)
-
-
-class BucketsAccessor:
-    """Path access for python < 3.11"""
-
-    def scandir(self, target: Any) -> "PathyScanDir":
-        client: BucketClientFS = get_client(getattr(target, "scheme", "file"))
-        return client.scandir(target, prefix=getattr(target, "prefix", None))
-
 
 class Pathy(PurePathy, BasePath):
-    """Subclass of `pathlib.Path` that works with bucket APIs."""
+    """Subclass of `PathBase` that works with bucket APIs."""
 
     __slots__ = ()
-    _accessor: BucketsAccessor = BucketsAccessor()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
-    _UNSUPPORTED_PATH = (
-        "absolute file paths must be initialized using Pathy.fluid(path)"
-    )
     _client: Optional[BucketClient]
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        # Error when initializing paths without using Pathy.fluid if the
-        # path is an absolute system path (windows/unix)
-        root = str(self)[0]  # "/tmp/path"
-        drv = str(self)[:2].lower()  # C:\\tmp\\path
-        if root == "/" or drv in _drive_letters:
-            raise ValueError(Pathy._UNSUPPORTED_PATH)
 
     def client(self, path: "Pathy") -> BucketClient:
         return get_client(path.scheme)
 
-    def __truediv__(  # type: ignore[override]
-        self, key: Union[str, Path, "Pathy", PurePathy]
-    ) -> "Pathy":
+    def __truediv__(self, key: Union[str, PathBase, "Pathy", PurePathy]) -> "Pathy":
         return super().__truediv__(key)  # type:ignore
 
-    def _init(self: "Pathy", template: Optional[Any] = None) -> None:
-        # This was removed in python 3.10, and in earlier versions we
-        # assign the _accessor directly, so pass on the super() behavior
-        pass
+    def _make_child_entry(self, entry: BucketEntry) -> "Pathy":
+        # Transform an entry yielded from _scandir() into a path object.
+        return self / Pathy(entry.name)
 
     @classmethod
     def fluid(cls, path_candidate: Union[str, FluidPath]) -> FluidPath:
@@ -488,6 +425,7 @@ class Pathy(PurePathy, BasePath):
         return of this function to the desired type, e.g.
 
         ```python
+        from pathlib import Path
         from pathy import FluidPath, Pathy
 
         fluid_path: FluidPath = Pathy.fluid("gs://my_bucket/foo.txt")
@@ -495,15 +433,16 @@ class Pathy(PurePathy, BasePath):
         assert isinstance(fluid_path, Pathy), "must be Pathy"
         # Use a member specific to that class
         assert fluid_path.prefix == "foo.txt/"
+
+        # Or use a file-system path
+        posix_path: FluidPath = Pathy.fluid("/tmp/foo.txt")
+        assert isinstance(posix_path, Path), "must be pathlib.Path"
         ```
         """
-        try:
-            result = Pathy(path_candidate)
-            if result.root != "":
-                return result
-        except ValueError:
-            pass
-        return BasePath(path_candidate)
+        result = Pathy(path_candidate)
+        if result.root != "":
+            return result
+        return PathlibPathEx(str(path_candidate))
 
     @classmethod
     def from_bucket(cls, bucket_name: str, scheme: str = "gs") -> "Pathy":
@@ -517,7 +456,7 @@ class Pathy(PurePathy, BasePath):
         assert str(Pathy.from_bucket("two")) == "gs://two/"
         ```
         """
-        return Pathy(f"{scheme}://{bucket_name}/")  # type:ignore
+        return Pathy(f"{scheme}://{bucket_name}/")
 
     @classmethod
     def to_local(cls, blob_path: Union["Pathy", str], recurse: bool = True) -> Path:
@@ -540,7 +479,7 @@ class Pathy(PurePathy, BasePath):
             in_path = blob_path
 
         cache_blob: Path = cache_folder.absolute() / in_path.root
-        if in_path.key is not None:
+        if in_path.key != "":
             cache_blob /= in_path.key
         cache_time: Path = (
             cache_folder.absolute() / in_path.root / f"{in_path.key}.time"
@@ -589,10 +528,10 @@ class Pathy(PurePathy, BasePath):
     ) -> BlobStat:
         """Returns information about this bucket path."""
         self._absolute_path_validation()
-        if not self.key:
+        if self.key == "":
             raise ValueError("cannot stat a bucket without a key")
         bucket = self.client(self).get_bucket(self)
-        blob: Optional[Blob] = bucket.get_blob(str(self.key))
+        blob: Optional[Blob] = bucket.get_blob(self.key)
         if blob is None:
             raise FileNotFoundError(self)
         return BlobStat(name=str(blob.name), size=blob.size, last_modified=blob.updated)
@@ -604,17 +543,16 @@ class Pathy(PurePathy, BasePath):
         bucket = client.lookup_bucket(self)
         if bucket is None or not bucket.exists():
             return False
-        if not self.key:
+        if self.key == "":
             return True
 
-        key_name = str(self.key)
-        blob: Optional[Blob] = bucket.get_blob(key_name)
+        blob: Optional[Blob] = bucket.get_blob(self.key)
         if blob is not None:
             return blob.exists()
         # Determine if the path exists according to the current adapter
         return client.exists(self)
 
-    def is_dir(self: "Pathy") -> bool:
+    def is_dir(self: "Pathy", *, follow_symlinks: bool = True) -> bool:
         """Determine if the path points to a bucket or a prefix of a given blob
         in the bucket.
 
@@ -622,11 +560,11 @@ class Pathy(PurePathy, BasePath):
         Returns False if it points to a blob or the path doesn't exist.
         """
         self._absolute_path_validation()
-        if self.bucket and not self.key:
+        if self.bucket and self.key == "":
             return self.client(self).lookup_bucket(self) is not None
         return self.client(self).is_dir(self)
 
-    def is_file(self: "Pathy") -> bool:
+    def is_file(self: "Pathy", *, follow_symlinks: bool = True) -> bool:
         """Determine if the path points to a blob in the bucket.
 
         Returns True if the path points to a blob.
@@ -634,26 +572,23 @@ class Pathy(PurePathy, BasePath):
         exist.
         """
         self._absolute_path_validation()
-        if not self.bucket or not self.key:
+        if not self.bucket or self.key == "":
             return False
         try:
-            return bool(self.stat())
+            return bool(self.stat(follow_symlinks=follow_symlinks))
         except (ClientError, FileNotFoundError):
             return False
 
-    def iterdir(self: "Pathy") -> Generator["Pathy", None, None]:
-        """Iterate over the blobs found in the given bucket or blob prefix path."""
-        yield from cast(Generator["Pathy", None, None], super().iterdir())
-
-    def glob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
+    def glob(
+        self: "Pathy",
+        pattern: str,
+        *,
+        case_sensitive: Optional[bool] = None,
+        follow_symlinks: Optional[bool] = None,
+    ) -> Generator["Pathy", None, None]:
         """Perform a glob match relative to this Pathy instance, yielding all matched
         blobs."""
-        yield from cast(Generator["Pathy", None, None], super().glob(pattern))
-
-    def rglob(self: "Pathy", pattern: str) -> Generator["Pathy", None, None]:
-        """Perform a recursive glob match relative to this Pathy instance, yielding
-        all matched blobs. Imagine adding "**/" before a call to glob."""
-        yield from cast(Generator["Pathy", None, None], super().rglob(pattern))
+        yield from super().glob(pattern)
 
     def open(  # type:ignore
         self: "Pathy",
@@ -709,7 +644,9 @@ class Pathy(PurePathy, BasePath):
         self._absolute_path_validation()
         return self.client(self).resolve(self, strict=strict)
 
-    def rename(self: "Pathy", target: Union[str, PurePath]) -> "Pathy":  # type:ignore
+    def rename(  # type:ignore
+        self: "Pathy", target: Union[str, PurePathBase]
+    ) -> "Pathy":
         """Rename this path to the given target.
 
         If the target exists and is a file, it will be replaced silently if the user
@@ -728,26 +665,26 @@ class Pathy(PurePathy, BasePath):
 
         # Single file
         if not self.is_dir():
-            from_blob: Optional[Blob] = bucket.get_blob(str(self.key))
+            from_blob: Optional[Blob] = bucket.get_blob(self.key)
             if from_blob is None:
                 raise FileNotFoundError(f'source file "{self}" does not exist')
-            target_bucket.copy_blob(from_blob, target_bucket, str(result.key))
+            target_bucket.copy_blob(from_blob, target_bucket, result.key)
             bucket.delete_blob(from_blob)
             return self
 
         # Folder with objects
-        sep: str = self._flavour.sep  # type:ignore
+        sep: str = pathy_pathmod.sep
         blobs = list(client.list_blobs(self, prefix=self.prefix, delimiter=sep))
         # First rename
         for blob in blobs:
-            target_key_name = blob.name.replace(str(self.key), str(result.key))
+            target_key_name = blob.name.replace(self.key, result.key)
             target_bucket.copy_blob(blob, target_bucket, target_key_name)
         # Then delete the sources
         for blob in blobs:
             bucket.delete_blob(blob)
         return self
 
-    def replace(self: "Pathy", target: Union[str, PurePath]) -> "Pathy":  # type:ignore
+    def replace(self: "Pathy", target: Union[str, PurePathBase]) -> "Pathy":
         """Renames this path to the given target.
 
         If target points to an existing path, it will be replaced."""
@@ -761,7 +698,7 @@ class Pathy(PurePathy, BasePath):
         if not self.is_dir():
             raise FileNotFoundError()
         client: BucketClient = self.client(self)
-        key_name = str(self.key) if self.key is not None else None
+        key_name = self.key if self.key != "" else None
         bucket: Bucket = client.get_bucket(self)
         blobs = list(client.list_blobs(self, prefix=key_name))
         bucket.delete_blobs(blobs)
@@ -771,10 +708,10 @@ class Pathy(PurePathy, BasePath):
         elif client.is_dir(self):
             client.rmdir(self)
 
-    def samefile(self: "Pathy", other_path: Union[str, bytes, int, Path]) -> bool:
+    def samefile(self: "Pathy", other_path: Union[str, bytes, int, PathBase]) -> bool:
         """Determine if this path points to the same location as other_path."""
         self._absolute_path_validation()
-        if not isinstance(other_path, Path):
+        if not isinstance(other_path, PathBase):
             other_path = type(self)(other_path)  # type:ignore
         assert isinstance(other_path, Pathy)
         return (
@@ -811,7 +748,7 @@ class Pathy(PurePathy, BasePath):
         """
         try:
             # If the path is just the bucket, respect the result of "bucket.exists()"
-            if self.key is None and not exist_ok and self.bucket.exists():
+            if self.key == "" and not exist_ok and self.bucket.exists():
                 raise FileExistsError("Bucket {} already exists".format(self.bucket))
             return self.client(self).mkdir(self, mode)
         except OSError:
@@ -821,10 +758,10 @@ class Pathy(PurePathy, BasePath):
     def is_mount(self: "Pathy") -> bool:
         return False
 
-    def is_symlink(self: "Pathy") -> bool:
+    def is_socket(self: "Pathy") -> bool:
         return False
 
-    def is_socket(self: "Pathy") -> bool:
+    def is_symlink(self: "Pathy") -> bool:
         return False
 
     def is_fifo(self: "Pathy") -> bool:
@@ -833,14 +770,10 @@ class Pathy(PurePathy, BasePath):
     def unlink(self: "Pathy") -> None:  # type:ignore[override]
         """Delete a link to a blob in a bucket."""
         bucket = self.client(self).get_bucket(self)
-        blob: Optional[Blob] = bucket.get_blob(str(self.key))
+        blob: Optional[Blob] = bucket.get_blob(self.key)
         if blob is None:
             raise FileNotFoundError(self)
         blob.delete()
-
-    def _scandir(self: "Pathy") -> "PathyScanDir":
-        # Python 3.11 calls this instead of _accessor.scandir
-        return self.client(self).scandir(self, prefix=self.prefix)
 
     # Unsupported operations below here
 
@@ -889,7 +822,7 @@ class Pathy(PurePathy, BasePath):
         raise NotImplementedError(message)
 
     def symlink_to(
-        self, target: Union[str, Path], target_is_directory: bool = False
+        self, target: Union[str, PathBase], target_is_directory: bool = False
     ) -> None:
         message = self._NOT_SUPPORTED_MESSAGE.format(
             method=self.symlink_to.__qualname__
@@ -897,14 +830,8 @@ class Pathy(PurePathy, BasePath):
         raise NotImplementedError(message)
 
 
-class PathyScanDir(Iterator[Any], ContextManager[Any], ABC):
-    """A scandir implementation that works for all python 3.x versions.
-
-    Python < 3.7 requires that scandir be iterable so it can be converted
-    to a list of results.
-
-    Python >= 3.8 requires that scandir work as a context manager.
-    """
+class PathyScanDir(Iterator[Any], ABC):
+    """A scandir implementation that works for all python 3.x versions."""
 
     def __init__(
         self,
@@ -919,12 +846,6 @@ class PathyScanDir(Iterator[Any], ContextManager[Any], ABC):
         self._prefix = prefix
         self._delimiter = delimiter
         self._generator = self.scandir()
-
-    def __enter__(self) -> Generator[BucketEntry, None, None]:
-        return self._generator
-
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        pass
 
     def __next__(self) -> Generator[BucketEntry, None, None]:
         yield from self._generator
@@ -964,7 +885,7 @@ class BlobFS(Blob):
 @dataclass
 class BucketFS(Bucket):
     name: str
-    bucket: pathlib.Path
+    bucket: PathlibPathEx
 
     def get_blob(self, blob_name: str) -> Optional[BlobFS]:  # type:ignore[override]
         native_blob = self.bucket / blob_name
@@ -973,7 +894,7 @@ class BucketFS(Bucket):
         stat = native_blob.stat()
         # path.owner() raises KeyError if the owner's UID isn't known
         #
-        # https://docs.python.org/3/library/pathlib.html#pathlib.Path.owner
+        # https://docs.python.org/3/library/pathlib.html#Path.owner
         owner: Optional[str]
         try:
             # path.owner() raises NotImplementedError on windows
@@ -994,7 +915,7 @@ class BucketFS(Bucket):
     ) -> Optional[BlobFS]:
         in_file = str(blob.bucket.bucket / blob.name)
         out_file = str(target.bucket / name)
-        out_path = pathlib.Path(os.path.dirname(out_file))
+        out_path = PathlibPathEx(os.path.dirname(out_file))
         if not out_path.exists():
             out_path.mkdir(parents=True)
         shutil.copy(in_file, out_file)
@@ -1014,13 +935,13 @@ class BucketFS(Bucket):
 @dataclass
 class BucketClientFS(BucketClient):
     # Root to store file-system buckets as children of
-    root: pathlib.Path = field(
-        default_factory=lambda: pathlib.Path(f"/tmp/pathy-{uuid.uuid4().hex}/")
+    root: PathlibPathEx = field(
+        default_factory=lambda: PathlibPathEx(f"/tmp/pathy-{uuid.uuid4().hex}/")
     )
 
-    def full_path(self, path: Pathy) -> pathlib.Path:
-        full_path = self.root.absolute() / path.root
-        if path.key is not None:
+    def full_path(self, path: Pathy) -> PathlibPathEx:
+        full_path: PathlibPathEx = self.root.absolute() / path.root
+        if path.key != "":
             full_path = full_path / path.key
         return full_path
 
@@ -1033,7 +954,7 @@ class BucketClientFS(BucketClient):
 
     def rmdir(self, path: Pathy) -> None:
         full_path = self.full_path(path)
-        return shutil.rmtree(str(full_path))
+        return shutil.rmtree(full_path)
 
     def mkdir(self, path: "Pathy", mode: int = 0) -> None:
         full_path = self.full_path(path)
@@ -1070,7 +991,7 @@ class BucketClientFS(BucketClient):
         if not path.root:
             raise ValueError(f"cannot make a URI to an invalid bucket: {path.root}")
         full_path = self.root.absolute() / path.root
-        if path.key is not None:
+        if path.key != "":
             full_path /= path.key
         result = f"file://{full_path}"
         return result
@@ -1078,20 +999,20 @@ class BucketClientFS(BucketClient):
     def create_bucket(self, path: PurePathy) -> Bucket:
         if not path.root:
             raise ValueError(f"Invalid bucket name: {path.root}")
-        bucket_path: pathlib.Path = self.root / path.root
+        bucket_path: PathBase = self.root / path.root
         if bucket_path.exists():
             raise FileExistsError(f"Bucket already exists at: {bucket_path}")
         bucket_path.mkdir(parents=True, exist_ok=True)
         return BucketFS(str(path.root), bucket=bucket_path)
 
     def delete_bucket(self, path: PurePathy) -> None:
-        bucket_path: pathlib.Path = self.root / str(path.root)
+        bucket_path: PathBase = self.root / str(path.root)
         if bucket_path.exists():
             shutil.rmtree(bucket_path)
 
     def lookup_bucket(self, path: PurePathy) -> Optional[BucketFS]:
         if path.root:
-            bucket_path: pathlib.Path = self.root / path.root
+            bucket_path: PathlibPathEx = self.root / path.root
             if bucket_path.exists():
                 return BucketFS(str(path.root), bucket=bucket_path)
         return None
@@ -1099,7 +1020,7 @@ class BucketClientFS(BucketClient):
     def get_bucket(self, path: PurePathy) -> BucketFS:
         if not path.root:
             raise ValueError(f"path has an invalid bucket_name: {path.root}")
-        bucket_path: pathlib.Path = self.root / path.root
+        bucket_path: PathlibPathEx = self.root / path.root
         if bucket_path.is_dir():
             return BucketFS(str(path.root), bucket=bucket_path)
         raise FileNotFoundError(f"Bucket {path.root} does not exist!")
@@ -1124,7 +1045,7 @@ class BucketClientFS(BucketClient):
         if prefix is not None:
             scan_path = scan_path / prefix
 
-        # Path to a file
+        # PathBase to a file
         if scan_path.exists() and not scan_path.is_dir():
             stat = scan_path.stat()
             file_size = stat.st_size
@@ -1163,19 +1084,13 @@ class ScanDirFS(PathyScanDir):
 
     def scandir(self) -> Generator[BucketEntry, None, None]:
         scan_path = self._client.root / self._path.root
-        if isinstance(self._path, BasePath) and not isinstance(self._path, Pathy):
-            scan_path = (
-                self._client.root / self._path.root
-                if not self._path.is_absolute()
-                else self._path
-            )
         if self._prefix is not None:
             scan_path = scan_path / self._prefix
         for dir_entry in scan_path.glob("*"):
             if dir_entry.is_dir():
                 yield BucketEntryFS(dir_entry.name, is_dir=True, raw=None)
             else:
-                file_path = pathlib.Path(dir_entry)
+                file_path = PathlibPathEx(dir_entry)
                 stat = file_path.stat()
                 file_size = stat.st_size
                 updated = int(round(stat.st_mtime))
@@ -1219,7 +1134,7 @@ BucketClientType = TypeVar("BucketClientType", bound=BucketClient)
 _client_args_registry: Dict[str, Any] = {}
 _instance_cache: Dict[str, Any] = {}
 _fs_client: Optional["BucketClientFS"] = None
-_fs_cache: Optional[pathlib.Path] = None
+_fs_cache: Optional[PathlibPathEx] = None
 
 
 def register_client(scheme: str, type: Type[BucketClient]) -> None:
@@ -1264,7 +1179,7 @@ def set_client_params(scheme: str, **kwargs: Any) -> None:
 
 
 def use_fs(
-    root: Optional[Union[str, pathlib.Path, bool]] = None
+    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None
 ) -> Optional[BucketClientFS]:
     """Use a path in the local file-system to store blobs and buckets.
 
@@ -1279,12 +1194,12 @@ def use_fs(
     # None or True - enable FS adapter with default root
     if root is None or root is True:
         # Look up "data" folder of pathy package similar to spaCy
-        client_root = pathlib.Path(__file__).parent / "data"
+        client_root = PathlibPathEx(__file__).parent / "data"
     else:
         assert isinstance(
-            root, (str, pathlib.Path)
+            root, (str, PathBase, PathlibPathEx)
         ), f"root is not a known type: {type(root)}"
-        client_root = pathlib.Path(root)
+        client_root = PathlibPathEx(str(root))
     if not client_root.exists():
         client_root.mkdir(parents=True)
     _fs_client = BucketClientFS(root=client_root)
@@ -1301,8 +1216,8 @@ def get_fs_client() -> Optional[BucketClientFS]:
 
 
 def use_fs_cache(
-    root: Optional[Union[str, pathlib.Path, bool]] = None
-) -> Optional[pathlib.Path]:
+    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None
+) -> Optional[PathlibPathEx]:
     """Use a path in the local file-system to cache blobs and buckets.
 
     This is useful for when you want to avoid fetching large blobs multiple
@@ -1316,22 +1231,24 @@ def use_fs_cache(
     # None or True - enable FS cache with default root
     if root is None or root is True:
         # Use a temporary folder. Cache will be removed according to OS policy
-        cache_root = pathlib.Path(tempfile.mkdtemp())
+        cache_root = PathlibPathEx(tempfile.mkdtemp())
     else:
         assert isinstance(
-            root, (str, pathlib.Path)
+            root, (str, PathBase, PathlibPathEx, BasePathlibPath)
         ), f"root is not a known type: {type(root)}"
-        cache_root = pathlib.Path(root)
+        cache_root = PathlibPathEx(str(root))
     if not cache_root.exists():
         cache_root.mkdir(parents=True)
     _fs_cache = cache_root
     return cache_root
 
 
-def get_fs_cache() -> Optional[pathlib.Path]:
+def get_fs_cache() -> Optional[PathlibPathEx]:
     """Get the folder that holds file-system cached blobs and timestamps."""
     global _fs_cache
-    assert _fs_cache is None or isinstance(_fs_cache, pathlib.Path), "invalid root type"
+    assert _fs_cache is None or isinstance(
+        _fs_cache, PathlibPathEx
+    ), "invalid root type"
     return _fs_cache
 
 

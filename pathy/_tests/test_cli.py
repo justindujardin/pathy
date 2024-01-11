@@ -1,11 +1,10 @@
 import pathlib
-import shutil
 import tempfile
 
 import pytest
 from typer.testing import CliRunner
 
-from pathy import BlobStat, Pathy
+from pathy import BlobStat, BucketClientFS, Pathy
 from pathy.cli import app
 
 from .conftest import ENV_ID, TEST_ADAPTERS
@@ -265,11 +264,14 @@ def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
     assert str(root / "folder") in result.output
 
 
-def test_cli_ls_diff_years_modified() -> None:
+@pytest.mark.parametrize("adapter", ["fs"])
+def test_cli_ls_diff_years_modified(with_adapter: str, bucket: str) -> None:
     import os
 
-    root = Pathy.fluid(tempfile.mkdtemp()) / ENV_ID / "ls_diff_year"
+    root = Pathy(f"{with_adapter}://{bucket}") / ENV_ID / "ls_diff_year"
     root.mkdir(parents=True, exist_ok=True)
+
+    client: BucketClientFS = root.client(root)  # type:ignore
 
     # Create one file right now
     new_path = root / "new_file.txt"
@@ -282,8 +284,10 @@ def test_cli_ls_diff_years_modified() -> None:
     assert isinstance(old_stat, BlobStat)
     one_year = 31556926  # seconds
     assert old_stat.last_modified is not None
+
+    local_file = str(client.full_path(old_path))
     os.utime(
-        str(old_path),
+        local_file,
         (old_stat.last_modified - one_year, old_stat.last_modified - one_year),
     )
     new_old_stat = old_path.stat()
@@ -296,4 +300,4 @@ def test_cli_ls_diff_years_modified() -> None:
     assert str(old_path) in result.output
     assert str(new_path) in result.output
 
-    shutil.rmtree(str(root))
+    root.rmdir()

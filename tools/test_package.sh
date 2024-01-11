@@ -8,15 +8,13 @@ if [ ! -d "${DIR}" ]; then
     python -m virtualenv .test-env -p python3
 fi
 
-. .test-env/bin/activate
+WHEEL=`find ./dist -iname 'pathy-*.whl' | head -n 1`
 
-WHEEL=`find ./dist -iname '*.whl' | head -n 1`
-
-pip install "${WHEEL}[test]"
+.test-env/bin/pip install "${WHEEL}[test]"
 echo " === Running tests WITHOUT package extras installed..."
-python -m pytest --pyargs pathy._tests --cov=pathy
+.test-env/bin/python -m pytest --pyargs pathy._tests --cov=pathy
 
 
-pip install "${WHEEL}[all]"
+.test-env/bin/pip install "${WHEEL}[all]"
 echo " === Running tests WITH package extras installed..."
-python -m pytest --pyargs pathy._tests --cov=pathy --cov-append
+.test-env/bin/python -m pytest --pyargs pathy._tests --cov=pathy --cov-append

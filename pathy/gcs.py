@@ -122,9 +122,9 @@ class BucketClientGCS(BucketClient):
         # Because we want all the parents of a valid blob (e.g. "directory" in
         # "directory/foo.file") to return True, we enumerate the blobs with a prefix
         # and compare the object names to see if they match a substring of the path
-        key_name = str(path.key)
+        key_name = path.key
         for obj in self.list_blobs(path):
-            if obj.name.startswith(key_name + path._flavour.sep):  # type:ignore
+            if obj.name.startswith(key_name + path.pathmod.sep):
                 return True
         return False
 
@@ -179,7 +179,7 @@ class ScanDirGCS(PathyScanDir):
     _client: BucketClientGCS
 
     def scandir(self) -> Generator[BucketEntryGCS, None, None]:
-        sep = self._path._flavour.sep  # type:ignore
+        sep = self._path.pathmod.sep
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:
             return

@@ -147,7 +147,7 @@ class BucketClientAzure(BucketClient):
         # and compare the object names to see if they match a substring of the path
         key_name = str(path.key)
         for obj in self.list_blobs(path):
-            if obj.name.startswith(key_name + path._flavour.sep):  # type:ignore
+            if obj.name.startswith(key_name + path.pathmod.sep):
                 return True
         return False
 

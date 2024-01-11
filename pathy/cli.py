@@ -30,7 +30,7 @@ def cp(from_location: str, to_location: str) -> None:
         # Copy prefix from the source if the to_path has none.
         #
         # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        sep: str = to_path._flavour.sep  # type:ignore
+        sep: str = to_path.pathmod.sep  # type:ignore
         if isinstance(to_path, Pathy) and to_location.endswith(sep):
             to_path = to_path / from_path
 
@@ -50,7 +50,7 @@ def mv(from_location: str, to_location: str) -> None:
         # Copy prefix from the source if the to_path has none.
         #
         # e.g. "cp ./file.txt gs://bucket-name/" writes "gs://bucket-name/file.txt"
-        sep: str = to_path._flavour.sep  # type:ignore
+        sep: str = to_path.pathmod.sep  # type:ignore
         if isinstance(to_path, Pathy) and to_location.endswith(sep):
             to_path = to_path / from_path
         to_path.parent.mkdir(parents=True, exist_ok=True)

@@ -9,7 +9,7 @@ from typing import Any, Generator, Optional, Tuple
 
 import pytest
 
-from pathy import Pathy, set_client_params, use_fs, use_fs_cache
+from pathy import PathlibPathEx, Pathy, set_client_params, use_fs, use_fs_cache
 
 from . import azure_testable, gcs_testable, s3_testable
 
@@ -41,7 +41,7 @@ def other_bucket() -> str:
 @pytest.fixture()
 def temp_folder() -> Generator[Path, None, None]:
     tmp_dir = tempfile.mkdtemp()
-    yield Path(tmp_dir)
+    yield PathlibPathEx(tmp_dir)
     shutil.rmtree(tmp_dir)
 
 
