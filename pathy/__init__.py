@@ -356,8 +356,13 @@ class PurePathy(PurePathBase):
 
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
+if os.name == "nt":
+    BasePathlibPath = pathlib.WindowsPath  # type:ignore
+else:
+    BasePathlibPath = pathlib.PosixPath  # type:ignore
 
-class PathlibPathEx(pathlib.Path):
+
+class PathlibPathEx(BasePathlibPath):
     """Extension of pathlib.Path that includes Pathy helpers. This makes using Pathy
     consistent across cloud and pathlib objects, including the expanded API."""
 
@@ -374,7 +379,7 @@ class BasePath(PathBase):
         client: BucketClient = get_client(getattr(self, "scheme", "file"))
         blobs: "ScanDirFS" = cast(
             ScanDirFS, client.scandir(self, prefix=getattr(self, "prefix", None))
-        )  # type:ignore
+        )
         for blob in blobs:
             stat = blob.stat()
             yield BlobStat(
@@ -1229,7 +1234,7 @@ def use_fs_cache(
         cache_root = PathlibPathEx(tempfile.mkdtemp())
     else:
         assert isinstance(
-            root, (str, PathBase, PathlibPathEx)
+            root, (str, PathBase, PathlibPathEx, BasePathlibPath)
         ), f"root is not a known type: {type(root)}"
         cache_root = PathlibPathEx(str(root))
     if not cache_root.exists():
