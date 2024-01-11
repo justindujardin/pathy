@@ -30,16 +30,6 @@ def test_pathy_is_path_instance(with_adapter: str) -> None:
     assert isinstance(blob, BasePath)
 
 
-# TODO: add breaking change - see Pathy.__init__
-#
-# def test_pathy_error_invalid_scheme_paths() -> None:
-#     # Initializing a path with an absolute system path warns
-#     with pytest.raises(ValueError):
-#         Pathy("c:\\temp\\other\\file.txt")
-#     with pytest.raises(ValueError):
-#         Pathy("/tmp/other/file.txt")
-
-
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_pathy_fluid(with_adapter: str, bucket: str) -> None:
     path: FluidPath = Pathy.fluid(f"{with_adapter}://{bucket}/{ENV_ID}/fake-key")

@@ -1,4 +1,5 @@
 import pathlib
+import tempfile
 
 import pytest
 from typer.testing import CliRunner
@@ -228,39 +229,39 @@ def test_cli_ls(with_adapter: str, bucket: str) -> None:
     assert str(root / "folder") in result.output
 
 
-# @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
-# def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
-#     root = Pathy.fluid(tempfile.mkdtemp()) / ENV_ID / "ls"
-#     root.mkdir(parents=True, exist_ok=True)
-#     for i in range(3):
-#         (root / f"file_{i}").write_text("NICE")
-#     files = list(root.ls())
-#     assert len(files) == 3
-#     valid_names = [f"file_{i}" for i in range(len(files))]
-#     for i, blob_stat in enumerate(files):
-#         assert blob_stat.name in valid_names
-#         assert blob_stat.size == 4
-#         assert blob_stat.last_modified is not None
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
+    root = Pathy.fluid(tempfile.mkdtemp()) / ENV_ID / "ls"
+    root.mkdir(parents=True, exist_ok=True)
+    for i in range(3):
+        (root / f"file_{i}").write_text("NICE")
+    files = list(root.ls())
+    assert len(files) == 3
+    valid_names = [f"file_{i}" for i in range(len(files))]
+    for i, blob_stat in enumerate(files):
+        assert blob_stat.name in valid_names
+        assert blob_stat.size == 4
+        assert blob_stat.last_modified is not None
 
-#     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls"
-#     one = str(root / "file.txt")
-#     two = str(root / "other.txt")
-#     three = str(root / "folder/file.txt")
-#     Pathy(one).write_text("---")
-#     Pathy(two).write_text("---")
-#     Pathy(three).write_text("---")
+    root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls"
+    one = str(root / "file.txt")
+    two = str(root / "other.txt")
+    three = str(root / "folder/file.txt")
+    Pathy(one).write_text("---")
+    Pathy(two).write_text("---")
+    Pathy(three).write_text("---")
 
-#     result = runner.invoke(app, ["ls", str(root)])
-#     assert result.exit_code == 0
-#     assert one in result.output
-#     assert two in result.output
-#     assert str(root / "folder") in result.output
+    result = runner.invoke(app, ["ls", str(root)])
+    assert result.exit_code == 0
+    assert one in result.output
+    assert two in result.output
+    assert str(root / "folder") in result.output
 
-#     result = runner.invoke(app, ["ls", "-l", str(root)])
-#     assert result.exit_code == 0
-#     assert one in result.output
-#     assert two in result.output
-#     assert str(root / "folder") in result.output
+    result = runner.invoke(app, ["ls", "-l", str(root)])
+    assert result.exit_code == 0
+    assert one in result.output
+    assert two in result.output
+    assert str(root / "folder") in result.output
 
 
 @pytest.mark.parametrize("adapter", ["fs"])

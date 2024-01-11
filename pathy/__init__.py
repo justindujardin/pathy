@@ -33,7 +33,7 @@ from . import pathmod as pathy_pathmod
 SUBCLASS_ERROR = "must be implemented in a subclass"
 
 StreamableType = IO[Any]
-FluidPath = Union["Pathy", "Path"]
+FluidPath = Union["Pathy", "PathlibPathEx"]
 BucketType = TypeVar("BucketType")
 BucketBlobType = TypeVar("BucketBlobType")
 
@@ -357,6 +357,18 @@ class PurePathy(PurePathBase):
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
 
+class PathlibPathEx(pathlib.Path):
+    """Extension of pathlib.Path that includes Pathy helpers. This makes using Pathy
+    consistent across cloud and pathlib objects, including the expanded API."""
+
+    def ls(self) -> Generator[BlobStat, None, None]:
+        for entry in self.iterdir():
+            stat = entry.stat()
+            yield BlobStat(
+                name=entry.name, size=stat.st_size, last_modified=int(stat.st_mtime)
+            )
+
+
 class BasePath(PathBase):
     def ls(self: Any) -> Generator["BlobStat", None, None]:
         client: BucketClient = get_client(getattr(self, "scheme", "file"))
@@ -425,7 +437,7 @@ class Pathy(PurePathy, BasePath):
         result = Pathy(path_candidate)
         if result.root != "":
             return result
-        return pathlib.Path(str(path_candidate))
+        return PathlibPathEx(str(path_candidate))
 
     @classmethod
     def from_bucket(cls, bucket_name: str, scheme: str = "gs") -> "Pathy":
@@ -868,7 +880,7 @@ class BlobFS(Blob):
 @dataclass
 class BucketFS(Bucket):
     name: str
-    bucket: pathlib.Path
+    bucket: PathlibPathEx
 
     def get_blob(self, blob_name: str) -> Optional[BlobFS]:  # type:ignore[override]
         native_blob = self.bucket / blob_name
@@ -898,7 +910,7 @@ class BucketFS(Bucket):
     ) -> Optional[BlobFS]:
         in_file = str(blob.bucket.bucket / blob.name)
         out_file = str(target.bucket / name)
-        out_path = pathlib.Path(os.path.dirname(out_file))
+        out_path = PathlibPathEx(os.path.dirname(out_file))
         if not out_path.exists():
             out_path.mkdir(parents=True)
         shutil.copy(in_file, out_file)
@@ -918,12 +930,12 @@ class BucketFS(Bucket):
 @dataclass
 class BucketClientFS(BucketClient):
     # Root to store file-system buckets as children of
-    root: pathlib.Path = field(
-        default_factory=lambda: pathlib.Path(f"/tmp/pathy-{uuid.uuid4().hex}/")
+    root: PathlibPathEx = field(
+        default_factory=lambda: PathlibPathEx(f"/tmp/pathy-{uuid.uuid4().hex}/")
     )
 
-    def full_path(self, path: Pathy) -> pathlib.Path:
-        full_path: pathlib.Path = self.root.absolute() / path.root
+    def full_path(self, path: Pathy) -> PathlibPathEx:
+        full_path: PathlibPathEx = self.root.absolute() / path.root
         if path.key != "":
             full_path = full_path / path.key
         return full_path
@@ -995,7 +1007,7 @@ class BucketClientFS(BucketClient):
 
     def lookup_bucket(self, path: PurePathy) -> Optional[BucketFS]:
         if path.root:
-            bucket_path: pathlib.Path = self.root / path.root
+            bucket_path: PathlibPathEx = self.root / path.root
             if bucket_path.exists():
                 return BucketFS(str(path.root), bucket=bucket_path)
         return None
@@ -1003,7 +1015,7 @@ class BucketClientFS(BucketClient):
     def get_bucket(self, path: PurePathy) -> BucketFS:
         if not path.root:
             raise ValueError(f"path has an invalid bucket_name: {path.root}")
-        bucket_path: pathlib.Path = self.root / path.root
+        bucket_path: PathlibPathEx = self.root / path.root
         if bucket_path.is_dir():
             return BucketFS(str(path.root), bucket=bucket_path)
         raise FileNotFoundError(f"Bucket {path.root} does not exist!")
@@ -1073,7 +1085,7 @@ class ScanDirFS(PathyScanDir):
             if dir_entry.is_dir():
                 yield BucketEntryFS(dir_entry.name, is_dir=True, raw=None)
             else:
-                file_path = pathlib.Path(dir_entry)
+                file_path = PathlibPathEx(dir_entry)
                 stat = file_path.stat()
                 file_size = stat.st_size
                 updated = int(round(stat.st_mtime))
@@ -1117,7 +1129,7 @@ BucketClientType = TypeVar("BucketClientType", bound=BucketClient)
 _client_args_registry: Dict[str, Any] = {}
 _instance_cache: Dict[str, Any] = {}
 _fs_client: Optional["BucketClientFS"] = None
-_fs_cache: Optional[pathlib.Path] = None
+_fs_cache: Optional[PathlibPathEx] = None
 
 
 def register_client(scheme: str, type: Type[BucketClient]) -> None:
@@ -1162,7 +1174,7 @@ def set_client_params(scheme: str, **kwargs: Any) -> None:
 
 
 def use_fs(
-    root: Optional[Union[str, PathBase, pathlib.Path, bool]] = None
+    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None
 ) -> Optional[BucketClientFS]:
     """Use a path in the local file-system to store blobs and buckets.
 
@@ -1177,12 +1189,12 @@ def use_fs(
     # None or True - enable FS adapter with default root
     if root is None or root is True:
         # Look up "data" folder of pathy package similar to spaCy
-        client_root = pathlib.Path(__file__).parent / "data"
+        client_root = PathlibPathEx(__file__).parent / "data"
     else:
         assert isinstance(
-            root, (str, PathBase, pathlib.Path)
+            root, (str, PathBase, PathlibPathEx)
         ), f"root is not a known type: {type(root)}"
-        client_root = pathlib.Path(str(root))
+        client_root = PathlibPathEx(str(root))
     if not client_root.exists():
         client_root.mkdir(parents=True)
     _fs_client = BucketClientFS(root=client_root)
@@ -1199,8 +1211,8 @@ def get_fs_client() -> Optional[BucketClientFS]:
 
 
 def use_fs_cache(
-    root: Optional[Union[str, PathBase, pathlib.Path, bool]] = None
-) -> Optional[pathlib.Path]:
+    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None
+) -> Optional[PathlibPathEx]:
     """Use a path in the local file-system to cache blobs and buckets.
 
     This is useful for when you want to avoid fetching large blobs multiple
@@ -1214,22 +1226,24 @@ def use_fs_cache(
     # None or True - enable FS cache with default root
     if root is None or root is True:
         # Use a temporary folder. Cache will be removed according to OS policy
-        cache_root = pathlib.Path(tempfile.mkdtemp())
+        cache_root = PathlibPathEx(tempfile.mkdtemp())
     else:
         assert isinstance(
-            root, (str, PathBase, pathlib.Path)
+            root, (str, PathBase, PathlibPathEx)
         ), f"root is not a known type: {type(root)}"
-        cache_root = pathlib.Path(str(root))
+        cache_root = PathlibPathEx(str(root))
     if not cache_root.exists():
         cache_root.mkdir(parents=True)
     _fs_cache = cache_root
     return cache_root
 
 
-def get_fs_cache() -> Optional[pathlib.Path]:
+def get_fs_cache() -> Optional[PathlibPathEx]:
     """Get the folder that holds file-system cached blobs and timestamps."""
     global _fs_cache
-    assert _fs_cache is None or isinstance(_fs_cache, pathlib.Path), "invalid root type"
+    assert _fs_cache is None or isinstance(
+        _fs_cache, PathlibPathEx
+    ), "invalid root type"
     return _fs_cache
 
 

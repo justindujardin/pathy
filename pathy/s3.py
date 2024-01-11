@@ -103,10 +103,6 @@ class BucketS3(Bucket):
             self.delete_blob(blob)
 
     def exists(self) -> bool:
-        # TODO: are you sure this always holds?
-        #
-        # S3 buckets don't make it this far if they don't exist. The BucketS3 instance
-        # is not instantiated unless a metadata check on the bucket passes.
         return True
 
 
