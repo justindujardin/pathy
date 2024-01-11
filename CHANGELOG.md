@@ -1,3 +1,24 @@
+# [0.11.0](https://github.com/justindujardin/pathy/compare/v0.10.3...v0.11.0) (2024-01-11)
+
+
+### Features
+
+* Drop Python 3.7 and add Python 3.12 ([#112](https://github.com/justindujardin/pathy/issues/112)) ([97ebaa1](https://github.com/justindujardin/pathy/commit/97ebaa11ec62ce551b96a3c2431f8a29777ed30d))
+
+
+### BREAKING CHANGES
+
+* This drops support for python 3.7 which has reached its end of life
+
+* feat(Pathy): integrate pathlib_abc
+ - replace base pathlib.Path class with abstract base class from a future version of python.
+* Pathy.key returns a str rather than a Pathy instance
+
+* feat(ci): add python 3.12
+* Pathy no longer inherits from pahtlib.Path
+
+This means Pathy does not support directly accepting and working with file system paths. You must use Pathy.fluid or pathlib.Path to construct your file system paths. Pathy will continue to interoperate with them as needed to accommodate its public API.
+
 ## [0.10.3](https://github.com/justindujardin/pathy/compare/v0.10.2...v0.10.3) (2023-10-22)
 
 
