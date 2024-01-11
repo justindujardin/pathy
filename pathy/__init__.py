@@ -1067,7 +1067,7 @@ class ScanDirFS(PathyScanDir):
 
     def scandir(self) -> Generator[BucketEntry, None, None]:
         scan_path = self._client.root / self._path.root
-        if isinstance(self._path, BasePath) and not isinstance(self._path, Pathy):
+        if isinstance(self._path, pathlib.Path) and not isinstance(self._path, Pathy):
             scan_path = (
                 self._client.root / self._path.root
                 if not self._path.is_absolute()
