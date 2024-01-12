@@ -1,51 +1,57 @@
-# Pathy: a Path interface for local and cloud bucket storage
+# Pathy
 
 [![Build](https://github.com/justindujardin/pathy/actions/workflows/python-package.yml/badge.svg)](https://github.com/justindujardin/pathy/actions/workflows/python-package.yml)
 [![codecov](https://codecov.io/gh/justindujardin/pathy/branch/master/graph/badge.svg)](https://codecov.io/gh/justindujardin/pathy)
 [![Pypi version](https://badgen.net/pypi/v/pathy)](https://pypi.org/project/pathy/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
-Pathy is a python package (_with type annotations_) for working with Cloud Bucket storage providers using a pathlib interface. It provides an easy-to-use API bundled with a CLI app for basic file operations between local files and remote buckets. It enables a smooth developer experience by letting developers work against the local file system during development and only switch over to live APIs for deployment. It also makes converting bucket blobs into local files a snap with optional local file caching.
+Pathy is a practical Python package with type annotations tailored for managing Cloud Bucket storage through a Path-like interface. It has an intuitive API and supports your [favorite](#google-cloud-storage) [cloud](#azure) [providers](#amazon-s3), facilitating file transfers between local systems and remote buckets. Ideal for seasoned developers, Pathy enables smooth local file system work during development, transitioning effortlessly to live APIs for deployment. It also simplifies converting bucket blobs into local files, offering an option for local file caching, and has a familiar CLI interface.
 
-## 🚀 Quickstart
+## 💾 Installation
 
 You can install `pathy` from pip:
 
-```bash
-pip install pathy
-```
+| Features             |      Install Command       |
+| :------------------- | :------------------------: |
+| Google Cloud Storage |  `pip install pathy[gcs]`  |
+| Amazon S3            |  `pip install pathy[s3]`   |
+| Azure                | `pip install pathy[azure]` |
 
-The package exports the `Pathy` class and utilities for configuring the bucket storage provider to use.
+## 🚀 Quickstart
+
+Here's a quick run-down of how to get started offline if you intend to use Google Cloud Storage buckets when you ship.
 
 ```python
 from pathy import Pathy, use_fs
+
 # Use the local file-system for quicker development
 use_fs()
+
 # Create a bucket
 Pathy("gs://my_bucket").mkdir(exist_ok=True)
+
 # An excellent blob
 greeting = Pathy(f"gs://my_bucket/greeting.txt")
+
 # But it doesn't exist yet
 assert not greeting.exists()
+
 # Create it by writing some text
 greeting.write_text("Hello World!")
+
 # Now it exists
 assert greeting.exists()
+
 # Delete it
 greeting.unlink()
+
 # Now it doesn't
 assert not greeting.exists()
 ```
 
-## Supported Clouds
+## 🔐 Setup Credentials
 
-The table below details the supported cloud provider APIs.
-
-| Cloud Service        | Support |       Install Extras       |
-| :------------------- | :-----: | :------------------------: |
-| Google Cloud Storage |   ✅    |  `pip install pathy[gcs]`  |
-| Amazon S3            |   ✅    |  `pip install pathy[s3]`   |
-| Azure                |   ✅    | `pip install pathy[azure]` |
+For most cloud operations, you'll need credentials. Here's how to configure your credentials based on the supported cloud providers.
 
 ### Google Cloud Storage
 
@@ -91,7 +97,7 @@ service: BlobServiceClient = BlobServiceClient.from_connection_string(
 set_client_params("azure", service=service)
 ```
 
-## Semantic Versioning
+## ♻️ Semantic Versioning
 
 Before Pathy reaches v1.0 the project is not guaranteed to have a consistent API, which means that types and classes may move around or be removed. That said, we try to be predictable when it comes to breaking changes, so the project uses semantic versioning to help users avoid breakage.
 
@@ -106,13 +112,13 @@ Consider a few examples:
 |    0.3.1     |   0.3.17   |          No          |
 |    0.2.2     |   0.3.0    |         Yes          |
 
-If you are concerned about breaking changes, you can pin the version in your requirements so that it does not go beyond the current semver `minor` component, for example if the current version was `0.1.37`:
+If you are concerned about breaking changes, you can pin the version in your requirements so that it does not go beyond the current semver `minor` component, for example if the current version was `0.11.0`:
 
 ```
-pathy>=0.1.37,<0.2.0
+pathy>=0.11.0,<0.12.0
 ```
 
-## 🎛 API
+## 📖 API
 
 <!-- NOTE: The below code is auto-generated. Update source files to change API documentation. -->
 <!-- AUTO_DOCZ_START -->
