@@ -118,7 +118,7 @@ If you are concerned about breaking changes, you can pin the version in your req
 pathy>=0.11.0,<0.12.0
 ```
 
-## API 📖
+## 📖 API 
 
 <!-- NOTE: The below code is auto-generated. Update source files to change API documentation. -->
 <!-- AUTO_DOCZ_START -->
