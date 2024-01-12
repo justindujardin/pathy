@@ -120,15 +120,15 @@ pathy>=0.1.37,<0.2.0
 # Pathy <kbd>class</kbd>
 
 ```python (doc)
-Pathy(self, args, kwargs)
+Pathy(self, paths)
 ```
 
-Subclass of `pathlib.Path` that works with bucket APIs.
+Subclass of `PathBase` that works with bucket APIs.
 
 ## exists <kbd>method</kbd>
 
 ```python (doc)
-Pathy.exists(self) -> bool
+Pathy.exists(self: 'Pathy') -> bool
 ```
 
 Returns True if the path points to an existing bucket, blob, or prefix.
@@ -137,8 +137,8 @@ Returns True if the path points to an existing bucket, blob, or prefix.
 
 ```python (doc)
 Pathy.fluid(
-    path_candidate: Union[str, Pathy, BasePath],
-) -> Union[Pathy, BasePath]
+    path_candidate: Union[str, Pathy, PathlibPathEx],
+) -> Union[Pathy, PathlibPathEx]
 ```
 
 Infer either a Pathy or pathlib.Path from an input path or string.
@@ -151,6 +151,7 @@ If you need to use specific implementation details of a type, "narrow" the
 return of this function to the desired type, e.g.
 
 ```python
+from pathlib import Path
 from pathy import FluidPath, Pathy
 
 fluid_path: FluidPath = Pathy.fluid("gs://my_bucket/foo.txt")
@@ -158,6 +159,10 @@ fluid_path: FluidPath = Pathy.fluid("gs://my_bucket/foo.txt")
 assert isinstance(fluid_path, Pathy), "must be Pathy"
 # Use a member specific to that class
 assert fluid_path.prefix == "foo.txt/"
+
+# Or use a file-system path
+posix_path: FluidPath = Pathy.fluid("/tmp/foo.txt")
+assert isinstance(posix_path, Path), "must be pathlib.Path"
 ```
 
 ## from_bucket <kbd>classmethod</kbd>
@@ -182,6 +187,8 @@ assert str(Pathy.from_bucket("two")) == "gs://two/"
 Pathy.glob(
     self: 'Pathy',
     pattern: str,
+    case_sensitive: Optional[bool] = None,
+    follow_symlinks: Optional[bool] = None,
 ) -> Generator[Pathy, NoneType, NoneType]
 ```
 
@@ -191,7 +198,7 @@ blobs.
 ## is_dir <kbd>method</kbd>
 
 ```python (doc)
-Pathy.is_dir(self: 'Pathy') -> bool
+Pathy.is_dir(self: 'Pathy', follow_symlinks: bool = True) -> bool
 ```
 
 Determine if the path points to a bucket or a prefix of a given blob
@@ -203,7 +210,7 @@ Returns False if it points to a blob or the path doesn't exist.
 ## is_file <kbd>method</kbd>
 
 ```python (doc)
-Pathy.is_file(self: 'Pathy') -> bool
+Pathy.is_file(self: 'Pathy', follow_symlinks: bool = True) -> bool
 ```
 
 Determine if the path points to a blob in the bucket.
@@ -211,16 +218,6 @@ Determine if the path points to a blob in the bucket.
 Returns True if the path points to a blob.
 Returns False if it points to a bucket or blob prefix, or if the path doesn’t
 exist.
-
-## iterdir <kbd>method</kbd>
-
-```python (doc)
-Pathy.iterdir(
-    self: 'Pathy',
-) -> Generator[Pathy, NoneType, NoneType]
-```
-
-Iterate over the blobs found in the given bucket or blob prefix path.
 
 ## ls <kbd>method</kbd>
 
@@ -288,7 +285,10 @@ not supported by the bucket API provider.
 ## rename <kbd>method</kbd>
 
 ```python (doc)
-Pathy.rename(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> 'Pathy'
+Pathy.rename(
+    self: 'Pathy',
+    target: Union[str, pathlib_abc.PurePathBase],
+) -> 'Pathy'
 ```
 
 Rename this path to the given target.
@@ -302,7 +302,10 @@ to match the target prefix.
 ## replace <kbd>method</kbd>
 
 ```python (doc)
-Pathy.replace(self: 'Pathy', target: Union[str, pathlib.PurePath]) -> 'Pathy'
+Pathy.replace(
+    self: 'Pathy',
+    target: Union[str, pathlib_abc.PurePathBase],
+) -> 'Pathy'
 ```
 
 Renames this path to the given target.
@@ -324,18 +327,6 @@ path = Pathy("gs://my_bucket/folder/../blob")
 assert path.resolve() == Pathy("gs://my_bucket/blob")
 ```
 
-## rglob <kbd>method</kbd>
-
-```python (doc)
-Pathy.rglob(
-    self: 'Pathy',
-    pattern: str,
-) -> Generator[Pathy, NoneType, NoneType]
-```
-
-Perform a recursive glob match relative to this Pathy instance, yielding
-all matched blobs. Imagine adding "\*\*/" before a call to glob.
-
 ## rmdir <kbd>method</kbd>
 
 ```python (doc)
@@ -349,7 +340,7 @@ Removes this bucket or blob prefix. It must be empty.
 ```python (doc)
 Pathy.samefile(
     self: 'Pathy',
-    other_path: Union[str, bytes, int, pathlib.Path],
+    other_path: Union[str, bytes, int, pathlib_abc.PathBase],
 ) -> bool
 ```
 
@@ -358,7 +349,7 @@ Determine if this path points to the same location as other_path.
 ## stat <kbd>method</kbd>
 
 ```python (doc)
-Pathy.stat(self: 'Pathy') -> pathy.BlobStat
+Pathy.stat(self: 'Pathy', follow_symlinks: bool = True) -> pathy.BlobStat
 ```
 
 Returns information about this bucket path.
@@ -389,6 +380,14 @@ If the blob already exists, the function succeeds if exist_ok is true
 (and its modification time is updated to the current time), otherwise
 FileExistsError is raised.
 
+## unlink <kbd>method</kbd>
+
+```python (doc)
+Pathy.unlink(self: 'Pathy') -> None
+```
+
+Delete a link to a blob in a bucket.
+
 # BlobStat <kbd>dataclass</kbd>
 
 ```python (doc)
@@ -406,7 +405,7 @@ Stat for a bucket item
 
 ```python (doc)
 use_fs(
-    root: Optional[str, pathlib.Path, bool] = None,
+    root: Optional[str, pathlib_abc.PathBase, pathy.PathlibPathEx, bool] = None,
 ) -> Optional[pathy.BucketClientFS]
 ```
 
@@ -427,8 +426,8 @@ Get the file-system client (or None)
 
 ```python (doc)
 use_fs_cache(
-    root: Optional[str, pathlib.Path, bool] = None,
-) -> Optional[pathlib.Path]
+    root: Optional[str, pathlib_abc.PathBase, pathy.PathlibPathEx, bool] = None,
+) -> Optional[pathy.PathlibPathEx]
 ```
 
 Use a path in the local file-system to cache blobs and buckets.
@@ -439,7 +438,7 @@ times, or need to pass a local file path to a third-party library.
 # get_fs_cache <kbd>function</kbd>
 
 ```python (doc)
-get_fs_cache() -> Optional[pathlib.Path]
+get_fs_cache() -> Optional[pathy.PathlibPathEx]
 ```
 
 Get the folder that holds file-system cached blobs and timestamps.
@@ -456,7 +455,7 @@ client library prefers.
 
 # CLI
 
-Pathy command line interface. (v0.5.2)
+Pathy command line interface. (v0.11.0)
 
 **Usage**:
 
@@ -474,8 +473,8 @@ $ [OPTIONS] COMMAND [ARGS]...
 
 - `cp`: Copy a blob or folder of blobs from one...
 - `ls`: List the blobs that exist at a given...
-- `mv`: Move a blob or folder of blobs from one path...
-- `rm`: Remove a blob or folder of blobs from a given...
+- `mv`: Move a blob or folder of blobs from one...
+- `rm`: Remove a blob or folder of blobs from a...
 
 ## `cp`
 
@@ -512,7 +511,7 @@ $ ls [OPTIONS] LOCATION
 
 **Options**:
 
-- `-l, --long`: Print long style entries with updated time and size shown. [default: False]
+- `-l, --long`: Print long style entries with updated time and size shown.
 - `--help`: Show this message and exit.
 
 ## `mv`
@@ -550,8 +549,8 @@ $ rm [OPTIONS] LOCATION
 
 **Options**:
 
-- `-r, --recursive`: Recursively remove files and folders. [default: False]
-- `-v, --verbose`: Print removed files and folders. [default: False]
+- `-r, --recursive`: Recursively remove files and folders.
+- `-v, --verbose`: Print removed files and folders.
 - `--help`: Show this message and exit.
 
 <!-- AUTO_DOCZ_END -->
