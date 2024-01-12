@@ -5,7 +5,7 @@
 [![Pypi version](https://badgen.net/pypi/v/pathy)](https://pypi.org/project/pathy/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
-Pathy is a practical Python package with type annotations tailored for managing Cloud Bucket storage through a Path-like interface. It has an intuitive API and supports your [favorite](#google-cloud-storage) [cloud](#azure) [providers](#amazon-s3), facilitating file transfers between local systems and remote buckets. Ideal for seasoned developers, Pathy enables smooth local file system work during development, transitioning effortlessly to live APIs for deployment. It also simplifies converting bucket blobs into local files, offering an option for local file caching, and has a familiar CLI interface.
+Pathy is a practical Python package with type annotations tailored for managing Cloud Bucket storage through a Path-like interface. It has an intuitive API and supports your [favorite](#google-cloud-storage) [cloud](#azure) [providers](#amazon-s3), facilitating file transfers between local systems and remote buckets. Ideal for seasoned developers, Pathy enables smooth [local file system work](#use_fs) during development, transitioning effortlessly to live APIs for deployment. It also simplifies converting bucket [blobs into local files](#to_local), offering an option for local file caching, and has a familiar CLI interface `pathy`.
 
 ## 💾 Installation
 
@@ -118,30 +118,30 @@ If you are concerned about breaking changes, you can pin the version in your req
 pathy>=0.11.0,<0.12.0
 ```
 
-## 📖 API
+## API 📖
 
 <!-- NOTE: The below code is auto-generated. Update source files to change API documentation. -->
 <!-- AUTO_DOCZ_START -->
 
-# Pathy <kbd>class</kbd>
+# Pathy
 
-```python (doc)
+```python
 Pathy(self, paths)
 ```
 
 Subclass of `PathBase` that works with bucket APIs.
 
-## exists <kbd>method</kbd>
+## exists
 
-```python (doc)
+```python
 Pathy.exists(self: 'Pathy') -> bool
 ```
 
 Returns True if the path points to an existing bucket, blob, or prefix.
 
-## fluid <kbd>classmethod</kbd>
+## fluid
 
-```python (doc)
+```python
 Pathy.fluid(
     path_candidate: Union[str, Pathy, PathlibPathEx],
 ) -> Union[Pathy, PathlibPathEx]
@@ -171,9 +171,9 @@ posix_path: FluidPath = Pathy.fluid("/tmp/foo.txt")
 assert isinstance(posix_path, Path), "must be pathlib.Path"
 ```
 
-## from_bucket <kbd>classmethod</kbd>
+## from_bucket
 
-```python (doc)
+```python
 Pathy.from_bucket(bucket_name: str, scheme: str = 'gs') -> 'Pathy'
 ```
 
@@ -187,9 +187,9 @@ assert str(Pathy.from_bucket("one")) == "gs://one/"
 assert str(Pathy.from_bucket("two")) == "gs://two/"
 ```
 
-## glob <kbd>method</kbd>
+## glob
 
-```python (doc)
+```python
 Pathy.glob(
     self: 'Pathy',
     pattern: str,
@@ -201,9 +201,9 @@ Pathy.glob(
 Perform a glob match relative to this Pathy instance, yielding all matched
 blobs.
 
-## is_dir <kbd>method</kbd>
+## is_dir
 
-```python (doc)
+```python
 Pathy.is_dir(self: 'Pathy', follow_symlinks: bool = True) -> bool
 ```
 
@@ -213,9 +213,9 @@ in the bucket.
 Returns True if the path points to a bucket or a blob prefix.
 Returns False if it points to a blob or the path doesn't exist.
 
-## is_file <kbd>method</kbd>
+## is_file
 
-```python (doc)
+```python
 Pathy.is_file(self: 'Pathy', follow_symlinks: bool = True) -> bool
 ```
 
@@ -225,9 +225,9 @@ Returns True if the path points to a blob.
 Returns False if it points to a bucket or blob prefix, or if the path doesn’t
 exist.
 
-## ls <kbd>method</kbd>
+## ls
 
-```python (doc)
+```python
 Pathy.ls(self: 'Pathy') -> Generator[BlobStat, NoneType, NoneType]
 ```
 
@@ -238,9 +238,9 @@ the stat information for the enumerated blobs.
 
 Yields BlobStat objects for each found blob.
 
-## mkdir <kbd>method</kbd>
+## mkdir
 
-```python (doc)
+```python
 Pathy.mkdir(
     self,
     mode: int = 511,
@@ -261,9 +261,9 @@ The mode param is ignored.
 
 Raises FileExistsError if exist_ok is false and the bucket already exists.
 
-## open <kbd>method</kbd>
+## open
 
-```python (doc)
+```python
 Pathy.open(
     self: 'Pathy',
     mode: str = 'r',
@@ -278,9 +278,9 @@ Open the given blob for streaming. This delegates to the `smart_open`
 library that handles large file streaming for a number of bucket API
 providers.
 
-## owner <kbd>method</kbd>
+## owner
 
-```python (doc)
+```python
 Pathy.owner(self: 'Pathy') -> Optional[str]
 ```
 
@@ -288,9 +288,9 @@ Returns the name of the user that owns the bucket or blob
 this path points to. Returns None if the owner is unknown or
 not supported by the bucket API provider.
 
-## rename <kbd>method</kbd>
+## rename
 
-```python (doc)
+```python
 Pathy.rename(
     self: 'Pathy',
     target: Union[str, pathlib_abc.PurePathBase],
@@ -305,9 +305,9 @@ has permission.
 If path is a blob prefix, it will replace all the blobs with the same prefix
 to match the target prefix.
 
-## replace <kbd>method</kbd>
+## replace
 
-```python (doc)
+```python
 Pathy.replace(
     self: 'Pathy',
     target: Union[str, pathlib_abc.PurePathBase],
@@ -318,9 +318,9 @@ Renames this path to the given target.
 
 If target points to an existing path, it will be replaced.
 
-## resolve <kbd>method</kbd>
+## resolve
 
-```python (doc)
+```python
 Pathy.resolve(self, strict: bool = False) -> 'Pathy'
 ```
 
@@ -333,17 +333,17 @@ path = Pathy("gs://my_bucket/folder/../blob")
 assert path.resolve() == Pathy("gs://my_bucket/blob")
 ```
 
-## rmdir <kbd>method</kbd>
+## rmdir
 
-```python (doc)
+```python
 Pathy.rmdir(self: 'Pathy') -> None
 ```
 
 Removes this bucket or blob prefix. It must be empty.
 
-## samefile <kbd>method</kbd>
+## samefile
 
-```python (doc)
+```python
 Pathy.samefile(
     self: 'Pathy',
     other_path: Union[str, bytes, int, pathlib_abc.PathBase],
@@ -352,17 +352,17 @@ Pathy.samefile(
 
 Determine if this path points to the same location as other_path.
 
-## stat <kbd>method</kbd>
+## stat
 
-```python (doc)
+```python
 Pathy.stat(self: 'Pathy', follow_symlinks: bool = True) -> pathy.BlobStat
 ```
 
 Returns information about this bucket path.
 
-## to_local <kbd>classmethod</kbd>
+## to_local
 
-```python (doc)
+```python
 Pathy.to_local(
     blob_path: Union[Pathy, str],
     recurse: bool = True,
@@ -374,9 +374,9 @@ Download and cache either a blob or a set of blobs matching a prefix.
 The cache is sensitive to the file updated time, and downloads new blobs
 as their updated timestamps change.
 
-## touch <kbd>method</kbd>
+## touch
 
-```python (doc)
+```python
 Pathy.touch(self: 'Pathy', mode: int = 438, exist_ok: bool = True) -> None
 ```
 
@@ -386,17 +386,17 @@ If the blob already exists, the function succeeds if exist_ok is true
 (and its modification time is updated to the current time), otherwise
 FileExistsError is raised.
 
-## unlink <kbd>method</kbd>
+## unlink
 
-```python (doc)
+```python
 Pathy.unlink(self: 'Pathy') -> None
 ```
 
 Delete a link to a blob in a bucket.
 
-# BlobStat <kbd>dataclass</kbd>
+# BlobStat
 
-```python (doc)
+```python
 BlobStat(
     self,
     name: str,
@@ -407,9 +407,9 @@ BlobStat(
 
 Stat for a bucket item
 
-# use_fs <kbd>function</kbd>
+# use_fs
 
-```python (doc)
+```python
 use_fs(
     root: Optional[str, pathlib_abc.PathBase, pathy.PathlibPathEx, bool] = None,
 ) -> Optional[pathy.BucketClientFS]
@@ -420,17 +420,17 @@ Use a path in the local file-system to store blobs and buckets.
 This is useful for development and testing situations, and for embedded
 applications.
 
-# get_fs_client <kbd>function</kbd>
+# get_fs_client
 
-```python (doc)
+```python
 get_fs_client() -> Optional[pathy.BucketClientFS]
 ```
 
 Get the file-system client (or None)
 
-# use_fs_cache <kbd>function</kbd>
+# use_fs_cache
 
-```python (doc)
+```python
 use_fs_cache(
     root: Optional[str, pathlib_abc.PathBase, pathy.PathlibPathEx, bool] = None,
 ) -> Optional[pathy.PathlibPathEx]
@@ -441,17 +441,17 @@ Use a path in the local file-system to cache blobs and buckets.
 This is useful for when you want to avoid fetching large blobs multiple
 times, or need to pass a local file path to a third-party library.
 
-# get_fs_cache <kbd>function</kbd>
+# get_fs_cache
 
-```python (doc)
+```python
 get_fs_cache() -> Optional[pathy.PathlibPathEx]
 ```
 
 Get the folder that holds file-system cached blobs and timestamps.
 
-# set_client_params <kbd>function</kbd>
+# set_client_params
 
-```python (doc)
+```python
 set_client_params(scheme: str, kwargs: Any) -> None
 ```
 
@@ -459,7 +459,7 @@ Specify args to pass when instantiating a service-specific Client
 object. This allows for passing credentials in whatever way your underlying
 client library prefers.
 
-# CLI
+# 💻 CLI
 
 Pathy command line interface. (v0.11.0)
 
