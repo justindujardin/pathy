@@ -66,7 +66,7 @@ def gcs_credentials_from_env() -> Optional[Any]:
     creds = os.environ.get("GCS_CREDENTIALS", None)
     if creds is None:
         return None
-    from google.oauth2 import service_account
+    from google.oauth2.service_account import Credentials
 
     json_creds = None
     try:
@@ -79,12 +79,12 @@ def gcs_credentials_from_env() -> Optional[Any]:
         try:
             with os.fdopen(fd, "w") as tmp:
                 tmp.write(json.dumps(json_creds))
-            credentials = service_account.Credentials.from_service_account_file(path)
+            credentials = Credentials.from_service_account_file(path)  # type: ignore
         finally:
             os.remove(path)
     else:
         # If not a JSON string, assume it's a JSON file path
-        credentials = service_account.Credentials.from_service_account_file(creds)
+        credentials = Credentials.from_service_account_file(creds)  # type: ignore
     return credentials
 
 

@@ -12,7 +12,7 @@ GCS_ADAPTER = ["gcs"]
 def raise_default_creds_error() -> None:
     from google.auth.exceptions import DefaultCredentialsError
 
-    raise DefaultCredentialsError()
+    raise DefaultCredentialsError()  # type: ignore[no-untyped-call]
 
 
 @pytest.mark.parametrize("adapter", GCS_ADAPTER)
