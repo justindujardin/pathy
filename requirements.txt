@@ -1,4 +1,4 @@
-smart-open>=5.2.1,<7.0.0
+smart-open>=5.2.1,<8.0.0
 typer>=0.3.0,<1.0.0
 dataclasses>=0.6,<1.0; python_version < "3.7"
 pathlib_abc==0.1.1
