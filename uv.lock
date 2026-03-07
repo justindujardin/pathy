@@ -1058,7 +1058,6 @@ all = [
     { name = "google-cloud-storage" },
     { name = "pytest" },
     { name = "pytest-cov" },
-    { name = "typer-cli" },
 ]
 azure = [
     { name = "azure-storage-blob" },
@@ -1072,7 +1071,6 @@ s3 = [
 test = [
     { name = "pytest" },
     { name = "pytest-cov" },
-    { name = "typer-cli" },
 ]
 
 [package.dev-dependencies]
@@ -1101,9 +1099,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'all'" },
     { name = "pytest-cov", marker = "extra == 'test'" },
     { name = "smart-open", specifier = ">=5.2.1" },
-    { name = "typer", specifier = ">=0.3.0,<1.0.0" },
-    { name = "typer-cli", marker = "extra == 'all'" },
-    { name = "typer-cli", marker = "extra == 'test'" },
+    { name = "typer", specifier = ">=0.3.0" },
 ]
 provides-extras = ["all", "azure", "gcs", "s3", "test"]
 
@@ -1530,18 +1526,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f5/24/cb09efec5cc954f7f9b930bf8279447d24618bb6758d4f6adf2574c41780/typer-0.24.1.tar.gz", hash = "sha256:e39b4732d65fbdcde189ae76cf7cd48aeae72919dea1fdfc16593be016256b45", size = 118613, upload-time = "2026-02-21T16:54:40.609Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4a/91/48db081e7a63bb37284f9fbcefda7c44c277b18b0e13fbc36ea2335b71e6/typer-0.24.1-py3-none-any.whl", hash = "sha256:112c1f0ce578bfb4cab9ffdabc68f031416ebcc216536611ba21f04e9aa84c9e", size = 56085, upload-time = "2026-02-21T16:54:41.616Z" },
-]
-
-[[package]]
-name = "typer-cli"
-version = "0.24.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/e5/4debd04edf65dbd72a099a1fbcd98f246da6bd0b26993ff02f68fa7d6eec/typer_cli-0.24.0.tar.gz", hash = "sha256:ce902c5ae858d9a8df684c950cbb2e351ae6d686f397fee8c8e77cf5d99041a1", size = 4616, upload-time = "2026-02-16T22:08:49.072Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/ed/db873e6fe6154f5de6dc6096870b4aca2ad7f8e8f34e0b4e4e18d44f354c/typer_cli-0.24.0-py3-none-any.whl", hash = "sha256:e3bd84cf7c03fe92c5c53e68233abeaa81fb4d3dd9eff49bf2b19b788e85302d", size = 3220, upload-time = "2026-02-16T22:08:47.882Z" },
 ]
 
 [[package]]

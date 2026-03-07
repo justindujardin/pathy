@@ -97,6 +97,35 @@ service: BlobServiceClient = BlobServiceClient.from_connection_string(
 set_client_params("azure", service=service)
 ```
 
+## 🧪 Development
+
+Pathy uses [uv](https://docs.astral.sh/uv/) for dependency management.
+
+```bash
+# Install dependencies
+uv sync
+
+# Run local tests (no cloud credentials needed)
+uv run pytest
+
+# Run a single test
+uv run pytest pathy/_tests/test_pathy.py::test_name -x
+
+# Run with cloud provider tests (requires env vars)
+uv run pytest --run-gcs     # GCS_CREDENTIALS
+uv run pytest --run-s3      # PATHY_S3_ACCESS_ID + PATHY_S3_ACCESS_SECRET
+uv run pytest --run-azure   # PATHY_AZURE_CONNECTION_STRING
+
+# Lint
+uv run mypy pathy
+uv run flake8 pathy
+uv run black pathy --check
+
+# Auto-format
+uv run black pathy
+uv run isort pathy
+```
+
 ## ♻️ Semantic Versioning
 
 Before Pathy reaches v1.0 the project is not guaranteed to have a consistent API, which means that types and classes may move around or be removed. That said, we try to be predictable when it comes to breaking changes, so the project uses semantic versioning to help users avoid breakage.
@@ -120,7 +149,6 @@ pathy>=0.11.0,<0.12.0
 
 ## 📖 API 
 
-<!-- NOTE: The below code is auto-generated. Update source files to change API documentation. -->
 <!-- AUTO_DOCZ_START -->
 
 # Pathy
