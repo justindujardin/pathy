@@ -15,9 +15,18 @@ jobs:
   build:
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        exclude:
+          # Only test one Python version on Windows
+          - os: windows-latest
+            python-version: "3.10"
+          - os: windows-latest
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.13"
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -29,6 +38,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
       - name: Lint Codebase
+        if: matrix.os == 'ubuntu-latest'
         run: |
           uv run mypy pathy
           uv run flake8 pathy
@@ -36,40 +46,13 @@ jobs:
       - name: Test (local only)
         run: uv run pytest pathy/_tests --cov=pathy
       - name: Test (cloud providers)
-        if: github.ref == 'refs/heads/master' || github.event_name == 'schedule'
+        if: (github.ref == 'refs/heads/master' || github.event_name == 'schedule') && matrix.os == 'ubuntu-latest'
         env:
           GCS_CREDENTIALS: ${{ secrets.GCS_CREDENTIALS }}
           PATHY_S3_ACCESS_ID: ${{ secrets.PATHY_S3_ACCESS_ID }}
           PATHY_S3_ACCESS_SECRET: ${{ secrets.PATHY_S3_ACCESS_SECRET }}
           PATHY_AZURE_CONNECTION_STRING: ${{ secrets.PATHY_AZURE_CONNECTION_STRING }}
         run: uv run pytest pathy/_tests --run-gcs --run-s3 --run-azure --cov=pathy --cov-append
-      - name: Report Code Coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: sh tools/codecov.sh
-
-  build-windows:
-    runs-on: "windows-latest"
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.11
-      - name: Install dependencies
-        run: .\tools\setup.bat
-      - name: Build Wheel
-        run: .\tools\build.bat
-      - name: Remove Pathy folder
-        uses: JesseTG/rm@v1.0.3
-        with:
-          path: .\pathy
-      - name: Test Wheel (local only)
-        run: .\tools\test_package.bat
-      - name: Report Code Coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: .\tools\codecov.bat
 
   deploy:
     runs-on: ubuntu-latest

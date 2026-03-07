@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 
 try:
-    import spacy  # type:ignore
+    import spacy  # type: ignore
 
     has_spacy = bool(spacy)
 except ModuleNotFoundError:

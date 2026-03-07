@@ -11,16 +11,14 @@ try:
         ContainerClient,
     )
 except (ImportError, ModuleNotFoundError):
-    raise ImportError(
-        """You are using the Azure functionality of Pathy without
+    raise ImportError("""You are using the Azure functionality of Pathy without
     having the required dependencies installed.
 
     Please try installing them:
 
         pip install pathy[azure]
 
-    """
-    )
+    """)
 
 from . import (
     Blob,
@@ -70,14 +68,14 @@ class BucketAzure(Bucket):
         return BlobAzure(
             client=blob_client,
             bucket=self,
-            owner=None,  # type:ignore
-            name=blob_name,  # type:ignore
+            owner=None,  # type: ignore
+            name=blob_name,  # type: ignore
             raw=None,
             size=size,
             updated=_safe_last_modified(blob_stat.last_modified),
         )
 
-    def copy_blob(  # type:ignore[override]
+    def copy_blob(  # type: ignore[override]
         self, blob: BlobAzure, target: "BucketAzure", name: str
     ) -> Optional[BlobAzure]:
 
@@ -98,10 +96,10 @@ class BucketAzure(Bucket):
         )
         return pathy_blob
 
-    def delete_blob(self, blob: BlobAzure) -> None:  # type:ignore[override]
+    def delete_blob(self, blob: BlobAzure) -> None:  # type: ignore[override]
         blob.delete()
 
-    def delete_blobs(self, blobs: List[BlobAzure]) -> None:  # type:ignore[override]
+    def delete_blobs(self, blobs: List[BlobAzure]) -> None:  # type: ignore[override]
         for blob in blobs:
             self.delete_blob(blob)
 
@@ -120,8 +118,10 @@ class BucketClientAzure(BucketClient):
         self.recreate(**kwargs)
 
     def recreate(self, **kwargs: Any) -> None:
-        self._service = kwargs.get("service", None)
-        if self._service is None:
+        service = kwargs.get("service", None)
+        if service is not None:
+            self._service = service
+        else:
             connection_string = kwargs.get("connection_string", None)
             if connection_string is None:
                 raise ValueError("Expected either 'service' or 'connection_string'")
@@ -130,7 +130,7 @@ class BucketClientAzure(BucketClient):
     def make_uri(self, path: PurePathy) -> str:
         return str(path)
 
-    def create_bucket(  # type:ignore[override]
+    def create_bucket(  # type: ignore[override]
         self, path: PurePathy
     ) -> ContainerClient:
         container = self._service.get_container_client(container=path.root)
@@ -168,7 +168,7 @@ class BucketClientAzure(BucketClient):
             pass
         raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
-    def scandir(  # type:ignore[override]
+    def scandir(  # type: ignore[override]
         self,
         path: PurePathy,
         prefix: Optional[str] = None,

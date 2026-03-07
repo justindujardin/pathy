@@ -20,9 +20,24 @@ ENV_ID = f"{sys.platform}.{sys.version_info.major}.{sys.version_info.minor}"
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    parser.addoption("--run-gcs", action="store_true", default=False, help="Run GCS tests (requires GCS_CREDENTIALS env var)")
-    parser.addoption("--run-s3", action="store_true", default=False, help="Run S3 tests (requires PATHY_S3_ACCESS_ID and PATHY_S3_ACCESS_SECRET env vars)")
-    parser.addoption("--run-azure", action="store_true", default=False, help="Run Azure tests (requires PATHY_AZURE_CONNECTION_STRING env var)")
+    parser.addoption(
+        "--run-gcs",
+        action="store_true",
+        default=False,
+        help="Run GCS tests (requires GCS_CREDENTIALS env var)",
+    )
+    parser.addoption(
+        "--run-s3",
+        action="store_true",
+        default=False,
+        help="Run S3 tests (requires PATHY_S3_ACCESS_ID and PATHY_S3_ACCESS_SECRET env vars)",
+    )
+    parser.addoption(
+        "--run-azure",
+        action="store_true",
+        default=False,
+        help="Run Azure tests (requires PATHY_AZURE_CONNECTION_STRING env var)",
+    )
 
 
 _REQUIRED_ENV_VARS = {
@@ -46,7 +61,11 @@ _INSTALL_EXTRAS = {
 
 def get_test_adapters(config: pytest.Config) -> List[str]:
     adapters = ["fs"]
-    for provider, flag in [("gcs", "--run-gcs"), ("s3", "--run-s3"), ("azure", "--run-azure")]:
+    for provider, flag in [
+        ("gcs", "--run-gcs"),
+        ("s3", "--run-s3"),
+        ("azure", "--run-azure"),
+    ]:
         if not config.getoption(flag):
             continue
         if not _INSTALLED_FLAGS[provider]():

@@ -172,7 +172,7 @@ class BucketClient:
             closefd=False,
             # Disable de/compression based on the file extension
             compression=smart_open.compression.NO_COMPRESSION,
-        )  # type:ignore
+        )  # type: ignore
 
     def make_uri(self, path: "Pathy") -> str:
         return str(path)
@@ -358,9 +358,9 @@ class PurePathy(PurePathBase):
 _SUPPORTED_OPEN_MODES = {"r", "rb", "tr", "rt", "w", "wb", "bw", "wt", "tw"}
 
 if os.name == "nt":
-    BasePathlibPath = pathlib.WindowsPath  # type:ignore
+    BasePathlibPath = pathlib.WindowsPath  # type: ignore
 else:
-    BasePathlibPath = pathlib.PosixPath  # type:ignore
+    BasePathlibPath = pathlib.PosixPath  # type: ignore
 
 
 class PathlibPathEx(BasePathlibPath):
@@ -392,7 +392,7 @@ class BasePath(PathBase):
         client: BucketClient = get_client(getattr(self, "scheme", "file"))
         blobs: "ScanDirFS" = cast(
             ScanDirFS, client.scandir(self, prefix=getattr(self, "prefix", None))
-        )  # type:ignore
+        )  # type: ignore
         for blob in blobs:
             yield self / blob.name
 
@@ -420,7 +420,7 @@ class Pathy(PurePathy, BasePath):
         return get_client(path.scheme)
 
     def __truediv__(self, key: Union[str, PathBase, "Pathy", PurePathy]) -> "Pathy":
-        return super().__truediv__(key)  # type:ignore
+        return super().__truediv__(key)  # type: ignore
 
     def _make_child_entry(self, entry: BucketEntry) -> "Pathy":
         # Transform an entry yielded from _scandir() into a path object.
@@ -603,7 +603,7 @@ class Pathy(PurePathy, BasePath):
         blobs."""
         yield from super().glob(pattern)
 
-    def open(  # type:ignore
+    def open(  # type: ignore
         self: "Pathy",
         mode: str = "r",
         buffering: int = DEFAULT_BUFFER_SIZE,
@@ -635,7 +635,7 @@ class Pathy(PurePathy, BasePath):
             newline=newline,
         )
 
-    def owner(self: "Pathy") -> Optional[str]:  # type:ignore[override]
+    def owner(self: "Pathy") -> Optional[str]:  # type: ignore[override]
         """Returns the name of the user that owns the bucket or blob
         this path points to. Returns None if the owner is unknown or
         not supported by the bucket API provider."""
@@ -657,7 +657,7 @@ class Pathy(PurePathy, BasePath):
         self._absolute_path_validation()
         return self.client(self).resolve(self, strict=strict)
 
-    def rename(  # type:ignore
+    def rename(  # type: ignore
         self: "Pathy", target: Union[str, PurePathBase]
     ) -> "Pathy":
         """Rename this path to the given target.
@@ -670,7 +670,7 @@ class Pathy(PurePathy, BasePath):
         self._absolute_path_validation()
         self_type = type(self)
         result = target if isinstance(target, self_type) else self_type(target)
-        result._absolute_path_validation()  # type:ignore
+        result._absolute_path_validation()  # type: ignore
 
         client: BucketClient = self.client(self)
         bucket: Bucket = client.get_bucket(self)
@@ -725,7 +725,7 @@ class Pathy(PurePathy, BasePath):
         """Determine if this path points to the same location as other_path."""
         self._absolute_path_validation()
         if not isinstance(other_path, PathBase):
-            other_path = type(self)(other_path)  # type:ignore
+            other_path = type(self)(other_path)  # type: ignore
         assert isinstance(other_path, Pathy)
         return (
             self.bucket == other_path.bucket
@@ -780,7 +780,7 @@ class Pathy(PurePathy, BasePath):
     def is_fifo(self: "Pathy") -> bool:
         return False
 
-    def unlink(self: "Pathy") -> None:  # type:ignore[override]
+    def unlink(self: "Pathy") -> None:  # type: ignore[override]
         """Delete a link to a blob in a bucket."""
         bucket = self.client(self).get_bucket(self)
         blob: Optional[Blob] = bucket.get_blob(self.key)
@@ -876,7 +876,8 @@ class PathyScanDir(Iterator[Any], ABC):
 #
 
 
-class BucketEntryFS(BucketEntry): ...
+class BucketEntryFS(BucketEntry):
+    pass
 
 
 @dataclass
@@ -899,7 +900,7 @@ class BucketFS(Bucket):
     name: str
     bucket: PathlibPathEx
 
-    def get_blob(self, blob_name: str) -> Optional[BlobFS]:  # type:ignore[override]
+    def get_blob(self, blob_name: str) -> Optional[BlobFS]:  # type: ignore[override]
         native_blob = self.bucket / blob_name
         if not native_blob.exists() or native_blob.is_dir():
             return None
@@ -910,7 +911,7 @@ class BucketFS(Bucket):
         owner: Optional[str]
         try:
             # path.owner() raises NotImplementedError on windows
-            owner = native_blob.owner()  # type:ignore
+            owner = native_blob.owner()  # type: ignore
         except (KeyError, NotImplementedError):
             owner = None
         return BlobFS(
@@ -922,7 +923,7 @@ class BucketFS(Bucket):
             updated=int(round(stat.st_mtime)),
         )
 
-    def copy_blob(  # type:ignore[override]
+    def copy_blob(  # type: ignore[override]
         self, blob: BlobFS, target: "BucketFS", name: str
     ) -> Optional[BlobFS]:
         in_file = str(blob.bucket.bucket / blob.name)
@@ -933,10 +934,10 @@ class BucketFS(Bucket):
         shutil.copy(in_file, out_file)
         return None
 
-    def delete_blob(self, blob: BlobFS) -> None:  # type:ignore[override]
+    def delete_blob(self, blob: BlobFS) -> None:  # type: ignore[override]
         blob.delete()
 
-    def delete_blobs(self, blobs: List[BlobFS]) -> None:  # type:ignore[override]
+    def delete_blobs(self, blobs: List[BlobFS]) -> None:  # type: ignore[override]
         for blob in blobs:
             blob.delete()
 
@@ -1154,7 +1155,7 @@ def register_client(scheme: str, type: Type[BucketClient]) -> None:
     _client_registry[scheme] = type
 
 
-def get_client(scheme: str) -> BucketClientType:  # type:ignore
+def get_client(scheme: str) -> BucketClientType:  # type: ignore
     """Retrieve the bucket client for use with a given scheme"""
     if _fs_client is not None:
         return _fs_client  # type: ignore
@@ -1170,7 +1171,7 @@ def get_client(scheme: str) -> BucketClientType:  # type:ignore
         kwargs: Dict[str, Any] = (
             _client_args_registry[scheme] if scheme in _client_args_registry else {}
         )
-        _instance_cache[scheme] = _client_registry[scheme](**kwargs)  # type:ignore
+        _instance_cache[scheme] = _client_registry[scheme](**kwargs)  # type: ignore
         return _instance_cache[scheme]
 
     raise ValueError(f'There is no client registered to handle "{scheme}" paths')
