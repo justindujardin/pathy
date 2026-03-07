@@ -1,3 +1,16 @@
+# [0.12.0](https://github.com/justindujardin/pathy/compare/v0.11.0...v0.12.0) (2026-03-07)
+
+
+### Features
+
+* modernize build system, add Python 3.12/3.13 support ([1b45c22](https://github.com/justindujardin/pathy/commit/1b45c220a1a94d2da1e3e47012bba6dbfa0d0644))
+* **pypi:** relax smart_open range to include 7.x.x ([#117](https://github.com/justindujardin/pathy/issues/117)) ([7ee604e](https://github.com/justindujardin/pathy/commit/7ee604ed2b7c2495c50471dc28e3298f0c636153))
+
+
+### BREAKING CHANGES
+
+* Python 3.8 and 3.9 are no longer supported. Minimum required version is now Python 3.10.
+
 # [0.11.0](https://github.com/justindujardin/pathy/compare/v0.10.3...v0.11.0) (2024-01-11)
 
 
