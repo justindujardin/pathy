@@ -1,5 +1,4 @@
 #!/bin/bash
 set -e
-. .env/bin/activate
-pip install codecov
-python -m codecov
+uv run pip install codecov
+uv run python -m codecov

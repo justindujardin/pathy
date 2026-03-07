@@ -2,23 +2,21 @@ from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Optional
 
 try:
-    import boto3  # type:ignore
+    import boto3  # type: ignore
     from botocore.client import ClientError
     from botocore.exceptions import ParamValidationError
 
     S3NativeClient = Any
     S3NativeBucket = Any
 except (ImportError, ModuleNotFoundError):
-    raise ImportError(
-        """You are using the S3 functionality of Pathy without
+    raise ImportError("""You are using the S3 functionality of Pathy without
     having the required dependencies installed.
 
     Please try installing them:
 
         pip install pathy[s3]
 
-    """
-    )
+    """)
 
 from . import (
     Blob,
@@ -70,14 +68,14 @@ class BucketS3(Bucket):
         return BlobS3(
             client=self.client,
             bucket=self,
-            owner=None,  # type:ignore
-            name=blob_name,  # type:ignore
+            owner=None,  # type: ignore
+            name=blob_name,  # type: ignore
             raw=None,
             size=size,
-            updated=int(updated),  # type:ignore
+            updated=int(updated),  # type: ignore
         )
 
-    def copy_blob(  # type:ignore[override]
+    def copy_blob(  # type: ignore[override]
         self, blob: BlobS3, target: "BucketS3", name: str
     ) -> Optional[BlobS3]:
         source = {"Bucket": blob.bucket.name, "Key": blob.name}
@@ -95,10 +93,10 @@ class BucketS3(Bucket):
             updated=pathy_blob.updated,
         )
 
-    def delete_blob(self, blob: BlobS3) -> None:  # type:ignore[override]
+    def delete_blob(self, blob: BlobS3) -> None:  # type: ignore[override]
         self.client.delete_object(Bucket=self.name, Key=blob.name)
 
-    def delete_blobs(self, blobs: List[BlobS3]) -> None:  # type:ignore[override]
+    def delete_blobs(self, blobs: List[BlobS3]) -> None:  # type: ignore[override]
         for blob in blobs:
             self.delete_blob(blob)
 
@@ -124,19 +122,19 @@ class BucketClientS3(BucketClient):
         key_secret = kwargs.get("key_secret", None)
         boto_session: Any = boto3
         if key_id is not None and key_secret is not None:
-            self._session = boto_session = boto3.Session(  # type:ignore
+            self._session = boto_session = boto3.Session(  # type: ignore
                 aws_access_key_id=key_id,
                 aws_secret_access_key=key_secret,
             )
-        self.client = boto_session.client("s3")  # type:ignore
+        self.client = boto_session.client("s3")  # type: ignore
 
     def make_uri(self, path: PurePathy) -> str:
         return str(path)
 
-    def create_bucket(  # type:ignore[override]
+    def create_bucket(  # type: ignore[override]
         self, path: PurePathy
     ) -> S3NativeBucket:
-        return self.client.create_bucket(Bucket=path.root)  # type:ignore
+        return self.client.create_bucket(Bucket=path.root)  # type: ignore
 
     def delete_bucket(self, path: PurePathy) -> None:
         self.client.delete_bucket(Bucket=path.root)
@@ -147,7 +145,7 @@ class BucketClientS3(BucketClient):
         # and compare the object names to see if they match a substring of the path
         key_name = path.key
         for obj in self.list_blobs(path):
-            if obj.name.startswith(key_name + path.pathmod.sep):  # type:ignore
+            if obj.name.startswith(key_name + path.pathmod.sep):  # type: ignore
                 return True
         return False
 
@@ -164,7 +162,7 @@ class BucketClientS3(BucketClient):
         except (ClientError, ParamValidationError):
             raise FileNotFoundError(f"Bucket {path.root} does not exist!")
 
-    def scandir(  # type:ignore[override]
+    def scandir(  # type: ignore[override]
         self,
         path: PurePathy,
         prefix: Optional[str] = None,

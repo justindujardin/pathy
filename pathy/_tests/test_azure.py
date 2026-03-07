@@ -1,18 +1,17 @@
 from dataclasses import dataclass
 
-import mock
+from unittest.mock import patch
+
 import pytest
 
 from pathy import Pathy, get_client
 
-from . import azure_testable
 from .conftest import ENV_ID
 
 AZURE_ADAPTER = ["azure"]
 
 
 @pytest.mark.parametrize("adapter", AZURE_ADAPTER)
-@pytest.mark.skipif(not azure_testable, reason="requires azure")
 def test_azure_recreate_expected_args(with_adapter: str) -> None:
     from pathy.azure import BucketClientAzure
 
@@ -22,7 +21,6 @@ def test_azure_recreate_expected_args(with_adapter: str) -> None:
 
 
 @pytest.mark.parametrize("adapter", AZURE_ADAPTER)
-@pytest.mark.skipif(not azure_testable, reason="requires azure")
 def test_azure_bucket_get_blob_failure_cases(with_adapter: str, bucket: str) -> None:
     root = Pathy(f"{with_adapter}://{bucket}")
     client = root.client(root)
@@ -32,7 +30,6 @@ def test_azure_bucket_get_blob_failure_cases(with_adapter: str, bucket: str) -> 
 
 
 @pytest.mark.parametrize("adapter", AZURE_ADAPTER)
-@pytest.mark.skipif(not azure_testable, reason="requires azure")
 def test_azure_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
     """Test corner-case in Azure client that isn't easily reachable from Pathy"""
     from pathy.azure import BucketClientAzure
@@ -86,7 +83,6 @@ class MockAzureBlobServiceClient:
 
 
 @pytest.mark.parametrize("adapter", AZURE_ADAPTER)
-@pytest.mark.skipif(not azure_testable, reason="requires azure")
 def test_azure_bucket_copy_blob_aborts_copy_on_failure(
     with_adapter: str, bucket: str
 ) -> None:
@@ -107,7 +103,7 @@ def test_azure_bucket_copy_blob_aborts_copy_on_failure(
     mock_blob_client = MockAzureBlobClient()
     mock_bucket = MockAzureBlobServiceClient(mock_blob_client)
     assert mock_blob_client.aborted is False
-    with mock.patch.object(azure_bucket, "client", new=mock_bucket):
+    with patch.object(azure_bucket, "client", new=mock_bucket):
         assert azure_bucket.copy_blob(azure_blob, azure_bucket, "file2.txt") is None
     # abort_copy was called
     assert mock_blob_client.aborted is True

@@ -16,12 +16,11 @@ from pathy import (
     use_fs_cache,
 )
 
-from . import gcs_testable
 from .conftest import ENV_ID, TEST_ADAPTERS
 
 
-@pytest.mark.skipif(not gcs_testable, reason="requires gcs")
-def test_clients_get_client_works_with_optional_builtin_schems() -> None:
+@pytest.mark.parametrize("adapter", ["gcs"])
+def test_clients_get_client_works_with_optional_builtin_schems(adapter: str) -> None:
     from pathy.gcs import BucketClientGCS
 
     assert isinstance(get_client("gs"), BucketClientGCS)

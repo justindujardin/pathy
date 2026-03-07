@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 
 try:
-    import spacy  # type:ignore
+    import spacy  # type: ignore
 
     has_spacy = bool(spacy)
 except ModuleNotFoundError:
@@ -28,6 +28,13 @@ from .conftest import ENV_ID, TEST_ADAPTERS
 def test_pathy_is_path_instance(with_adapter: str) -> None:
     blob = Pathy(f"{with_adapter}://fake/blob")
     assert isinstance(blob, BasePath)
+
+
+@pytest.mark.parametrize("adapter", TEST_ADAPTERS)
+def test_pathy_write_text(with_adapter: str, bucket: str) -> None:
+    root: Pathy = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/to_local")
+    foo_blob: Pathy = root / "foo"
+    foo_blob.write_text("---")
 
 
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)

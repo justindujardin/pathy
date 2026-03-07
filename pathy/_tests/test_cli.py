@@ -271,7 +271,7 @@ def test_cli_ls_diff_years_modified(with_adapter: str, bucket: str) -> None:
     root = Pathy(f"{with_adapter}://{bucket}") / ENV_ID / "ls_diff_year"
     root.mkdir(parents=True, exist_ok=True)
 
-    client: BucketClientFS = root.client(root)  # type:ignore
+    client: BucketClientFS = root.client(root)  # type: ignore
 
     # Create one file right now
     new_path = root / "new_file.txt"

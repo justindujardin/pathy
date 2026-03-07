@@ -12,7 +12,7 @@ class MockScanDir(PathyScanDir):
 
 class AbstractScanDir(PathyScanDir):
     def scandir(self) -> Generator[BucketEntry, None, None]:
-        return super().scandir()  # type:ignore
+        return super().scandir()  # type: ignore
 
 
 def test_scandir_abstract_methods(bucket: str) -> None:
@@ -20,7 +20,7 @@ def test_scandir_abstract_methods(bucket: str) -> None:
     client = BucketClientFS()
     root = Pathy(f"gs://{bucket}/")
     with pytest.raises(NotImplementedError):
-        AbstractScanDir(client=client, path=root)  # type:ignore
+        AbstractScanDir(client=client, path=root)  # type: ignore
 
 
 def test_scandir_custom_class(bucket: str) -> None:
@@ -37,4 +37,4 @@ def test_scandir_next(bucket: str) -> None:
     client = BucketClientFS()
     root = Pathy(f"gs://{bucket}/")
     scandir = MockScanDir(client=client, path=root)
-    assert next(scandir.__next__()).name == "test-bucket"  # type:ignore
+    assert next(scandir.__next__()).name == "test-bucket"  # type: ignore
