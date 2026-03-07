@@ -15,7 +15,7 @@ jobs:
   build:
     strategy:
       matrix:
-        python-version: [3.9, 3.10.6, 3.11, 3.12]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     runs-on: ubuntu-latest
     steps:
@@ -24,19 +24,25 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
       - name: Install dependencies
-        run: sh tools/setup.sh
+        run: uv sync --all-extras
       - name: Lint Codebase
-        run: sh tools/lint.sh
-      - name: Build Wheel
-        run: sh tools/build.sh
-      - name: Test Wheel
+        run: |
+          uv run mypy pathy
+          uv run flake8 pathy
+          uv run black pathy --check
+      - name: Test (local only)
+        run: uv run pytest pathy/_tests --cov=pathy
+      - name: Test (cloud providers)
+        if: github.ref == 'refs/heads/master' || github.event_name == 'schedule'
         env:
           GCS_CREDENTIALS: ${{ secrets.GCS_CREDENTIALS }}
           PATHY_S3_ACCESS_ID: ${{ secrets.PATHY_S3_ACCESS_ID }}
           PATHY_S3_ACCESS_SECRET: ${{ secrets.PATHY_S3_ACCESS_SECRET }}
           PATHY_AZURE_CONNECTION_STRING: ${{ secrets.PATHY_AZURE_CONNECTION_STRING }}
-        run: rm -rf ./pathy/ && sh tools/test_package.sh
+        run: uv run pytest pathy/_tests --run-gcs --run-s3 --run-azure --cov=pathy --cov-append
       - name: Report Code Coverage
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

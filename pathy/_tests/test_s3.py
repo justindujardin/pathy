@@ -2,14 +2,13 @@ import pytest
 
 from pathy import Pathy, get_client, use_fs
 
-from . import s3_installed, s3_testable
+from . import s3_installed
 from .conftest import ENV_ID
 
 S3_ADAPTER = ["s3"]
 
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
-@pytest.mark.skipif(not s3_testable, reason="requires s3")
 def test_s3_scandir_scandir_continuation_token(
     with_adapter: str, bucket: str, other_bucket: str
 ) -> None:
@@ -25,7 +24,6 @@ def test_s3_scandir_scandir_continuation_token(
 
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
-@pytest.mark.skipif(not s3_testable, reason="requires s3")
 def test_s3_scandir_invalid_bucket_name(with_adapter: str) -> None:
     from pathy.s3 import ScanDirS3
 
@@ -36,7 +34,6 @@ def test_s3_scandir_invalid_bucket_name(with_adapter: str) -> None:
 
 
 @pytest.mark.parametrize("adapter", S3_ADAPTER)
-@pytest.mark.skipif(not s3_testable, reason="requires s3")
 def test_s3_bucket_client_list_blobs(with_adapter: str, bucket: str) -> None:
     """Test corner-case in S3 client that isn't easily reachable from Pathy"""
     from pathy.s3 import BucketClientS3

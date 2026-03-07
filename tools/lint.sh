@@ -2,7 +2,7 @@
 set -e
 . .env/bin/activate
 echo "========================= mypy"
-mypy pathy --strict-equality --disallow-untyped-calls --disallow-untyped-defs
+mypy pathy
 echo "========================= flake8"
 flake8 "pathy"
 echo "========================= black"

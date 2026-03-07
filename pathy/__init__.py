@@ -169,6 +169,7 @@ class BucketClient:
             errors=errors,
             newline=newline,
             transport_params=client_params,
+            closefd=False,
             # Disable de/compression based on the file extension
             compression=smart_open.compression.NO_COMPRESSION,
         )  # type:ignore
@@ -394,6 +395,18 @@ class BasePath(PathBase):
         )  # type:ignore
         for blob in blobs:
             yield self / blob.name
+
+    # def write_text(
+    #     self, data: str, encoding: Optional[str] = None, errors: Optional[str] = None
+    # ) -> int:
+    #     """Write text to a file."""
+    #     # Open the file without a context manager (smart_open introduces a
+    #     # double close in > 7.x) that causes the updated google-cloud-storage
+    #     # to fail with a "I/O operation on closed file." ValueError.
+    #     file = self.open(mode="w", encoding=encoding, errors=errors)
+    #     res = file.write(data)
+    #     file.close()
+    #     return res
 
 
 class Pathy(PurePathy, BasePath):
@@ -863,8 +876,7 @@ class PathyScanDir(Iterator[Any], ABC):
 #
 
 
-class BucketEntryFS(BucketEntry):
-    ...
+class BucketEntryFS(BucketEntry): ...
 
 
 @dataclass
@@ -1175,7 +1187,7 @@ def set_client_params(scheme: str, **kwargs: Any) -> None:
 
 
 def use_fs(
-    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None
+    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None,
 ) -> Optional[BucketClientFS]:
     """Use a path in the local file-system to store blobs and buckets.
 
@@ -1211,7 +1223,7 @@ def get_fs_client() -> Optional[BucketClientFS]:
 
 
 def use_fs_cache(
-    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None
+    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None,
 ) -> Optional[PathlibPathEx]:
     """Use a path in the local file-system to cache blobs and buckets.
 

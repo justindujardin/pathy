@@ -1,7 +1,9 @@
+import os
 import pathlib
 from typing import Any, Optional
 
-import mock
+from unittest.mock import patch
+
 import pytest
 
 from pathy import BlobFS, BucketClientFS, BucketFS, ClientError, Pathy, get_client
@@ -14,7 +16,7 @@ def raise_owner(self: Any) -> None:
 
 
 @pytest.mark.parametrize("adapter", FS_ADAPTER)
-@mock.patch.object(pathlib.Path, "owner", raise_owner)
+@patch.object(pathlib.Path, "owner", raise_owner)
 def test_file_get_blob_owner_key_error_protection(with_adapter: str) -> None:
     gs_bucket = Pathy("gs://my_bucket")
     gs_bucket.mkdir()
@@ -42,7 +44,7 @@ def test_file_bucket_client_fs_make_uri(with_adapter: str) -> None:
     client: BucketClientFS = get_client("gs")
     blob = Pathy("gs://foo/bar")
     actual = client.make_uri(blob)
-    sep = client.root._flavour.sep  # type:ignore
+    sep = os.sep
     expected = f"file://{client.root}{sep}foo{sep}bar"
     assert actual == expected
 
