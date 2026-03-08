@@ -2,19 +2,38 @@ import pathlib
 import tempfile
 
 import pytest
-from typer.testing import CliRunner
 
 from pathy import BlobStat, BucketClientFS, Pathy
-from pathy.cli import app
 
+from . import cli_installed
 from .conftest import ENV_ID, TEST_ADAPTERS
 
-runner = CliRunner()
+if cli_installed:
+    from typer.testing import CliRunner
+
+    from pathy.cli import app
+
+    runner = CliRunner()
+
+requires_cli = pytest.mark.skipif(not cli_installed, reason="requires pathy[cli]")
+
+
+@pytest.mark.skipif(cli_installed, reason="requires cli deps to NOT be installed")
+def test_cli_import_error_missing_deps() -> None:
+    import importlib
+    import sys
+
+    # Remove cached module so re-import triggers the ImportError guard
+    sys.modules.pop("pathy.cli", None)
+    with pytest.raises(ImportError):
+        importlib.import_module("pathy.cli")
+
 
 # TODO: add support for wildcard cp/mv/rm/ls paths (e.g. "pathy cp gs://my/*.file ./")
 # TODO: add support for streaming in/out sources (e.g. "pathy cp - gs://my/my.file")
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_invalid_from_path(with_adapter: str, bucket: str) -> None:
     source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_cp_file_invalid/file.txt"
@@ -23,6 +42,7 @@ def test_cli_cp_invalid_from_path(with_adapter: str, bucket: str) -> None:
     assert not Pathy(destination).is_file()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_file(with_adapter: str, bucket: str) -> None:
     source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_cp_file/file.txt"
@@ -33,6 +53,7 @@ def test_cli_cp_file(with_adapter: str, bucket: str) -> None:
     assert Pathy(destination).is_file()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_file_name_from_source(with_adapter: str, bucket: str) -> None:
     source = pathlib.Path("./file.txt")
@@ -43,6 +64,7 @@ def test_cli_cp_file_name_from_source(with_adapter: str, bucket: str) -> None:
     source.unlink()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_cp_folder(with_adapter: str, bucket: str) -> None:
     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/")
@@ -59,6 +81,7 @@ def test_cli_cp_folder(with_adapter: str, bucket: str) -> None:
             assert (destination / f"{i}" / f"{j}").is_file()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_mv_folder(with_adapter: str, bucket: str) -> None:
     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/")
@@ -80,6 +103,7 @@ def test_cli_mv_folder(with_adapter: str, bucket: str) -> None:
             assert (destination / f"{i}" / f"{j}").is_file()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_mv_file_copy_from_name(with_adapter: str, bucket: str) -> None:
     source = pathlib.Path("./file.txt")
@@ -91,6 +115,7 @@ def test_cli_mv_file_copy_from_name(with_adapter: str, bucket: str) -> None:
     assert not source.exists()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_mv_file(with_adapter: str, bucket: str) -> None:
     source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_mv_file/file.txt"
@@ -102,6 +127,7 @@ def test_cli_mv_file(with_adapter: str, bucket: str) -> None:
     assert Pathy(destination).is_file()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_mv_file_across_buckets(
     with_adapter: str, bucket: str, other_bucket: str
@@ -117,6 +143,7 @@ def test_cli_mv_file_across_buckets(
     assert Pathy(destination).is_file()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_mv_folder_across_buckets(
     with_adapter: str, bucket: str, other_bucket: str
@@ -141,6 +168,7 @@ def test_cli_mv_folder_across_buckets(
             assert (destination / f"{i}" / f"{j}").is_file()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_invalid_file(with_adapter: str, bucket: str) -> None:
     source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_rm_file_invalid/file.txt"
@@ -149,6 +177,7 @@ def test_cli_rm_invalid_file(with_adapter: str, bucket: str) -> None:
     assert runner.invoke(app, ["rm", source]).exit_code == 1
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_file(with_adapter: str, bucket: str) -> None:
     source = f"{with_adapter}://{bucket}/{ENV_ID}/cli_rm_file/file.txt"
@@ -159,6 +188,7 @@ def test_cli_rm_file(with_adapter: str, bucket: str) -> None:
     assert not path.exists()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_verbose(with_adapter: str, bucket: str) -> None:
     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_rm_folder"
@@ -178,6 +208,7 @@ def test_cli_rm_verbose(with_adapter: str, bucket: str) -> None:
     assert other in result.output
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_rm_folder(with_adapter: str, bucket: str) -> None:
     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/")
@@ -196,6 +227,7 @@ def test_cli_rm_folder(with_adapter: str, bucket: str) -> None:
             assert not (source / f"{i}" / f"{j}").is_file()
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_ls_invalid_source(with_adapter: str, bucket: str) -> None:
     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls_invalid"
@@ -206,6 +238,7 @@ def test_cli_ls_invalid_source(with_adapter: str, bucket: str) -> None:
     assert "No such file or directory" in result.output
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_ls(with_adapter: str, bucket: str) -> None:
     root = Pathy(f"{with_adapter}://{bucket}/{ENV_ID}/") / "cli_ls"
@@ -229,6 +262,7 @@ def test_cli_ls(with_adapter: str, bucket: str) -> None:
     assert str(root / "folder") in result.output
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", TEST_ADAPTERS)
 def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
     root = Pathy.fluid(tempfile.mkdtemp()) / ENV_ID / "ls"
@@ -264,6 +298,7 @@ def test_cli_ls_local_files(with_adapter: str, bucket: str) -> None:
     assert str(root / "folder") in result.output
 
 
+@requires_cli
 @pytest.mark.parametrize("adapter", ["fs"])
 def test_cli_ls_diff_years_modified(with_adapter: str, bucket: str) -> None:
     import os
