@@ -144,3 +144,11 @@ def test_pure_pathy_anchor() -> None:
     assert PurePathy("s3://mybucket/a/b").anchor == "s3://mybucket/"
     # No scheme means no anchor
     assert PurePathy("foo/bar").anchor == ""
+
+
+def test_pure_pathy_hashable() -> None:
+    p = PurePathy("gs://bucket/foo")
+    assert hash(p) == hash("gs://bucket/foo")
+    # Can be used in sets/dicts
+    s = {p, PurePathy("gs://bucket/bar")}
+    assert len(s) == 2

@@ -1,5 +1,5 @@
 import pytest
-from pathlib_abc import PathBase
+from pathlib_abc import ReadablePath, WritablePath
 
 from .. import (
     Blob,
@@ -96,7 +96,14 @@ def test_base_symlink_to() -> None:
 
 def test_base_pathy_mro() -> None:
     assert PurePathy in Pathy.mro()
-    assert PathBase in Pathy.mro()
+    assert ReadablePath in Pathy.mro()
+    assert WritablePath in Pathy.mro()
+
+
+def test_base_pathy_readlink_raises() -> None:
+    path = Pathy("gs://bucket/foo")
+    with pytest.raises(NotImplementedError):
+        path.readlink()
 
 
 def test_base_path_truediv_operator_overload_with_subclass() -> None:

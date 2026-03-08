@@ -4,6 +4,7 @@ from typing import Tuple
 
 sep = "/"
 schemesep = "://"
+altsep = None
 
 join = posixpath.join
 normcase = posixpath.normcase
