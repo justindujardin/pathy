@@ -1,3 +1,17 @@
+# [0.13.0](https://github.com/justindujardin/pathy/compare/v0.12.0...v0.13.0) (2026-03-08)
+
+
+### Features
+
+* upgrade to pathlib_abc 0.3.x API ([#123](https://github.com/justindujardin/pathy/issues/123)) ([eb7d445](https://github.com/justindujardin/pathy/commit/eb7d445d1015b1e56ddf049c859e6ba6fa495b83))
+* upgrade to pathlib_abc 0.5.x API ([#128](https://github.com/justindujardin/pathy/issues/128)) ([71fe8e5](https://github.com/justindujardin/pathy/commit/71fe8e5c8e5401e54c5c4aa95dab044a442bc2a5))
+
+
+### BREAKING CHANGES
+
+* PurePathy no longer implements __fspath__. Cloud paths are not local filesystem paths, so os.fspath() no longer works on them. Use str(path) instead.
+* PurePathy.match() no longer auto-prepends '**' to patterns. Use full_match() for recursive matching, or explicitly add '**/' to patterns.
+
 # [0.12.0](https://github.com/justindujardin/pathy/compare/v0.11.0...v0.12.0) (2026-03-07)
 
 
