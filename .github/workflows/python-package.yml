@@ -53,6 +53,10 @@ jobs:
           PATHY_S3_ACCESS_SECRET: ${{ secrets.PATHY_S3_ACCESS_SECRET }}
           PATHY_AZURE_CONNECTION_STRING: ${{ secrets.PATHY_AZURE_CONNECTION_STRING }}
         run: uv run pytest pathy/_tests --run-gcs --run-s3 --run-azure --cov=pathy --cov-append
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   deploy:
     runs-on: ubuntu-latest
