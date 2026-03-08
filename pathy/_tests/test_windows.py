@@ -1,10 +1,11 @@
 import os
 import shutil
 import tempfile
+from unittest.mock import patch
 
 import pytest
 
-from pathy import Pathy
+from pathy import Pathy, PurePathy
 
 is_windows = os.name == "nt"
 
@@ -57,3 +58,10 @@ def test_windows_fluid_absolute_file_paths() -> None:
     assert new_folder.exists() is True
 
     shutil.rmtree(tmp_dir)
+
+
+@patch("pathy.os.name", "nt")
+def test_format_parsed_parts_windows_join() -> None:
+    """Verify file:// paths use backslash joins when os.name is 'nt'."""
+    result = PurePathy._format_parsed_parts("file", "/", ["tmp", "sub"])
+    assert "\\" in result
