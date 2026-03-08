@@ -1026,11 +1026,11 @@ wheels = [
 
 [[package]]
 name = "pathlib-abc"
-version = "0.1.1"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0f/4e/3135887f5e4ff2eec7464697a89e517f5765017775fe8f1678658d510f27/pathlib_abc-0.1.1.tar.gz", hash = "sha256:084e7bdd919b0f7774914a9e64cd86a1b39860f81f781dd724258631f2915abe", size = 34276, upload-time = "2023-12-30T19:44:18.895Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/ad/ea0633425985a1b56617a25ae2d98540c6bef5391f6370ea0cf39414f86c/pathlib_abc-0.3.1.tar.gz", hash = "sha256:811395d2793a1c675ff79c3246d3d6b41a0f96a3a1479c2e96c56b0a51402227", size = 35037, upload-time = "2024-06-09T20:25:39.293Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/ba/7baa8fe79d48520ae77e594ff1cc1d30a5eb0fefc3846495bcff8bb215a4/pathlib_abc-0.1.1-py3-none-any.whl", hash = "sha256:5cb2f942fdbb75ce0e00ed3b94de9695b0c5d4b419b5004a702da80f165b3109", size = 23785, upload-time = "2023-12-30T19:44:16.856Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/84/6f185293ce80976d2c28eebc0e270f6302396cbcb846db1301e7f713c3e3/pathlib_abc-0.3.1-py3-none-any.whl", hash = "sha256:e83667be72c54cc0acc48e8429bfb88d13a207d3cd77a2556eeb9b995d11fee1", size = 17053, upload-time = "2024-06-09T20:25:38.357Z" },
 ]
 
 [[package]]
@@ -1093,7 +1093,7 @@ requires-dist = [
     { name = "boto3", marker = "extra == 's3'" },
     { name = "google-cloud-storage", marker = "extra == 'all'", specifier = ">=2.0.0" },
     { name = "google-cloud-storage", marker = "extra == 'gcs'", specifier = ">=2.0.0" },
-    { name = "pathlib-abc", specifier = "==0.1.1" },
+    { name = "pathlib-abc", specifier = ">=0.3.1,<0.4" },
     { name = "pytest", marker = "extra == 'all'" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-cov", marker = "extra == 'all'" },
