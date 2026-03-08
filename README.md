@@ -1,7 +1,7 @@
 # Pathy
 
 [![Build](https://github.com/justindujardin/pathy/actions/workflows/python-package.yml/badge.svg)](https://github.com/justindujardin/pathy/actions/workflows/python-package.yml)
-[![codecov](https://codecov.io/gh/justindujardin/pathy/branch/master/graph/badge.svg)](https://codecov.io/gh/justindujardin/pathy)
+[![codecov](https://codecov.io/gh/justindujardin/pathy/graph/badge.svg?token=KEXGFKEJBL)](https://codecov.io/gh/justindujardin/pathy)
 [![Pypi version](https://badgen.net/pypi/v/pathy)](https://pypi.org/project/pathy/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
