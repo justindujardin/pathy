@@ -122,7 +122,7 @@ class BucketClientGCS(BucketClient):
         # and compare the object names to see if they match a substring of the path
         key_name = path.key
         for obj in self.list_blobs(path):
-            if obj.name.startswith(key_name + path.pathmod.sep):
+            if obj.name.startswith(key_name + path.parser.sep):
                 return True
         return False
 
@@ -177,7 +177,7 @@ class ScanDirGCS(PathyScanDir):
     _client: BucketClientGCS
 
     def scandir(self) -> Generator[BucketEntryGCS, None, None]:
-        sep = self._path.pathmod.sep
+        sep = self._path.parser.sep
         bucket = self._client.lookup_bucket(self._path)
         if bucket is None:
             return

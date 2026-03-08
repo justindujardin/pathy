@@ -239,8 +239,59 @@ class BucketClient:
 class PurePathy(PurePathBase):
     """PurePathBase subclass for bucket storage."""
 
-    pathmod = pathy_pathmod
+    parser = pathy_pathmod  # type: ignore[assignment]
     __slots__ = ()
+
+    def __init__(self, *args: Union[str, os.PathLike[str], "PurePathy"]) -> None:
+        # pathlib_abc 0.3.x requires a single string path. Coerce inputs.
+        if len(args) == 0:
+            path = ""
+        elif len(args) == 1:
+            path = str(args[0]) if not isinstance(args[0], str) else args[0]
+        else:
+            path = self.parser.join(*[str(a) for a in args])
+        super().__init__(path)
+
+    @property
+    def _tail(self) -> List[str]:
+        """Path components after the bucket (scheme://bucket/).
+
+        Derived from the internal _stack property provided by pathlib_abc 0.3.x.
+        """
+        _anchor, parts = self._stack
+        return list(reversed(parts))
+
+    @property
+    def drive(self) -> str:
+        """The scheme portion of the path (e.g. 'gs', 's3', 'azure')."""
+        raw = self._raw_path
+        idx = raw.find(pathy_pathmod.schemesep)
+        if idx == -1:
+            return ""
+        return raw[:idx]
+
+    @property
+    def root(self) -> str:
+        """The bucket name portion of the path."""
+        raw = self._raw_path
+        idx = raw.find(pathy_pathmod.schemesep)
+        if idx == -1:
+            return ""
+        rest = raw[idx + len(pathy_pathmod.schemesep) :]
+        # The bucket is everything up to the first /
+        slash_idx = rest.find(pathy_pathmod.sep)
+        if slash_idx == -1:
+            return rest
+        return rest[:slash_idx]
+
+    @property
+    def anchor(self) -> str:
+        """The anchor (scheme://bucket/) of the path."""
+        drv = self.drive
+        root = self.root
+        if drv or root:
+            return f"{drv}{pathy_pathmod.schemesep}{root}{pathy_pathmod.sep}"
+        return ""
 
     @property
     def scheme(self) -> str:
@@ -253,10 +304,7 @@ class PurePathy(PurePathBase):
         assert Pathy("gs://foo/bar").scheme == "gs"
         assert Pathy("file:///tmp/foo/bar").scheme == "file"
         """
-        # If there is no drive, return nothing
-        if self.drive == "":
-            return ""
-        return str(self.drive)
+        return self.drive
 
     @property
     def bucket(self) -> "Pathy":
@@ -268,9 +316,10 @@ class PurePathy(PurePathBase):
     def key(self) -> str:
         """Return a new instance of only the key path."""
         self._absolute_path_validation()
-        if len(self._tail) == 0:
+        tail = self._tail
+        if len(tail) == 0:
             return ""
-        return pathy_pathmod.sep.join(self._tail)
+        return pathy_pathmod.sep.join(tail)
 
     @property
     def prefix(self) -> str:
@@ -422,10 +471,6 @@ class Pathy(PurePathy, BasePath):
     def __truediv__(self, key: Union[str, PathBase, "Pathy", PurePathy]) -> "Pathy":
         return super().__truediv__(key)  # type: ignore
 
-    def _make_child_entry(self, entry: BucketEntry) -> "Pathy":
-        # Transform an entry yielded from _scandir() into a path object.
-        return self / Pathy(entry.name)
-
     @classmethod
     def fluid(cls, path_candidate: Union[str, FluidPath]) -> FluidPath:
         """Infer either a Pathy or pathlib.Path from an input path or string.
@@ -549,7 +594,7 @@ class Pathy(PurePathy, BasePath):
             raise FileNotFoundError(self)
         return BlobStat(name=str(blob.name), size=blob.size, last_modified=blob.updated)
 
-    def exists(self: "Pathy") -> bool:
+    def exists(self: "Pathy", *, follow_symlinks: bool = True) -> bool:
         """Returns True if the path points to an existing bucket, blob, or prefix."""
         self._absolute_path_validation()
         client = self.client(self)
@@ -597,7 +642,7 @@ class Pathy(PurePathy, BasePath):
         pattern: str,
         *,
         case_sensitive: Optional[bool] = None,
-        follow_symlinks: Optional[bool] = None,
+        recurse_symlinks: bool = True,
     ) -> Generator["Pathy", None, None]:
         """Perform a glob match relative to this Pathy instance, yielding all matched
         blobs."""
@@ -814,7 +859,7 @@ class Pathy(PurePathy, BasePath):
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.lchmod.__qualname__)
         raise NotImplementedError(message)
 
-    def group(self: "Pathy") -> str:
+    def group(self: "Pathy", *, follow_symlinks: bool = True) -> str:
         message = self._NOT_SUPPORTED_MESSAGE.format(method=self.group.__qualname__)
         raise NotImplementedError(message)
 
