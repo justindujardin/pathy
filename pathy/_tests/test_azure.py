@@ -4,11 +4,19 @@ from unittest.mock import patch
 
 import pytest
 
-from pathy import Pathy, get_client
+from pathy import Pathy, get_client, use_fs
 
+from . import azure_installed
 from .conftest import ENV_ID
 
 AZURE_ADAPTER = ["azure"]
+
+
+@pytest.mark.skipif(azure_installed, reason="requires azure deps to NOT be installed")
+def test_azure_import_error_missing_deps() -> None:
+    use_fs(False)
+    with pytest.raises(ImportError):
+        get_client("azure")
 
 
 @pytest.mark.parametrize("adapter", AZURE_ADAPTER)

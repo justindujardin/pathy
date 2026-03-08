@@ -35,7 +35,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install uv
         uses: astral-sh/setup-uv@v4
-      - name: Install dependencies
+      - name: Install dependencies (no cloud extras)
+        run: uv sync
+      - name: Test (missing deps coverage)
+        run: uv run pytest pathy/_tests --cov=pathy --cov-report=xml
+      - name: Install dependencies (all extras)
         run: uv sync --all-extras
       - name: Lint Codebase
         if: matrix.os == 'ubuntu-latest'
@@ -44,7 +48,7 @@ jobs:
           uv run flake8 pathy
           uv run black pathy --check
       - name: Test (local only)
-        run: uv run pytest pathy/_tests --cov=pathy --cov-report=xml
+        run: uv run pytest pathy/_tests --cov=pathy --cov-append --cov-report=xml
       - name: Test (cloud providers)
         if: matrix.os == 'ubuntu-latest'
         env:
