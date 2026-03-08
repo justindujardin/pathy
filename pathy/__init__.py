@@ -26,7 +26,7 @@ from typing import (
 
 import smart_open
 import smart_open.compression
-from pathlib_abc import PathBase, PurePathBase
+from pathlib_abc import JoinablePath, ReadablePath, WritablePath
 
 from . import pathmod as pathy_pathmod
 
@@ -236,35 +236,49 @@ class BucketClient:
             self.create_bucket(path)
 
 
-class PurePathy(PurePathBase):
-    """PurePathBase subclass for bucket storage."""
+class PurePathy(JoinablePath):
+    """JoinablePath subclass for bucket storage."""
 
     parser = pathy_pathmod  # type: ignore[assignment]
-    __slots__ = ()
+    __slots__ = ("_path_str",)
 
     def __init__(self, *args: Union[str, os.PathLike[str], "PurePathy"]) -> None:
-        # pathlib_abc 0.3.x requires a single string path. Coerce inputs.
         if len(args) == 0:
-            path = ""
+            self._path_str = ""
         elif len(args) == 1:
-            path = str(args[0]) if not isinstance(args[0], str) else args[0]
+            self._path_str = str(args[0]) if not isinstance(args[0], str) else args[0]
         else:
-            path = self.parser.join(*[str(a) for a in args])
-        super().__init__(path)
+            self._path_str = pathy_pathmod.join(*[str(a) for a in args])
+
+    def __vfspath__(self) -> str:
+        return self._path_str
+
+    def __str__(self) -> str:
+        return self._path_str
+
+    def with_segments(self, *pathsegments: Union[str, "PurePathy"]) -> "PurePathy":
+        return type(self)(*pathsegments)
 
     @property
     def _tail(self) -> List[str]:
-        """Path components after the bucket (scheme://bucket/).
+        """Path components after the anchor.
 
-        Derived from the internal _stack property provided by pathlib_abc 0.3.x.
+        Decomposed by repeatedly calling parser.split().
         """
-        _anchor, parts = self._stack
-        return list(reversed(parts))
+        path = self._path_str
+        split = pathy_pathmod.split
+        parent, name = split(path)
+        names: List[str] = []
+        while path != parent:
+            names.append(name)
+            path = parent
+            parent, name = split(path)
+        return list(reversed(names))
 
     @property
     def drive(self) -> str:
         """The scheme portion of the path (e.g. 'gs', 's3', 'azure')."""
-        raw = self._raw_path
+        raw = self._path_str
         idx = raw.find(pathy_pathmod.schemesep)
         if idx == -1:
             return ""
@@ -273,7 +287,7 @@ class PurePathy(PurePathBase):
     @property
     def root(self) -> str:
         """The bucket name portion of the path."""
-        raw = self._raw_path
+        raw = self._path_str
         idx = raw.find(pathy_pathmod.schemesep)
         if idx == -1:
             return ""
@@ -292,6 +306,28 @@ class PurePathy(PurePathBase):
         if drv or root:
             return f"{drv}{pathy_pathmod.schemesep}{root}{pathy_pathmod.sep}"
         return ""
+
+    def is_absolute(self) -> bool:
+        """Return True if the path is absolute (has a scheme://)."""
+        return pathy_pathmod.isabs(self._path_str)
+
+    def match(self, pattern: str, *, case_sensitive: Optional[bool] = None) -> bool:
+        """Match this path against the provided glob-style pattern.
+
+        Matches right-to-left, component by component.
+        """
+        return self.full_match(pattern)
+
+    def __hash__(self) -> int:
+        return hash(self._path_str)
+
+    def relative_to(
+        self, other: Union[str, "PurePathy", Path], **kwargs: Any
+    ) -> "PurePathy":
+        """Return a relative version of this path compared to other."""
+        if not isinstance(other, PurePathy):
+            other = type(self)(str(other))
+        return super().relative_to(other, **kwargs)  # type: ignore[return-value]
 
     @property
     def scheme(self) -> str:
@@ -356,19 +392,6 @@ class PurePathy(PurePathBase):
         """Support < comparisons and sorting with sorted()"""
         return isinstance(other, (PurePath, Pathy)) and self.parts < other.parts
 
-    def __fspath__(self) -> str:
-        """Compatibilty with os.fspath()
-
-        ```python
-        import os
-        from pathy import Pathy
-
-        path: Pathy = Pathy("gs://foo/bar")
-        str_path: str = os.fspath(path)
-        ```
-        """
-        return str(self)
-
     def __eq__(self, other: object) -> bool:
         """Enables equality comparisons, e.g.
 
@@ -424,7 +447,7 @@ class PathlibPathEx(BasePathlibPath):
             )
 
 
-class BasePath(PathBase):
+class BasePath(ReadablePath, WritablePath):
     def ls(self: Any) -> Generator["BlobStat", None, None]:
         client: BucketClient = get_client(getattr(self, "scheme", "file"))
         blobs: "ScanDirFS" = cast(
@@ -445,21 +468,9 @@ class BasePath(PathBase):
         for blob in blobs:
             yield self / blob.name
 
-    # def write_text(
-    #     self, data: str, encoding: Optional[str] = None, errors: Optional[str] = None
-    # ) -> int:
-    #     """Write text to a file."""
-    #     # Open the file without a context manager (smart_open introduces a
-    #     # double close in > 7.x) that causes the updated google-cloud-storage
-    #     # to fail with a "I/O operation on closed file." ValueError.
-    #     file = self.open(mode="w", encoding=encoding, errors=errors)
-    #     res = file.write(data)
-    #     file.close()
-    #     return res
-
 
 class Pathy(PurePathy, BasePath):
-    """Subclass of `PathBase` that works with bucket APIs."""
+    """Subclass of `JoinablePath` that works with bucket APIs."""
 
     __slots__ = ()
     _NOT_SUPPORTED_MESSAGE = "{method} is an unsupported bucket operation"
@@ -468,7 +479,34 @@ class Pathy(PurePathy, BasePath):
     def client(self, path: "Pathy") -> BucketClient:
         return get_client(path.scheme)
 
-    def __truediv__(self, key: Union[str, PathBase, "Pathy", PurePathy]) -> "Pathy":
+    @property
+    def info(self) -> "Pathy":
+        """Return self as the PathInfo object.
+
+        Pathy already implements exists(), is_dir(), is_file(), is_symlink()
+        with compatible signatures.
+        """
+        return self
+
+    def __open_reader__(self) -> StreamableType:
+        return self.client(self).open(self, mode="rb")
+
+    def __open_writer__(self, mode: str = "w") -> StreamableType:
+        return self.client(self).open(self, mode=mode + "b")
+
+    def readlink(self) -> "Pathy":
+        raise NotImplementedError("cloud paths do not support symlinks")
+
+    def rglob(
+        self: "Pathy",
+        pattern: str,
+        *,
+        recurse_symlinks: bool = True,
+    ) -> Generator["Pathy", None, None]:
+        """Recursively glob, matching pattern in this subtree."""
+        yield from self.glob(f"**/{pattern}")
+
+    def __truediv__(self, key: Union[str, JoinablePath, "Pathy", PurePathy]) -> "Pathy":
         return super().__truediv__(key)  # type: ignore
 
     @classmethod
@@ -703,7 +741,7 @@ class Pathy(PurePathy, BasePath):
         return self.client(self).resolve(self, strict=strict)
 
     def rename(  # type: ignore
-        self: "Pathy", target: Union[str, PurePathBase]
+        self: "Pathy", target: Union[str, JoinablePath]
     ) -> "Pathy":
         """Rename this path to the given target.
 
@@ -742,7 +780,7 @@ class Pathy(PurePathy, BasePath):
             bucket.delete_blob(blob)
         return self
 
-    def replace(self: "Pathy", target: Union[str, PurePathBase]) -> "Pathy":
+    def replace(self: "Pathy", target: Union[str, JoinablePath]) -> "Pathy":
         """Renames this path to the given target.
 
         If target points to an existing path, it will be replaced."""
@@ -766,10 +804,10 @@ class Pathy(PurePathy, BasePath):
         elif client.is_dir(self):
             client.rmdir(self)
 
-    def samefile(self: "Pathy", other_path: Union[str, bytes, int, PathBase]) -> bool:
+    def samefile(self: "Pathy", other_path: Union[str, bytes, int, "Pathy"]) -> bool:
         """Determine if this path points to the same location as other_path."""
         self._absolute_path_validation()
-        if not isinstance(other_path, PathBase):
+        if not isinstance(other_path, Pathy):
             other_path = type(self)(other_path)  # type: ignore
         assert isinstance(other_path, Pathy)
         return (
@@ -880,7 +918,7 @@ class Pathy(PurePathy, BasePath):
         raise NotImplementedError(message)
 
     def symlink_to(
-        self, target: Union[str, PathBase], target_is_directory: bool = False
+        self, target: Union[str, JoinablePath], target_is_directory: bool = False
     ) -> None:
         message = self._NOT_SUPPORTED_MESSAGE.format(
             method=self.symlink_to.__qualname__
@@ -1057,14 +1095,14 @@ class BucketClientFS(BucketClient):
     def create_bucket(self, path: PurePathy) -> Bucket:
         if not path.root:
             raise ValueError(f"Invalid bucket name: {path.root}")
-        bucket_path: PathBase = self.root / path.root
+        bucket_path: PathlibPathEx = self.root / path.root
         if bucket_path.exists():
             raise FileExistsError(f"Bucket already exists at: {bucket_path}")
         bucket_path.mkdir(parents=True, exist_ok=True)
         return BucketFS(str(path.root), bucket=bucket_path)
 
     def delete_bucket(self, path: PurePathy) -> None:
-        bucket_path: PathBase = self.root / str(path.root)
+        bucket_path: PathlibPathEx = self.root / str(path.root)
         if bucket_path.exists():
             shutil.rmtree(bucket_path)
 
@@ -1103,7 +1141,7 @@ class BucketClientFS(BucketClient):
         if prefix is not None:
             scan_path = scan_path / prefix
 
-        # PathBase to a file
+        # Path to a file
         if scan_path.exists() and not scan_path.is_dir():
             stat = scan_path.stat()
             file_size = stat.st_size
@@ -1233,7 +1271,7 @@ def set_client_params(scheme: str, **kwargs: Any) -> None:
 
 
 def use_fs(
-    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None,
+    root: Optional[Union[str, Path, PathlibPathEx, bool]] = None,
 ) -> Optional[BucketClientFS]:
     """Use a path in the local file-system to store blobs and buckets.
 
@@ -1251,7 +1289,7 @@ def use_fs(
         client_root = PathlibPathEx(__file__).parent / "data"
     else:
         assert isinstance(
-            root, (str, PathBase, PathlibPathEx)
+            root, (str, Path, PathlibPathEx)
         ), f"root is not a known type: {type(root)}"
         client_root = PathlibPathEx(str(root))
     if not client_root.exists():
@@ -1269,7 +1307,7 @@ def get_fs_client() -> Optional[BucketClientFS]:
 
 
 def use_fs_cache(
-    root: Optional[Union[str, PathBase, PathlibPathEx, bool]] = None,
+    root: Optional[Union[str, Path, PathlibPathEx, bool]] = None,
 ) -> Optional[PathlibPathEx]:
     """Use a path in the local file-system to cache blobs and buckets.
 
@@ -1287,7 +1325,7 @@ def use_fs_cache(
         cache_root = PathlibPathEx(tempfile.mkdtemp())
     else:
         assert isinstance(
-            root, (str, PathBase, PathlibPathEx, BasePathlibPath)
+            root, (str, Path, PathlibPathEx, BasePathlibPath)
         ), f"root is not a known type: {type(root)}"
         cache_root = PathlibPathEx(str(root))
     if not cache_root.exists():
