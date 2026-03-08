@@ -2,7 +2,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Union
 
-import typer
+try:
+    import typer
+except (ImportError, ModuleNotFoundError):
+    raise ImportError("""You are using the CLI functionality of Pathy without
+    having the required dependencies installed.
+
+    Please try installing them:
+
+        pip install pathy[cli]
+
+    """)
 
 from . import BasePath, FluidPath, Pathy
 from .about import __version__

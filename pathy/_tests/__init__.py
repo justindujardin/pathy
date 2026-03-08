@@ -24,3 +24,12 @@ try:
 except ImportError as e:
     print(f"Azure dependencies: {e}.")
     azure_installed = False
+
+cli_installed: bool
+try:
+    from ..cli import app  # noqa: F401
+
+    cli_installed = True
+except ImportError as e:
+    print(f"CLI dependencies: {e}.")
+    cli_installed = False

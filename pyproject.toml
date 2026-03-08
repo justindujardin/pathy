@@ -21,14 +21,15 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-dependencies = ["smart-open>=5.2.1", "typer>=0.3.0", "pathlib_abc>=0.5.2,<0.6"]
+dependencies = ["smart-open>=5.2.1", "pathlib_abc>=0.5.2,<0.6"]
 
 [project.optional-dependencies]
+cli = ["typer>=0.3.0"]
 gcs = ["google-cloud-storage>=2.0.0"]
 s3 = ["boto3"]
 azure = ["azure-storage-blob"]
 test = ["pytest", "pytest-cov"]
-all = ["pathy[gcs]", "pathy[s3]", "pathy[azure]", "pathy[test]"]
+all = ["pathy[cli]", "pathy[gcs]", "pathy[s3]", "pathy[azure]", "pathy[test]"]
 
 [project.scripts]
 pathy = "pathy.cli:app"
