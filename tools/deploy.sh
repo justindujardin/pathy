@@ -1,17 +1,16 @@
 #!/bin/bash
 set -e
 
-echo "Installing semantic-release requirements"
-npm install
-echo "Updating build version"
-npx ts-node -O '{"module": "es2020", "esModuleInterop":true}' tools/ci-set-build-version.ts
-echo "Running semantic-release"
-npx semantic-release
+echo "Running semantic-release (bump version, changelog, commit, tag, push)..."
+# semantic-release version exits 0 if a release was made, non-zero otherwise.
+# build_command in pyproject.toml runs "uv build" automatically.
+if uv run semantic-release version; then
+    echo "Publishing to PyPI..."
+    uv run twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/* || true
+    rm -rf dist
 
-echo "Build and publish to pypi..."
-rm -rf dist
-echo "--- Build dists"
-uv build
-echo "--- Upload to PyPi"
-uv run twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/* || true
-rm -rf dist
+    echo "Publishing dist artifacts to GitHub release..."
+    uv run semantic-release publish
+else
+    echo "No release needed (no qualifying commits since last release)."
+fi
