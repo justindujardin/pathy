@@ -5,7 +5,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/pathy)](https://pypi.org/project/pathy/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
-Pathy is a practical Python package with type annotations tailored for managing Cloud Bucket storage through a Path-like interface. It has an intuitive API and supports your [favorite](#google-cloud-storage) [cloud](#azure) [providers](#amazon-s3), facilitating file transfers between local systems and remote buckets. Ideal for seasoned developers, Pathy enables smooth [local file system work](#use_fs) during development, transitioning effortlessly to live APIs for deployment. It also simplifies converting bucket [blobs into local files](#to_local), offering an option for local file caching, and has a familiar CLI interface `pathy`.
+Pathy is a practical Python package with type annotations tailored for managing Cloud Bucket storage through a Path-like interface. It has an intuitive API and supports your [favorite](#google-cloud-storage) [cloud](#azure) [providers](#amazon-s3), facilitating file transfers between local systems and remote buckets. Ideal for seasoned developers, Pathy enables smooth [local file system work](#use_fs) during development, transitioning effortlessly to live APIs for deployment. It also simplifies converting bucket [blobs into local files](#to_local), offers an option for local file caching, and has a familiar CLI interface `pathy`.
 
 ## 💾 Installation
 
