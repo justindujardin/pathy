@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.14.1 (2026-04-11)
+
+### Chores
+
+- Bump deps for dependabot ([#137](https://github.com/justindujardin/pathy/pull/137),
+  [`25ef527`](https://github.com/justindujardin/pathy/commit/25ef5274b2846b081e5b47df95548f326484f400))
+
+### Features
+
+- **pypi**: Add PEP 740 attestations
+  ([`343e2f0`](https://github.com/justindujardin/pathy/commit/343e2f01c6d6d3f11a8d47adb4d6705a651f7f7c))
+
+
 ## v0.14.0 (2026-03-08)
 
 ### Chores
