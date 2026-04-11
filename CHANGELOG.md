@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.14.2 (2026-04-11)
+
+### Bug Fixes
+
+- **pypi**: Correct version_variables pattern for semantic-release
+  ([`9a6f976`](https://github.com/justindujardin/pathy/commit/9a6f97640d2e6edcc05aab0ab26c13b9e755d9a5))
+
+
 ## v0.14.1 (2026-04-11)
 
 ### Chores
