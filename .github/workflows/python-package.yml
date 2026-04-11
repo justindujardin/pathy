@@ -68,6 +68,9 @@ jobs:
     if: github.ref == 'refs/heads/master'
     permissions:
       contents: write
+      id-token: write
+      attestations: write
+    environment: pypi
     steps:
       - uses: actions/checkout@v4
         with:
@@ -80,9 +83,28 @@ jobs:
         uses: astral-sh/setup-uv@v4
       - name: Install dependencies
         run: uv sync
-      - name: Deploy
+      - name: Version and build
+        id: release
         env:
-          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: sh tools/deploy.sh
+        run: |
+          if uv run semantic-release version; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Generate artifact attestations
+        if: steps.release.outputs.released == 'true'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "dist/*"
+      - name: Publish to PyPI
+        if: steps.release.outputs.released == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to GitHub Releases
+        if: steps.release.outputs.released == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          uv run semantic-release publish
+          rm -rf dist
