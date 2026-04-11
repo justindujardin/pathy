@@ -55,7 +55,7 @@ dev = [
 
 [tool.hatch.version]
 path = "pathy/about.py"
-pattern = '__version__: str = "(?P<version>[^"]+)"'
+pattern = '__version__ = "(?P<version>[^"]+)"'
 
 [tool.hatch.build.targets.wheel]
 packages = ["pathy"]
