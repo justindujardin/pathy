@@ -2,8 +2,8 @@ name: Build
 
 on:
   schedule:
-    # Every Monday at 1PM UTC (9AM EST)
-    - cron: "0 13 * * 1"
+    # Monthly bitrot check, 1st of the month at 1PM UTC.
+    - cron: "0 13 1 * *"
   push:
     branches:
       - master
@@ -65,7 +65,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: "build"
-    if: github.ref == 'refs/heads/master'
+    # Only a push to master can release. Scheduled runs have nothing to publish.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     permissions:
       contents: write
       id-token: write
@@ -88,11 +89,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if uv run semantic-release version; then
-            echo "released=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "released=false" >> "$GITHUB_OUTPUT"
-          fi
+          # --strict exits 2 when there is nothing to release. Without it the
+          # command exits 0, skips the build, and the attest step fails on a
+          # missing dist/.
+          code=0
+          uv run semantic-release --strict version || code=$?
+          case "$code" in
+            0) echo "released=true" >> "$GITHUB_OUTPUT" ;;
+            2) echo "No release needed."
+               echo "released=false" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$code" ;;
+          esac
       - name: Generate artifact attestations
         if: steps.release.outputs.released == 'true'
         uses: actions/attest-build-provenance@v2
